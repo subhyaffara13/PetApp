@@ -1,0 +1,57 @@
+.chat-bubble {
+  display: flex;
+  gap: var(--space-md);
+  max-width: 90%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.chat-bubble--user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.chat-bubble--bot {
+  align-self: flex-start;
+}
+
+.chat-bubble__avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-bubble__sparkle {
+  color: var(--color-accent-coral);
+  /* Or a gradient color if we want it to look more like Gemini sparkles */
+}
+
+.chat-bubble__content {
+  position: relative;
+  /* For user, we will add padding in the specific class */
+}
+
+.chat-bubble--user .chat-bubble__content {
+  background: var(--color-bg-elevated); /* subtle gray/dark */
+  color: var(--color-text-primary);
+  border-radius: var(--radius-xl);
+  padding: 12px 16px;
+}
+
+.chat-bubble--bot .chat-bubble__content {
+  /* No background for AI */
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 4px 0; /* Just a little padding to align with avatar */
+}
+
+.chat-bubble__text {
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

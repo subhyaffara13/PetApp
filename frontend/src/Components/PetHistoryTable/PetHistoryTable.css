@@ -1,0 +1,111 @@
+.pet-history-table-container {
+  overflow-x: auto;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.pet-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.82rem;
+  color: #f1f5f9;
+}
+
+.pet-history-table th {
+  background: #1e293b;
+  padding: 0.75rem 0.9rem;
+  color: #94a3b8;
+  font-weight: 700;
+  border-bottom: 1px solid #334155;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.pet-history-table td {
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid #1e293b;
+  vertical-align: top;
+}
+
+.history-table-row:hover {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.cell-date {
+  white-space: nowrap;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cell-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.event-type-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.type-vaccination { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.type-surgery, .type-illness { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.type-checkup, .type-medication { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+
+.cell-clinic small {
+  color: #94a3b8;
+  display: block;
+}
+
+.cell-summary p {
+  margin: 0;
+  color: #cbd5e1;
+  max-width: 260px;
+  line-height: 1.4;
+}
+
+.cell-cost {
+  font-weight: 700;
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.btn-open-file {
+  background: #1e293b;
+  border: 1px solid #3b82f6;
+  color: #60a5fa;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-open-file:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.pet-history-table-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}

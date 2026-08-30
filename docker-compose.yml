@@ -1,0 +1,99 @@
+# =================================================================
+# PetSOS Fullstack Architecture — Multi-Container Orchestration
+# =================================================================
+
+services:
+  # 1. NestJS Core API Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petsos-api
+    restart: always
+    ports:
+      - "3000:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - FRONTEND_URL=http://localhost:5173
+      - CLINIC_PORTAL_URL=http://localhost:5174
+      - STORE_PORTAL_URL=http://localhost:5175
+      - ADMIN_PORTAL_URL=http://localhost:5176
+      - MONGO_DB_CONNECTION_STRING=${MONGO_DB_CONNECTION_STRING}
+      - USE_ATLAS=true
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ADMIN_SECRET_TOKEN=${ADMIN_SECRET_TOKEN}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/emergency/nearby?lat=32.79&lon=34.98"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - petsos-network
+
+  # 2. Customer React 19 Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: petsos-frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - petsos-network
+
+  # 3. Store Merchant Portal
+  store-portal:
+    build:
+      context: ./store-portal
+      dockerfile: Dockerfile
+    container_name: petsos-store-portal
+    restart: always
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+    networks:
+      - petsos-network
+
+  # 4. Clinic Emergency & Triage Portal
+  clinic-portal:
+    build:
+      context: ./clinic-portal
+      dockerfile: Dockerfile
+    container_name: petsos-clinic-portal
+    restart: always
+    ports:
+      - "5175:80"
+    depends_on:
+      - backend
+    networks:
+      - petsos-network
+
+  # 5. Super Admin Portal
+  admin-portal:
+    build:
+      context: ./Admin-Portal
+      dockerfile: Dockerfile
+    container_name: petsos-admin-portal
+    restart: always
+    ports:
+      - "5176:80"
+    depends_on:
+      - backend
+    networks:
+      - petsos-network
+
+networks:
+  petsos-network:
+    driver: bridge

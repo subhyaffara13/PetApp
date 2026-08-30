@@ -1,0 +1,53 @@
+.emergency-page {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Theme Design Tokens */
+.theme-dark,
+[data-theme='dark'] {
+  --bg: #121417;
+  --bg-elevated: #1a1d22;
+  --bg-card: #1f2329;
+  --alert: #e8432a;
+  --alert-dim: rgba(232, 67, 42, 0.16);
+  --muted: #6b7280;
+  --text: #f3f1ec;
+  --text-dim: #9aa0a8;
+  --border: #2a2e35;
+  --border-hover: #3e444e;
+  --radius: 14px;
+  --header-gradient: linear-gradient(
+    180deg,
+    rgba(18, 20, 23, 0.95) 0%,
+    rgba(18, 20, 23, 0.75) 60%,
+    transparent 100%
+  );
+}
+
+.theme-light,
+[data-theme='light'] {
+  --bg: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-card: #f1f5f9;
+  --alert: #dc2626;
+  --alert-dim: rgba(220, 38, 38, 0.12);
+  --muted: #94a3b8;
+  --text: #0f172a;
+  --text-dim: #475569;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --radius: 14px;
+  --header-gradient: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.95) 0%,
+    rgba(248, 250, 252, 0.75) 60%,
+    transparent 100%
+  );
+}

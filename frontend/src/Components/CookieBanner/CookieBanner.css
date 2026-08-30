@@ -1,0 +1,119 @@
+.cookie-banner-overlay {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  max-width: 640px;
+  z-index: 9999;
+  animation: slideUpFade 0.3s ease-out;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cookie-banner-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: #f8fafc;
+}
+
+.cookie-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cookie-banner-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cookie-banner-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.btn-link-legal {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cookie-custom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #1e293b;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.cookie-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.cookie-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.btn-cookie {
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-cookie--primary {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-cookie--primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-cookie--secondary {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.btn-cookie--secondary:hover {
+  background: #475569;
+}
+
+.btn-cookie--ghost {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+.btn-cookie--ghost:hover {
+  color: white;
+  border-color: #64748b;
+}

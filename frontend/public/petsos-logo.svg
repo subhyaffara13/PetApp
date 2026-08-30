@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="pawGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#ef4444" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Protective Heart & Shield Badge -->
+  <path d="M256 460 C120 370 48 290 48 180 A105 105 0 0 1 256 125 A105 105 0 0 1 464 180 C464 290 392 370 256 460 Z" fill="url(#bgGrad)" filter="url(#glow)" />
+
+  <!-- Modern Stylized Pet Paw -->
+  <g fill="url(#pawGrad)">
+    <!-- Main Pad -->
+    <path d="M256 340 C220 340 195 315 205 285 C215 255 240 248 256 248 C272 248 297 255 307 285 C317 315 292 340 256 340 Z" />
+    <!-- Outer Left Toe -->
+    <ellipse cx="178" cy="225" rx="20" ry="28" transform="rotate(-25 178 225)" />
+    <!-- Inner Left Toe -->
+    <ellipse cx="224" cy="188" rx="20" ry="30" transform="rotate(-8 224 188)" />
+    <!-- Inner Right Toe -->
+    <ellipse cx="288" cy="188" rx="20" ry="30" transform="rotate(8 288 188)" />
+    <!-- Outer Right Toe -->
+    <ellipse cx="334" cy="225" rx="20" ry="28" transform="rotate(25 334 225)" />
+  </g>
+
+  <!-- Emergency Vital Pulse Ring Accent -->
+  <path d="M160 385 L205 385 L220 355 L245 410 L270 365 L285 385 L352 385" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+</svg>

@@ -1,0 +1,13 @@
+.profile-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg, 24px);
+}
+
+.profile-detail__section-title {
+  font-size: var(--text-base, 1rem);
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}

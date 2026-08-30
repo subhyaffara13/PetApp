@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "PetSOS Emergency & Health",
+    "slug": "petsos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.petsos.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PetSOS needs live GPS to find nearest 24/7 open emergency vet clinics and dispatch SOS dossier.",
+        "NSCameraUsageDescription": "PetSOS uses the camera to scan pet medical passports and prescription receipts."
+      }
+    },
+    "android": {
+      "package": "com.petsos.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA"
+      ]
+    }
+  }
+}

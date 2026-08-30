@@ -1,0 +1,56 @@
+.emergency-card {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.05));
+  border: 2px solid var(--color-sos-red);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  text-align: center;
+  max-width: 85%;
+  align-self: center;
+  box-shadow: 0 0 30px var(--color-sos-red-glow);
+}
+
+.emergency-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-md);
+  border-radius: var(--radius-full);
+  background: rgba(220, 38, 38, 0.2);
+  color: var(--color-sos-red);
+  animation: pulse-red 2s infinite;
+}
+
+.emergency-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--color-sos-red);
+  margin-bottom: var(--space-sm);
+}
+
+.emergency-card__message {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  line-height: 1.5;
+}
+
+.emergency-card__disclaimer {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.emergency-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.emergency-card__btn {
+  width: 100%;
+  justify-content: center;
+  text-decoration: none;
+}

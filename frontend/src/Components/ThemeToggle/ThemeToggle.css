@@ -1,0 +1,22 @@
+.theme-toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-card, #1f2329);
+  border: 1px solid var(--color-border, #2a2e35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary, #9aa0a8);
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all var(--transition-fast, 150ms);
+}
+
+.theme-toggle-btn:hover {
+  color: var(--color-text-primary, #f1f5f9);
+  background: var(--color-bg-elevated, #1a1d22);
+  border-color: var(--color-border-focus, rgba(249, 115, 22, 0.5));
+  transform: translateY(-1px);
+}

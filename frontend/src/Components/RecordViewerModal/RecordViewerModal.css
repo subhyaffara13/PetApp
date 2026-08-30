@@ -1,0 +1,121 @@
+.record-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+.record-viewer-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  color: #f8fafc;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.record-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.record-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.record-title-row h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.record-title-row small {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.btn-close-viewer {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.record-viewer-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.image-viewer-box, .pdf-viewer-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scanned-image-preview {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  object-fit: contain;
+}
+
+.pdf-iframe-preview {
+  width: 100%;
+  height: 60vh;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.emr-summary-banner {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cost-tag {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.emr-section {
+  margin-bottom: 1rem;
+}
+
+.emr-section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: #60a5fa;
+  text-transform: uppercase;
+}
+
+.emr-section ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #cbd5e1;
+}

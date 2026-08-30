@@ -1,0 +1,128 @@
+.map-container {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.full-height-map {
+  height: 100%;
+  width: 100%;
+}
+
+/* ============================================
+   Dark Mode: CSS filter to invert OSM tiles
+   This creates a beautiful dark basemap from
+   standard OpenStreetMap tiles — no API key needed
+   ============================================ */
+.dark-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1) saturate(0.3);
+}
+
+/* Prevent the inversion from affecting markers & controls */
+.dark-map .leaflet-marker-pane,
+.dark-map .leaflet-shadow-pane,
+.dark-map .leaflet-overlay-pane,
+.dark-map .leaflet-popup-pane,
+.dark-map .leaflet-tooltip-pane,
+.dark-map .leaflet-control-container {
+  filter: none;
+}
+
+/* Light mode — no filter needed, standard OSM tiles */
+.light-map .leaflet-tile-pane {
+  filter: none;
+}
+
+/* User Location Dot Marker */
+.user-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4f8bff;
+  border: 2px solid #fff;
+  position: relative;
+  box-shadow: 0 0 0 4px rgba(79, 139, 255, 0.25);
+}
+
+.user-dot-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid #4f8bff;
+  animation: pulse 2.2s ease-out infinite;
+}
+
+/* Provider Pin Markers */
+.pin {
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.pin-verified {
+  width: 22px;
+  height: 22px;
+  background: var(--alert, #e8432a);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 6px var(--alert-dim, rgba(232, 67, 42, 0.16));
+  animation: pulse-alert 2.4s ease-out infinite;
+}
+
+.pin-unverified {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+  border: 2px solid var(--muted, #6b7280);
+  margin: 5px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-alert {
+  0% {
+    box-shadow: 0 0 0 0 var(--alert-dim, rgba(232, 67, 42, 0.16));
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(232, 67, 42, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-dot-pulse,
+  .pin-verified {
+    animation: none;
+  }
+}
+
+/* Leaflet Attribution Overrides */
+.dark-map .leaflet-control-attribution {
+  background: rgba(18, 20, 23, 0.85) !important;
+  color: var(--text-dim, #9aa0a8) !important;
+  font-size: 9px !important;
+}
+
+.dark-map .leaflet-control-attribution a {
+  color: var(--text-dim, #9aa0a8) !important;
+}
+
+.light-map .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+}
+
+.light-map .leaflet-control-attribution a {
+  color: #64748b !important;
+}

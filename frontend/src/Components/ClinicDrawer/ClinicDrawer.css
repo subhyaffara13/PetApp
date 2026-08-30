@@ -1,0 +1,166 @@
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  background: var(--color-overlay);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.clinic-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 850;
+  max-height: 70vh;
+  background: var(--color-bg-secondary);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.clinic-drawer--open {
+  transform: translateY(0);
+}
+
+.clinic-drawer__handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+  cursor: grab;
+}
+
+.clinic-drawer__handle-bar {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.clinic-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+}
+
+.clinic-drawer__header h3 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.clinic-drawer__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-status-open);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.clinic-drawer__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  -webkit-overflow-scrolling: touch;
+}
+
+.clinic-drawer__empty {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+}
+
+.clinic-drawer__empty p {
+  color: var(--color-text-secondary);
+}
+
+.clinic-drawer__empty-sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted) !important;
+  margin-top: var(--space-xs);
+}
+
+/* --- Clinic Card --- */
+.clinic-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-base);
+}
+
+.clinic-card--selected {
+  border-color: var(--color-accent-coral);
+  box-shadow: 0 0 0 1px var(--color-accent-coral), var(--shadow-glow-coral);
+}
+
+.clinic-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.clinic-card__name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.clinic-card__address {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.clinic-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.clinic-card__hours,
+.clinic-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.clinic-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* --- Peek Button --- */
+.drawer-peek {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-area-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  animation: slideUp 0.4s ease-out, float 3s ease-in-out infinite 0.4s;
+}

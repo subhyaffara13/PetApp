@@ -1,0 +1,87 @@
+.hotline-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay, rgba(0, 0, 0, 0.7));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md, 16px);
+  animation: fadeIn var(--transition-fast, 150ms) ease-out;
+}
+
+.hotline-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card, #1a2236);
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.12));
+  border-radius: var(--radius-xl, 24px);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.hotline-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md, 16px) var(--space-lg, 24px);
+  border-bottom: 1px solid var(--color-border, rgba(148, 163, 184, 0.12));
+}
+
+.hotline-modal__header h3 {
+  font-size: var(--text-base, 1rem);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary, #f1f5f9);
+  margin: 0;
+}
+
+.hotline-modal__list {
+  overflow-y: auto;
+  padding: var(--space-md, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+}
+
+.hotline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md, 16px);
+  padding: var(--space-md, 16px);
+  background: var(--color-bg-secondary, #111827);
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.12));
+  border-radius: var(--radius-md, 12px);
+  transition: border-color var(--transition-fast, 150ms);
+}
+
+.hotline-item:hover {
+  border-color: var(--color-accent-coral, #f97316);
+}
+
+.hotline-item__info h4 {
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #f1f5f9);
+  margin: 0 0 2px;
+}
+
+.hotline-item__info p {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-muted, #64748b);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.hotline-call-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 8px 14px;
+}

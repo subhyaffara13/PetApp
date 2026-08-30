@@ -1,0 +1,249 @@
+name: Deploy to Google Cloud Run via GitHub
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      deploy_portals:
+        description: 'Deploy revenue portals (clinic, store, admin) along with frontend/backend'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION || 'me-west1' }} # Default region: Middle East (Tel Aviv) or us-central1
+  GAR_REPO: petsos-repo
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  # =============================================================
+  # Step 1: Run Quality Checks & Unit Tests
+  # =============================================================
+  validate:
+    name: Run Unit Tests & Build Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run Backend Unit Tests (30 Tests)
+        working-directory: ./backend
+        run: npm test
+
+      - name: Compile NestJS Backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Compile React 19 Frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
+  # =============================================================
+  # Step 2: Build & Deploy Backend API to Cloud Run
+  # =============================================================
+  deploy-backend:
+    name: Deploy Backend API
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy-backend.outputs.url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker to Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Push Backend Container Image
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}"
+          LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-api:latest"
+          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend
+          docker push "$IMAGE_TAG"
+          docker push "$LATEST_TAG"
+
+      - name: Deploy Backend to Google Cloud Run
+        id: deploy-backend
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: petsos-api
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
+          region: ${{ env.REGION }}
+          flags: |
+            --allow-unauthenticated
+            --min-instances=1
+            --max-instances=10
+            --memory=512Mi
+            --cpu=1
+            --port=8080
+          env_vars: |
+            NODE_ENV=production
+            PORT=8080
+            USE_ATLAS=true
+            MONGO_DB_CONNECTION_STRING=${{ secrets.MONGO_DB_CONNECTION_STRING }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            ADMIN_SECRET_TOKEN=${{ secrets.ADMIN_SECRET_TOKEN }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}
+
+  # =============================================================
+  # Step 3: Build & Deploy Customer Frontend to Cloud Run
+  # =============================================================
+  deploy-frontend:
+    name: Deploy Customer Frontend
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker to Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Push Frontend Image with Backend URL
+        env:
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}"
+          LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-frontend:latest"
+          
+          # Inject production build-time env variables
+          echo "VITE_API_URL=${VITE_API_URL}" >> ./frontend/.env
+          echo "VITE_SOCKET_URL=${VITE_API_URL}" >> ./frontend/.env
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY}" >> ./frontend/.env
+          echo "VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}" >> ./frontend/.env
+
+          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./frontend
+          docker push "$IMAGE_TAG"
+          docker push "$LATEST_TAG"
+
+      - name: Deploy Frontend to Google Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: petsos-frontend
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
+          region: ${{ env.REGION }}
+          flags: |
+            --allow-unauthenticated
+            --min-instances=0
+            --max-instances=10
+            --port=80
+
+  # =============================================================
+  # Step 4: Deploy Revenue Portals (Clinic, Store, Admin)
+  # =============================================================
+  deploy-portals:
+    name: Deploy Revenue Portals
+    needs: deploy-backend
+    if: github.event_name == 'push' || github.event.inputs.deploy_portals == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # 4a. Clinic Portal
+      - name: Build & Deploy Clinic Portal
+        env:
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+        run: |
+          echo "VITE_API_URL=${VITE_API_URL}" >> ./clinic-portal/.env
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-clinic-portal:${{ github.sha }}"
+          docker build -t "$IMAGE" ./clinic-portal
+          docker push "$IMAGE"
+          gcloud run deploy petsos-clinic-portal \
+            --image "$IMAGE" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 80
+
+      # 4b. Store Merchant Portal
+      - name: Build & Deploy Store Portal
+        env:
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+        run: |
+          echo "VITE_API_URL=${VITE_API_URL}" >> ./store-portal/.env
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-store-portal:${{ github.sha }}"
+          docker build -t "$IMAGE" ./store-portal
+          docker push "$IMAGE"
+          gcloud run deploy petsos-store-portal \
+            --image "$IMAGE" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 80
+
+      # 4c. Admin Portal
+      - name: Build & Deploy Admin Portal
+        env:
+          VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+        run: |
+          echo "VITE_API_URL=${VITE_API_URL}" >> ./Admin-Portal/.env
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-admin-portal:${{ github.sha }}"
+          docker build -t "$IMAGE" ./Admin-Portal
+          docker push "$IMAGE"
+          gcloud run deploy petsos-admin-portal \
+            --image "$IMAGE" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 80

@@ -1,0 +1,19 @@
+{
+  "name": "PetSOS Emergency Veterinary & Community",
+  "short_name": "PetSOS",
+  "description": "Locate 24/7 emergency veterinary clinics, AI pet triage, and local pet parent community.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0284c7",
+  "orientation": "portrait-primary",
+  "categories": ["lifestyle", "medical", "utilities"],
+  "icons": [
+    {
+      "src": "/petsos-logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

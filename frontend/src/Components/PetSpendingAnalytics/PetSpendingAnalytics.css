@@ -1,0 +1,132 @@
+.pet-spending-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  color: #f8fafc;
+}
+
+.spending-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.spending-card-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.spending-card-header p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.btn-upload-shop-receipt {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s;
+}
+
+.btn-upload-shop-receipt:hover {
+  background: #1d4ed8;
+}
+
+.spending-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.metric-pill {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.metric-pill small {
+  display: block;
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.metric-pill strong {
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.spending-pie-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.spending-legend-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.legend-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 220px;
+}
+
+.legend-label {
+  color: #cbd5e1;
+}
+
+.legend-amount {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.pie-slice {
+  transition: opacity 0.2s;
+}
+
+.pie-slice:hover {
+  opacity: 0.85;
+}

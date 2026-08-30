@@ -1,0 +1,39 @@
+# Dependencies & Build Output
+node_modules/
+dist/
+build/
+.temp/
+.tmp/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & Secrets (Never commit .env files with API keys or tokens)
+.env
+.env.*
+*.local
+*sa-key.json
+*.key.json
+
+# Database layouts & type structures
+/clinic-portal/src/schemas/
+/frontend/src/schemas/
+
+# System & OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
