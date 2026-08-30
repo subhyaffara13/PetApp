@@ -1,3 +1,15 @@
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: jest.fn().mockReturnValue({
+      startChat: jest.fn().mockReturnValue({
+        sendMessage: jest.fn().mockResolvedValue({
+          response: { text: () => 'Mocked AI veterinary response' },
+        }),
+      }),
+    }),
+  })),
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ChatService } from './chat.service';
@@ -54,16 +66,21 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
       expect(res.message).toContain('🚨 تم اكتشاف حالة طوارئ');
     });
 
-    it('should safely provide advice for non-emergency diet queries', async () => {
+    it('should return AI veterinary advice for wellness queries when AI is active', async () => {
       const res = await service.processMessage('What is the best food diet for my golden retriever?', []);
       expect(res.emergency).toBe(false);
-      expect(res.message).toContain('Pet Nutrition');
+      expect(res.message).toBe('Mocked AI veterinary response');
     });
 
-    it('should provide skin & itching advice for allergy queries', async () => {
-      const res = await service.processMessage('My dog has an itchy rash and keeps scratching', []);
-      expect(res.emergency).toBe(false);
-      expect(res.message).toContain('Skin & Itching');
+    it('should provide smart diagnostic fallback when AI is unavailable', async () => {
+      // Test the smart diagnostic rule engine directly
+      const dietResponse = (service as any).generateSmartDiagnosticResponse('food diet recommendations');
+      expect(dietResponse.emergency).toBe(false);
+      expect(dietResponse.message).toContain('Pet Nutrition');
+
+      const skinResponse = (service as any).generateSmartDiagnosticResponse('rash and itch');
+      expect(skinResponse.emergency).toBe(false);
+      expect(skinResponse.message).toContain('Skin & Itching');
     });
   });
 });
