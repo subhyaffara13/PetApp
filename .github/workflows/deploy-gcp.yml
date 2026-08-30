@@ -79,6 +79,15 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Ensure GCP APIs and Artifact Registry Repository Exist
+        run: |
+          gcloud services enable run.googleapis.com artifactregistry.googleapis.com --quiet
+          gcloud artifacts repositories create ${{ env.GAR_REPO }} \
+            --repository-format=docker \
+            --location=${{ env.REGION }} \
+            --description="PetSOS Production Docker Images" \
+            --quiet || true
+
       - name: Authorize Docker to Artifact Registry
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
