@@ -20,7 +20,7 @@ import { Table, ListFilter, PieChart } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import './MedicalTimeline.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 
 interface ClinicalRecord {
   _id: string;

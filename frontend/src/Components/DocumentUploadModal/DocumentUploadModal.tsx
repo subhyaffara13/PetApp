@@ -17,9 +17,8 @@ import {
 } from 'lucide-react';
 import { MultiPetSplitAssigner } from './MultiPetSplitAssigner';
 import { QuickAddPetInline } from './QuickAddPetInline';
+import { API_URL } from '../../config/api';
 import './DocumentUploadModal.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;

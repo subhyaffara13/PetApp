@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
 
 interface QuickAddPetInlineProps {
   onPetAdded: (newPet: any) => void;
@@ -30,7 +31,7 @@ export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded
     };
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/pet-profile`, payload);
+      const res = await axios.post(`${API_URL}/pet-profile`, payload);
       onPetAdded(res.data);
     } catch {
       setError('Failed to add pet. Please try again.');

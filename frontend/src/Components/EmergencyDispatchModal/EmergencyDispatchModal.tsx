@@ -4,7 +4,7 @@ import type { Clinic, PetProfile } from '../../schemas';
 import { Send, Clock, CheckCircle, X } from 'lucide-react';
 import './EmergencyDispatchModal.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 
 interface EmergencyDispatchModalProps {
   clinic: Clinic;

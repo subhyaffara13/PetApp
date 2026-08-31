@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Sparkles, Check, Plus, AlertCircle } from 'lucide-react';
+import { API_URL } from '../../config/api';
 import './ContextualSelect.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface ContextualSelectProps {
   species: string;

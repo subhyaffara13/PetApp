@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
 import './ContactSupportModal.css';
 
 interface ContactSupportModalProps {
@@ -10,7 +11,7 @@ interface ContactSupportModalProps {
 export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ onClose, defaultCategory = 'bug' }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [category, setCategory] = useState(defaultCategory);
+  const [category, setCategory] = useState<string>(defaultCategory);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({ onClos
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/support/contact`, {
+      const res = await axios.post(`${API_URL}/support/contact`, {
         name,
         email,
         category,

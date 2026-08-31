@@ -3,9 +3,8 @@ import axios from 'axios';
 import { X, ShieldAlert, Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2, Circle, KeyRound, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { API_URL } from '../../config/api';
 import './AuthModal.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 declare global {
   interface Window {
