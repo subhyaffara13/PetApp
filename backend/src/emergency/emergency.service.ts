@@ -724,6 +724,23 @@ export class EmergencyService {
     const results: any[] = [];
     const seenCoordinates = new Set<string>();
 
+    const biasLat = lat || 32.794;
+    const biasLon = lon || 34.9896;
+
+    const calcDistance = (itemLat: number, itemLng: number): number => {
+      const R = 6371;
+      const dLat = ((itemLat - biasLat) * Math.PI) / 180;
+      const dLng = ((itemLng - biasLon) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((biasLat * Math.PI) / 180) *
+          Math.cos((itemLat * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
     const addResult = (item: {
       name: string;
       lat: number;
@@ -736,61 +753,93 @@ export class EmergencyService {
       const coordKey = `${item.lat.toFixed(4)},${item.lng.toFixed(4)}`;
       if (!seenCoordinates.has(coordKey)) {
         seenCoordinates.add(coordKey);
-        results.push(item);
+        const distance = calcDistance(item.lat, item.lng);
+        results.push({ ...item, distance });
       }
     };
 
     const googleLang = lang === 'he' ? 'iw' : lang || 'en';
-    const biasLat = lat || 32.794;
-    const biasLon = lon || 34.9896;
 
-    // 1. Google Places Text Search (Biased to user location & handles single street names like "ברכה חבס")
     if (this.G_PLACES_API_KEY) {
+      // 1. Google Places Autocomplete API (Targeted address & street suggestions with strict proximity)
       try {
-        const textSearchUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
-        const textRes = await firstValueFrom(
-          this.httpService.get(textSearchUrl, {
+        const autoUrl = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+        const autoRes = await firstValueFrom(
+          this.httpService.get(autoUrl, {
             params: {
-              query: trimmed,
+              input: trimmed,
               location: `${biasLat},${biasLon}`,
-              radius: 50000,
+              radius: 35000,
+              origin: `${biasLat},${biasLon}`,
               language: googleLang,
               key: this.G_PLACES_API_KEY,
             },
-            timeout: 4000,
+            timeout: 3500,
           }),
         );
 
-        if (textRes.data?.results && Array.isArray(textRes.data.results)) {
-          for (const place of textRes.data.results.slice(0, 6)) {
-            const loc = place.geometry?.location;
-            if (loc) {
-              const formatted = place.formatted_address || place.name;
-              addResult({
-                name: formatted.includes(place.name) ? formatted : `${place.name}, ${formatted}`,
-                lat: loc.lat,
-                lng: loc.lng,
-                street: place.name,
-                type: 'street',
-              });
-            }
+        if (autoRes.data?.predictions && Array.isArray(autoRes.data.predictions)) {
+          const detailPromises = autoRes.data.predictions.slice(0, 4).map(async (pred: any) => {
+            try {
+              const detailUrl = 'https://maps.googleapis.com/maps/api/place/details/json';
+              const dRes = await firstValueFrom(
+                this.httpService.get(detailUrl, {
+                  params: {
+                    place_id: pred.place_id,
+                    fields: 'geometry,formatted_address,name,address_components',
+                    language: googleLang,
+                    key: this.G_PLACES_API_KEY,
+                  },
+                  timeout: 3000,
+                }),
+              );
+              const place = dRes.data?.result;
+              const loc = place?.geometry?.location;
+              if (loc) {
+                const addrComps = place.address_components || [];
+                const routeComp = addrComps.find(
+                  (c: any) => c.types.includes('route') || c.types.includes('street_address'),
+                );
+                const localityComp = addrComps.find(
+                  (c: any) => c.types.includes('locality') || c.types.includes('postal_town'),
+                );
+                const countryComp = addrComps.find((c: any) => c.types.includes('country'));
+
+                return {
+                  name: pred.description || place.formatted_address || place.name,
+                  lat: loc.lat,
+                  lng: loc.lng,
+                  street: routeComp?.long_name || place.name,
+                  city: localityComp?.long_name,
+                  countryCode: countryComp?.short_name?.toLowerCase(),
+                  type: 'street' as const,
+                };
+              }
+            } catch {}
+            return null;
+          });
+
+          const resolved = await Promise.all(detailPromises);
+          for (const item of resolved) {
+            if (item) addResult(item);
           }
         }
-      } catch (gPlacesErr: any) {
-        this.logger.warn('Google Places TextSearch error in geocode:', gPlacesErr?.message);
+      } catch (autoErr: any) {
+        this.logger.warn('Google Places Autocomplete error in geocode:', autoErr?.message);
       }
 
-      // 2. Google Geocoding API
+      // 2. Google Geocoding API with Viewport Bounding Box
       try {
         const geoUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
         const geoRes = await firstValueFrom(
           this.httpService.get(geoUrl, {
             params: {
               address: trimmed,
+              bounds: `${biasLat - 0.3},${biasLon - 0.3}|${biasLat + 0.3},${biasLon + 0.3}`,
               key: this.G_PLACES_API_KEY,
               language: googleLang,
             },
-            timeout: 4000,
+            timeout: 3500,
           }),
         );
 
@@ -916,6 +965,9 @@ export class EmergencyService {
         this.logger.warn('Nominatim geocode fallback notice:', nomErr?.message);
       }
     }
+
+    // Sort strictly by distance to user's proximity (closest street first!)
+    results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
     return results;
   }
