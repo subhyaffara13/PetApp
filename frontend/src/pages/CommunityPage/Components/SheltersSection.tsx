@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MapPin, Phone, Globe, Home, Loader2, Plus, X, MessageCircle } from 'lucide-react';
+import { MapPin, Phone, Globe, Home, Loader2, ChevronDown, ChevronUp, MessageCircle, Plus, X } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { useImageUpload } from '../../../Hooks/useImageUpload';
 import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../../data/petBreeds';
-
 import { API_URL } from '../../../config/api';
 
 interface ShelterResult {
@@ -30,13 +29,10 @@ interface AdoptablePetItem {
   gender: 'male' | 'female';
   avatar: string;
   shelterName: string;
-  shelterPhone: string;
-  locationCity: string;
+  contactPhone?: string;
+  shelterPhone?: string;
   story: string;
-  isVaccinated: boolean;
-  isNeutered: boolean;
-  goodWithKids: boolean;
-  status: 'available' | 'pending' | 'adopted';
+  status: 'available' | 'adopted';
 }
 
 interface SheltersSectionProps {
@@ -59,6 +55,14 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
   const [selectedSpecies, setSelectedSpecies] = useState<'all' | 'dog' | 'cat'>('all');
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // Auto-expand when user filters by adoption
+  useEffect(() => {
+    if (activeCategory === 'adoption') {
+      setIsCollapsed(false);
+    }
+  }, [activeCategory]);
 
   // New Pet Form State
   const [newPetName, setNewPetName] = useState('');
@@ -91,7 +95,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
       } catch {}
 
       try {
-        const res = await axios.get<ShelterResult[]>(`${API_URL}/shelters`, {
+        const res = await axios.get<ShelterResult[]>(`${API_URL}/community/shelters/nearby`, {
           params: { country: detectedCountry },
         });
         setShelters(res.data || []);
@@ -105,38 +109,39 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
     detectCountryAndFetchShelters();
   }, []);
 
-  const fetchAdoptablePets = async () => {
-    try {
-      const res = await axios.get<AdoptablePetItem[]>(`${API_URL}/shelters/adoptions`, {
-        params: { species: selectedSpecies },
-      });
-      setAdoptablePets(res.data || []);
-    } catch {}
-  };
-
+  // Fetch adoptable pets from database
   useEffect(() => {
+    const fetchAdoptablePets = async () => {
+      try {
+        const res = await axios.get<AdoptablePetItem[]>(`${API_URL}/community/adoptable-pets`, {
+          params: { species: selectedSpecies },
+        });
+        setAdoptablePets(res.data || []);
+      } catch {
+        setAdoptablePets([]);
+      }
+    };
+
     if (activeCategory === 'adoption') {
       fetchAdoptablePets();
     }
   }, [activeCategory, selectedSpecies]);
 
-  const handleCreateAdoptable = async (e: React.FormEvent) => {
+  const handleCreatePet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPetName.trim() || !newPetBreed.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const res = await axios.post(`${API_URL}/shelters/adoptions`, {
+      const res = await axios.post(`${API_URL}/community/adoptable-pets`, {
         name: newPetName,
         species: newPetSpecies,
         breed: newPetBreed,
-        age: newPetAge || '1 year',
+        age: newPetAge || 'Young',
         gender: newPetGender,
-        avatar: (image?.url || image?.previewUrl) || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&auto=format&fit=crop&q=80',
-        shelterId: `shelter-${Date.now()}`,
+        avatar: (image?.url || image?.previewUrl) || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400',
         shelterName: newPetShelter,
-        shelterPhone: newPetPhone,
-        locationCity: 'Haifa',
+        contactPhone: newPetPhone,
         story: newPetStory,
         status: 'available',
       });
@@ -156,73 +161,98 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
   };
 
   return (
-    <section className="shelters-section card animate-slide-up" style={{ padding: '1.25rem' }}>
-      {/* Top Header & Category Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>🏡</span> {activeCategory === 'adoption' ? 'Live Pet Adoption Directory' : 'Local Shelters & Rescues'}
-          </h3>
-          <p style={{ margin: '0.2rem 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
-            {activeCategory === 'adoption' ? 'Find loving rescue pets looking for a forever home' : 'Verified rescue organizations & animal shelters in your region'}
-          </p>
+    <section className="shelters-section card animate-slide-up" style={{ padding: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+      {/* Collapsible Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>🏡</span>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              {activeCategory === 'adoption' ? 'Live Pet Adoption Directory' : 'Local Shelters & Rescues'}
+            </h3>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
+              {isCollapsed
+                ? `${shelters.length > 0 ? `${shelters.length} centers nearby` : 'Find rescue centers'} · Click to expand`
+                : activeCategory === 'adoption'
+                ? 'Find loving rescue pets looking for a forever home'
+                : 'Verified rescue organizations & animal shelters in your region'}
+            </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          {activeCategory === 'adoption' && (
-            <button
-              type="button"
-              onClick={() => {
-                if (!isAuthenticated) {
-                  showToast('Please sign in to list a rescue pet', 'info', '🔒 Sign In Required');
-                  openAuthModal('/community');
-                  return;
-                }
-                setShowAddModal(true);
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '0.4rem 0.75rem',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
-            >
-              <Plus size={13} /> + List Rescue Pet
-            </button>
-          )}
-
           <button
             type="button"
-            className="btn-adopt-banner"
-            onClick={() => (activeCategory === 'adoption' ? onGoToAll() : onGoToAdoption())}
-            style={{
-              padding: '0.4rem 0.75rem',
-              background: activeCategory === 'adoption' ? 'rgba(255,255,255,0.08)' : 'var(--color-primary)',
-              color: activeCategory === 'adoption' ? '#f8fafc' : '#0f172a',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
+            className="btn btn-ghost btn-sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#38bdf8' }}
           >
-            {activeCategory === 'adoption' ? '← View Shelters' : '🏡 Browse Adoptable Pets'}
+            {isCollapsed ? <><ChevronDown size={14} /> Expand</> : <><ChevronUp size={14} /> Collapse</>}
           </button>
         </div>
       </div>
 
-      {/* ADOPTION VIEW: Live MongoDB Atlas Pets */}
-      {activeCategory === 'adoption' ? (
-        <div>
-          {/* Filter Pills */}
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
+      {/* Expanded Content View */}
+      {!isCollapsed && (
+        <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem' }}>
+          {/* Action Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <button
+              type="button"
+              className="btn-adopt-banner"
+              onClick={() => (activeCategory === 'adoption' ? onGoToAll() : onGoToAdoption())}
+              style={{
+                padding: '0.35rem 0.7rem',
+                background: activeCategory === 'adoption' ? 'rgba(255,255,255,0.08)' : 'var(--color-primary)',
+                color: activeCategory === 'adoption' ? '#f8fafc' : '#0f172a',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {activeCategory === 'adoption' ? '← View Shelters' : '🐾 Browse Adoptable Pets'}
+            </button>
+
+            {activeCategory === 'adoption' && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    showToast('Please sign in to list a rescue pet', 'info', '🔒 Sign In Required');
+                    openAuthModal('/community');
+                    return;
+                  }
+                  setShowAddModal(true);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '0.35rem 0.7rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                <Plus size={13} /> List Rescue Pet
+              </button>
+            )}
+          </div>
+
+          {/* ADOPTION VIEW vs SHELTERS VIEW */}
+          {activeCategory === 'adoption' ? (
+            <div>
+              {/* Filter Pills */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
             {(['all', 'dog', 'cat'] as const).map((sp) => (
               <button
                 key={sp}
@@ -305,48 +335,55 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
                   </p>
 
                   <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto' }}>
-                    <a
-                      href={`tel:${pet.shelterPhone.replace(/\s/g, '')}`}
-                      style={{
-                        flex: 1,
-                        padding: '0.4rem',
-                        background: 'rgba(255,255,255,0.08)',
-                        color: '#f8fafc',
-                        borderRadius: 6,
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '3px',
-                      }}
-                    >
-                      <Phone size={11} /> Call
-                    </a>
-                    <a
-                      href={`https://wa.me/${pet.shelterPhone.replace(/\D/g, '')}?text=Hi! I am interested in adopting ${pet.name} from PetSOS.`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        flex: 1,
-                        padding: '0.4rem',
-                        background: '#25D366',
-                        color: '#0f172a',
-                        borderRadius: 6,
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '3px',
-                      }}
-                    >
-                      <MessageCircle size={11} /> WhatsApp
-                    </a>
+                    {(() => {
+                      const phoneNum = (pet.contactPhone || pet.shelterPhone || '+972-4-838-8900');
+                      return (
+                        <>
+                          <a
+                            href={`tel:${phoneNum.replace(/\s/g, '')}`}
+                            style={{
+                              flex: 1,
+                              padding: '0.4rem',
+                              background: 'rgba(255,255,255,0.08)',
+                              color: '#f8fafc',
+                              borderRadius: 6,
+                              textAlign: 'center',
+                              textDecoration: 'none',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <Phone size={11} /> Call
+                          </a>
+                          <a
+                            href={`https://wa.me/${phoneNum.replace(/\D/g, '')}?text=Hi! I am interested in adopting ${pet.name} from PetSOS.`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              flex: 1,
+                              padding: '0.4rem',
+                              background: '#25D366',
+                              color: '#0f172a',
+                              borderRadius: 6,
+                              textAlign: 'center',
+                              textDecoration: 'none',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <MessageCircle size={11} /> WhatsApp
+                          </a>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -398,6 +435,8 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
           )}
         </div>
       )}
+        </div>
+      )}
 
       {/* Shelter Manager Add Pet Modal */}
       {showAddModal && (
@@ -410,7 +449,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleCreateAdoptable} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={handleCreatePet} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Pet Name</label>
                 <input type="text" value={newPetName} onChange={(e) => setNewPetName(e.target.value)} required style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }} />

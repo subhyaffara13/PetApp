@@ -128,15 +128,28 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   const currentBreeds = getBreedsForSpecies(selectedSpecies);
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="modal-header">
-          <h3>{postMode === 'story' ? '📸 Add 24h Story' : '✍️ Share Community Post'}</h3>
-          <button className="btn-close" onClick={onClose}>✕</button>
+    <div className="post-studio-takeover animate-fade-in" id="new-post-studio">
+      <div className="post-studio-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
+            <X size={18} />
+          </button>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+              {postMode === 'story' ? '📸 Create 24h Story' : '✍️ Create Community Post'}
+            </h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+              {postMode === 'story' ? 'Visible to neighbors for 24 hours' : 'Shares with your local neighborhood community'}
+            </span>
+          </div>
         </div>
 
+        <button type="button" className="btn-close" onClick={onClose}>✕</button>
+      </div>
+
+      <div className="post-studio-body">
         <form onSubmit={onSubmit} className="new-post-form">
-          <div className="post-mode-toggle">
+          <div className="post-mode-toggle" style={{ marginBottom: '1.25rem' }}>
             <button type="button" className={`mode-btn ${postMode === 'feed' ? 'mode-btn--active' : ''}`} onClick={() => setPostMode('feed')}>
               📰 Feed Post
             </button>
