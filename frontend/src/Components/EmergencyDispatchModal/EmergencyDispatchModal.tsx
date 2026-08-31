@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import type { Clinic, PetProfile } from '../../schemas';
+import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { Send, Clock, CheckCircle, X } from 'lucide-react';
 import './EmergencyDispatchModal.css';
 
@@ -12,44 +14,42 @@ interface EmergencyDispatchModalProps {
 }
 
 export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchModalProps) => {
+  const { user, accessToken } = useAuth();
+  const { t } = useTranslation();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string>('');
   const [urgency, setUrgency] = useState<'critical' | 'urgent' | 'standard'>('urgent');
   const [symptoms, setSymptoms] = useState<string>('');
   const [etaMinutes, setEtaMinutes] = useState<number>(15);
-  const [ownerName] = useState<string>('Subhi Y.');
-  const [ownerPhone, setOwnerPhone] = useState<string>('+972-52-894-1234');
+  const [ownerName, setOwnerName] = useState<string>(user?.name || '');
+  const [ownerPhone, setOwnerPhone] = useState<string>(
+    () => localStorage.getItem('petsos_user_phone') || ''
+  );
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [sendError, setSendError] = useState('');
 
   useEffect(() => {
+    if (user?.name && !ownerName) {
+      setOwnerName(user.name);
+    }
+  }, [user, ownerName]);
+
+  useEffect(() => {
     const fetchPets = async () => {
       try {
-        const res = await axios.get(`${API_URL}/pet-profile`);
+        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+        const res = await axios.get(`${API_URL}/pet-profile`, { headers });
         if (res.data && res.data.length > 0) {
           setPets(res.data);
           setSelectedPetId(res.data[0]._id || res.data[0].id);
         }
-      } catch {
-        // Fallback demo pet
-        const demoPets = [
-          {
-            _id: 'pet-rocky-1',
-            name: 'Rocky',
-            species: 'dog',
-            breed: 'Golden Retriever',
-            allergies: ['Penicillin'],
-            knownConditions: ['Mild hip dysplasia'],
-            medications: ['Glucosamine supplement'],
-          },
-        ];
-        setPets(demoPets as any);
-        setSelectedPetId('pet-rocky-1');
+      } catch (err) {
+        console.warn('Could not fetch active pets for emergency dispatch:', err);
       }
     };
     fetchPets();
-  }, []);
+  }, [accessToken]);
 
   const activePet = pets.find((p) => p._id === selectedPetId || (p as any).id === selectedPetId) || pets[0];
 
@@ -92,7 +92,7 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
           <div className="dispatch-header-title">
             <span className="sos-icon-pulse">🚨</span>
             <div>
-              <h3>Alert Clinic: I'm Coming</h3>
+              <h3>{t('emergency.btn_alert_coming', "Alert Clinic: I'm Coming")}</h3>
               <p>{clinic.name}</p>
             </div>
           </div>
@@ -183,34 +183,50 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
 
             <div className="dispatch-row">
               <div className="dispatch-field">
-                <label>ETA (Minutes)</label>
+                <label>Your Name</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={120}
+                  type="text"
+                  required
+                  placeholder="Full Name"
                   className="dispatch-input"
-                  value={etaMinutes}
-                  onChange={(e) => setEtaMinutes(Number(e.target.value))}
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
                 />
               </div>
               <div className="dispatch-field">
-                <label>Owner Phone</label>
+                <label>Contact Phone</label>
                 <input
                   type="tel"
                   required
+                  placeholder="+972-..."
                   className="dispatch-input"
                   value={ownerPhone}
-                  onChange={(e) => setOwnerPhone(e.target.value)}
+                  onChange={(e) => {
+                    setOwnerPhone(e.target.value);
+                    try { localStorage.setItem('petsos_user_phone', e.target.value); } catch {}
+                  }}
                 />
               </div>
             </div>
 
+            <div className="dispatch-field">
+              <label>Estimated Arrival Time (Minutes)</label>
+              <input
+                type="number"
+                min={1}
+                max={120}
+                className="dispatch-input"
+                value={etaMinutes}
+                onChange={(e) => setEtaMinutes(Number(e.target.value))}
+              />
+            </div>
+
             <div className="dispatch-footer">
               <button type="button" className="btn-cancel-dispatch" onClick={onClose}>
-                Cancel
+                {t('action.cancel', 'Cancel')}
               </button>
               <button type="submit" className="btn-transmit-sos" disabled={isSending}>
-                <Send size={15} /> {isSending ? 'Transmitting...' : "Transmit Dossier to Clinic"}
+                <Send size={15} /> {isSending ? 'Transmitting...' : t('action.dispatch', "Transmit Dossier to Clinic")}
               </button>
             </div>
             {sendError && <p className="dispatch-error" style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0.5rem 0 0', textAlign: 'center' }}>{sendError}</p>}

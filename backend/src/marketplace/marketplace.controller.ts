@@ -15,10 +15,17 @@ export class MarketplaceController {
   }
 
   @Get('shops')
-  async getShops(@Query('lat') lat?: string, @Query('lon') lon?: string) {
+  async getShops(
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+    @Query('query') query?: string,
+    @Query('lang') lang?: string,
+  ) {
     return this.marketplaceService.getShops(
-      lat ? parseFloat(lat) : undefined,
-      lon ? parseFloat(lon) : undefined,
+      lat ? parseFloat(lat) : 32.794,
+      lon ? parseFloat(lon) : 34.9896,
+      query,
+      lang || 'en',
     );
   }
 

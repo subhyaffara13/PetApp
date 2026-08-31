@@ -1,25 +1,50 @@
+import type { PetProfile } from '../../schemas';
 import './ChatGreeting.css';
 
 interface ChatGreetingProps {
+  pets?: PetProfile[];
   onSelectSuggestion: (prompt: string) => void;
 }
 
-const SUGGESTIONS = [
-  { text: 'What are safe chew toys for a puppy?', label: '🦴 Safe toys for heavy chewers' },
-  { text: 'How can I help my cat transition to a new wet food diet?', label: '🐟 Switching cat food' },
-  { text: 'My dog is barking at the door, what should I do?', label: '🐕 Stop barking at the door' },
-];
+export const ChatGreeting = ({ pets = [], onSelectSuggestion }: ChatGreetingProps) => {
+  const activePet = pets[0];
 
-export const ChatGreeting = ({ onSelectSuggestion }: ChatGreetingProps) => {
+  const dynamicSuggestions = activePet
+    ? [
+        {
+          text: `What is the optimal daily nutrition and portion size for ${activePet.name}, my ${activePet.age ? `${activePet.age} year old ` : ''}${activePet.breed}?`,
+          label: `🦴 Nutrition & diet plan for ${activePet.name} (${activePet.breed})`,
+        },
+        {
+          text: `What are common health symptoms or allergies I should watch for in a ${activePet.breed}?`,
+          label: `🩺 Health & wellness check for ${activePet.breed}`,
+        },
+        {
+          text: `What positive reinforcement training works best for ${activePet.name}?`,
+          label: `🐕 Behavior & training tips for ${activePet.name}`,
+        },
+      ]
+    : [
+        { text: 'What are safe chew toys and healthy treats for a puppy or dog?', label: '🦴 Safe treats & chew toys' },
+        { text: 'How can I smoothly transition my cat or kitten to a new diet?', label: '🐟 Smooth food transition tips' },
+        { text: 'What routine vaccination schedule is recommended for a pet?', label: '🩺 Essential vaccination timeline' },
+      ];
+
   return (
     <div className="chat-greeting-container animate-fade-in">
       <h1 className="chat-greeting-title">
-        <span className="greeting-gradient">Hello, Pet Owner.</span>
+        <span className="greeting-gradient">
+          {activePet ? `Hello! Caring for ${activePet.name}?` : 'Hello, Pet Parent.'}
+        </span>
       </h1>
-      <p className="chat-greeting-subtitle">How can I help your pet today?</p>
+      <p className="chat-greeting-subtitle">
+        {activePet
+          ? `Ask me any medical, dietary, or behavioral question tailored for ${activePet.name} (${activePet.breed}).`
+          : 'How can I assist you with your pet’s health, diet, and wellness today?'}
+      </p>
 
       <div className="chat-suggestions">
-        {SUGGESTIONS.map((s, idx) => (
+        {dynamicSuggestions.map((s, idx) => (
           <button
             key={idx}
             type="button"

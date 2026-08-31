@@ -208,10 +208,14 @@ const INITIAL_HAIFA_SHOPS = [
   },
 ];
 
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+
 @Injectable()
 export class MarketplaceService implements OnModuleInit {
   private readonly logger = new Logger(MarketplaceService.name);
   private stripe: Stripe | null = null;
+  private G_PLACES_API_KEY: string | undefined;
   private inMemoryShops = INITIAL_HAIFA_SHOPS;
   private inMemoryOrders: any[] = [];
 
@@ -220,11 +224,13 @@ export class MarketplaceService implements OnModuleInit {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private configService: ConfigService,
+    private readonly httpService: HttpService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey);
     }
+    this.G_PLACES_API_KEY = this.configService.get<string>('GOOGLE_PLACES_API_KEY');
   }
 
   async onModuleInit() {
@@ -276,14 +282,100 @@ export class MarketplaceService implements OnModuleInit {
     return this.productModel.findByIdAndDelete(productId).exec();
   }
 
-  async getShops(_lat?: number, _lon?: number): Promise<any[]> {
+  async getShops(lat: number = 32.794, lon: number = 34.9896, query?: string, lang: string = 'en'): Promise<any[]> {
+    const shopsMap = new Map<string, any>();
+
+    // 1. Load claimed & verified database partner stores with their product catalog
     try {
-      const shops = await this.shopModel.find().exec();
-      if (shops.length > 0) return shops;
-    } catch (err) {
-      this.logger.warn('MongoDB query failed, serving Haifa fallback pet shops');
+      const dbShops = await this.shopModel.find().exec();
+      for (const shop of dbShops) {
+        const id = shop._id.toString();
+        shopsMap.set(id, {
+          ...shop.toObject(),
+          _id: id,
+          isClaimed: true,
+          isOpen: shop.isOpen ?? true,
+          deliveryAvailable: shop.deliveryAvailable ?? true,
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn('MongoDB shop query error, falling back to local registry:', err?.message);
+      for (const shop of this.inMemoryShops) {
+        shopsMap.set(shop._id, shop);
+      }
     }
-    return this.inMemoryShops;
+
+    // 2. Query Live Google Places API for real-world pet stores nearby (30km radius)
+    if (this.G_PLACES_API_KEY) {
+      try {
+        const placesQueries: any[] = [
+          { type: 'pet_store', radius: 30000 },
+          { keyword: 'חנות חיות OR pet shop OR pet store OR מזון לבעלי חיים', radius: 30000 },
+        ];
+
+        if (query && query.trim()) {
+          placesQueries.push({ keyword: `${query} pet shop`, radius: 40000 });
+        }
+
+        for (const q of placesQueries) {
+          const url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+          const params = {
+            location: `${lat},${lon}`,
+            key: this.G_PLACES_API_KEY,
+            language: lang.slice(0, 2),
+            ...q,
+          };
+
+          const response = await firstValueFrom(this.httpService.get(url, { params }));
+          if (response.data?.results?.length > 0) {
+            for (const place of response.data.results) {
+              const placeId = place.place_id;
+              // Only add if not already in the map as a registered partner
+              if (!shopsMap.has(placeId)) {
+                shopsMap.set(placeId, {
+                  _id: placeId,
+                  name: place.name,
+                  address: place.vicinity || place.formatted_address || 'Local Neighborhood Store',
+                  location: place.geometry?.location || { lat, lng: lon },
+                  phone: null,
+                  tags: ['Pickup Only', 'Local Store'],
+                  rating: place.rating || 4.5,
+                  isRegistered: false,
+                  isClaimed: false,
+                  isOpen: place.opening_hours ? place.opening_hours.open_now : true,
+                  deliveryAvailable: false,
+                  pickupOnly: true,
+                  products: [], // ZERO placeholder fake products for unclaimed shops
+                });
+              }
+            }
+          }
+        }
+      } catch (placesErr: any) {
+        this.logger.warn('Google Places pet stores query warning:', placesErr?.message);
+      }
+    }
+
+    // 3. Fallback: if map is completely empty, populate local Haifa shops
+    if (shopsMap.size === 0) {
+      for (const s of this.inMemoryShops) {
+        shopsMap.set(s._id, s);
+      }
+    }
+
+    let results = Array.from(shopsMap.values());
+
+    if (query && query.trim()) {
+      const q = query.trim().toLowerCase();
+      results = results.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(q) ||
+          s.address?.toLowerCase().includes(q) ||
+          s.tags?.some((t: string) => t.toLowerCase().includes(q)),
+      );
+    }
+
+    return results;
   }
 
   async getShopWithProducts(id: string): Promise<any> {

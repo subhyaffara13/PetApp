@@ -9,6 +9,8 @@ import { PastOrdersDrawer } from '../../Components/PastOrdersDrawer/PastOrdersDr
 import { MarketplaceHeader } from './Components/MarketplaceHeader';
 import { ShopListGrid } from './Components/ShopListGrid';
 import { useToast } from '../../context/ToastContext';
+import { useTranslation } from '../../context/LanguageContext';
+import { useGeolocation } from '../../Hooks/useGeolocation';
 import type { PetShop, CartItem } from '../../schemas';
 import './MarketplacePage.css';
 
@@ -17,6 +19,8 @@ const TAG_FILTERS = ['All', 'Delivery', 'Pickup Only', 'Food', 'Toys', 'Grooming
 
 export const MarketplacePage = () => {
   const { showToast } = useToast();
+  const { currentLang } = useTranslation();
+  const { location: geoLoc } = useGeolocation();
   const [shops, setShops] = useState<PetShop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedShop, setSelectedShop] = useState<PetShop | null>(null);
@@ -43,8 +47,13 @@ export const MarketplacePage = () => {
 
   useEffect(() => {
     const fetchShops = async () => {
+      setIsLoading(true);
       try {
-        const res = await axios.get<PetShop[]>(`${API_URL}/marketplace/shops`);
+        const lat = geoLoc?.lat || 32.794;
+        const lon = geoLoc?.lon || 34.9896;
+        const res = await axios.get<PetShop[]>(`${API_URL}/marketplace/shops`, {
+          params: { lat, lon, lang: currentLang },
+        });
         setShops(res.data);
       } catch (err) {
         console.error('Failed to fetch shops:', err);
@@ -53,7 +62,7 @@ export const MarketplacePage = () => {
       }
     };
     fetchShops();
-  }, []);
+  }, [geoLoc, currentLang]);
 
   const addToCart = (product: any) => {
     setCartItems((prev) => {

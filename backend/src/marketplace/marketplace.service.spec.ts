@@ -9,6 +9,8 @@ jest.mock('stripe', () => {
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { of } from 'rxjs';
 import { MarketplaceService } from './marketplace.service';
 import { PetShop } from '../schemas/pet-shop.schema';
 import { Product } from '../schemas/product.schema';
@@ -92,6 +94,10 @@ describe('MarketplaceService', () => {
     }),
   };
 
+  const mockHttpService = {
+    get: jest.fn().mockReturnValue(of({ data: { results: [] } })),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -100,6 +106,7 @@ describe('MarketplaceService', () => {
         { provide: getModelToken(Product.name), useValue: mockProductModel },
         { provide: getModelToken(Order.name), useValue: mockOrderModel },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: HttpService, useValue: mockHttpService },
       ],
     }).compile();
 

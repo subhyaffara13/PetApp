@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MarketplaceController } from './marketplace.controller';
 import { MarketplaceService } from './marketplace.service';
@@ -9,6 +10,7 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    HttpModule,
     MongooseModule.forFeature([
       { name: PetShop.name, schema: PetShopSchema },
       { name: Product.name, schema: ProductSchema },

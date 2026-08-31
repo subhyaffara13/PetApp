@@ -10,7 +10,7 @@ import { ChatHeader } from '../../Components/ChatHeader/ChatHeader';
 import { ChatGreeting } from '../../Components/ChatGreeting/ChatGreeting';
 import { VetHotlinesModal } from '../../Components/VetHotlinesModal/VetHotlinesModal';
 import { Sparkles } from 'lucide-react';
-import type { ChatMessage, ChatThread } from '../../schemas';
+import type { ChatMessage, ChatThread, PetProfile } from '../../schemas';
 import './ChatPage.css';
 
 import { API_URL } from '../../config/api';
@@ -19,6 +19,7 @@ const THREADS_STORAGE_KEY = 'petsos_chat_threads_v2';
 export const ChatPage = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userPets, setUserPets] = useState<PetProfile[]>([]);
 
   // Load threads from localStorage
   const [threads, setThreads] = useState<ChatThread[]>(() => {
@@ -41,6 +42,21 @@ export const ChatPage = () => {
   const [emergencyMessage, setEmergencyMessage] = useState('');
   const [showHotlinesModal, setShowHotlinesModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user's registered pets for context
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile`);
+        if (res.data && res.data.length > 0) {
+          setUserPets(res.data);
+        }
+      } catch (err) {
+        console.warn('Could not load pets for AI context:', err);
+      }
+    };
+    fetchPets();
+  }, []);
 
   // Sync threads to localStorage
   useEffect(() => {
@@ -148,6 +164,7 @@ export const ChatPage = () => {
       const response = await axios.post(`${API_URL}/chat/message`, {
         message: text || (attachment ? 'Analyze this uploaded pet image or document' : ''),
         history: currentMessages.map((m) => ({ role: m.role, content: m.content })),
+        petProfileId: userPets[0]?._id || undefined,
         image: imagePayload,
       });
 
@@ -228,7 +245,7 @@ export const ChatPage = () => {
         {/* Messages / Greeting Canvas */}
         <div className="chat-page__messages" ref={scrollRef}>
           {messages.length === 0 && !isTyping && (
-            <ChatGreeting onSelectSuggestion={handleSend} />
+            <ChatGreeting pets={userPets} onSelectSuggestion={handleSend} />
           )}
 
           {messages.map((msg) => (
