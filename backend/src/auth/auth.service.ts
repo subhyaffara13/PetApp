@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { AdminClaim, AdminClaimDocument } from '../admin/admin.schema';
 import { EmailService } from '../email/email.service';
 
 export interface AuthTokens {
@@ -43,6 +44,7 @@ export class AuthService implements OnModuleInit {
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(AdminClaim.name) private readonly claimModel: Model<AdminClaimDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
@@ -248,5 +250,32 @@ export class AuthService implements OnModuleInit {
     await this.userModel.findByIdAndUpdate(user._id, { refreshTokenHash });
 
     return { accessToken, refreshToken };
+  }
+
+  async applyVerification(userId: string, dto: {
+    entityType: 'clinic' | 'store' | 'shelter' | 'sitter';
+    entityName: string;
+    entityAddress: string;
+    contactName: string;
+    contactPhone: string;
+    businessLicense?: string;
+  }): Promise<{ message: string; claimId: string }> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found.');
+
+    const claim = new this.claimModel({
+      ...dto,
+      userId,
+      businessLicense: dto.businessLicense || 'Online Professional Application',
+      status: 'pending',
+    });
+    const saved = await claim.save();
+
+    this.logger.log(`New verification claim submitted by user ${userId} for ${dto.entityType} (${dto.entityName})`);
+
+    return {
+      message: 'Your verification claim has been submitted to the PetSOS Admin team for review.',
+      claimId: saved._id.toString(),
+    };
   }
 }

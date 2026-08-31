@@ -148,10 +148,19 @@ export class AdminService {
     return { success: true };
   }
 
+  async submitClaim(dto: Partial<AdminClaim>): Promise<any> {
+    const claim = new this.claimModel({
+      ...dto,
+      status: 'pending',
+    });
+    return claim.save();
+  }
+
   async getClaims(): Promise<any[]> {
     const docs = await this.claimModel.find().sort({ createdAt: -1 }).exec();
     return docs.map((d) => ({
       id: d._id.toString(),
+      userId: d.userId,
       entityType: d.entityType,
       entityName: d.entityName,
       entityAddress: d.entityAddress,
@@ -166,6 +175,39 @@ export class AdminService {
   async verifyClaim(id: string, status: 'approved' | 'rejected'): Promise<any> {
     const claim = await this.claimModel.findByIdAndUpdate(id, { status }, { new: true });
     if (!claim) throw new NotFoundException('Claim not found');
+
+    // If approved and associated with a user account, upgrade role & badge automatically
+    if (status === 'approved' && claim.userId) {
+      try {
+        let role = 'customer';
+        let verificationBadge: any = 'none';
+
+        if (claim.entityType === 'clinic') {
+          role = 'clinic_admin';
+          verificationBadge = 'veterinarian';
+        } else if (claim.entityType === 'store') {
+          role = 'store_merchant';
+          verificationBadge = 'pet_store';
+        } else if (claim.entityType === 'shelter') {
+          role = 'shelter_org';
+          verificationBadge = 'animal_shelter';
+        } else if (claim.entityType === 'sitter') {
+          role = 'pet_sitter';
+          verificationBadge = 'pet_sitter';
+        }
+
+        await this.authUserModel.findByIdAndUpdate(claim.userId, {
+          role,
+          isVerified: true,
+          verificationBadge,
+          organizationName: claim.entityName,
+          licenseNumber: claim.businessLicense,
+        }).exec();
+      } catch (err: any) {
+        this.logger.warn(`Could not elevate user ${claim.userId} during claim approval:`, err?.message);
+      }
+    }
+
     return {
       id: claim._id.toString(),
       entityType: claim.entityType,

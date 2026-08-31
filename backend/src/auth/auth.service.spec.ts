@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, validatePasswordComplexity } from './auth.service';
 import { User } from '../schemas/user.schema';
-
+import { AdminClaim } from '../admin/admin.schema';
 import { EmailService } from '../email/email.service';
 
 describe('AuthService & Password Security', () => {
@@ -22,6 +22,10 @@ describe('AuthService & Password Security', () => {
     create: jest.fn(),
     findById: jest.fn(),
     findByIdAndUpdate: jest.fn(),
+  };
+
+  const mockClaimModel = {
+    create: jest.fn(),
   };
 
   const mockConfigService = {
@@ -41,6 +45,7 @@ describe('AuthService & Password Security', () => {
       providers: [
         AuthService,
         { provide: getModelToken(User.name), useValue: mockUserModel },
+        { provide: getModelToken(AdminClaim.name), useValue: mockClaimModel },
         { provide: JwtService, useClass: JwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: EmailService, useValue: mockEmailService },

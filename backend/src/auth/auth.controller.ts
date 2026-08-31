@@ -42,6 +42,12 @@ export class AuthController {
     return this.authService.updateProfile(req.user.id, body);
   }
 
+  @Post('apply-verification')
+  @UseGuards(JwtAuthGuard)
+  async applyVerification(@Req() req: any, @Body() body: any) {
+    return this.authService.applyVerification(req.user.id, body);
+  }
+
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() body: { refreshToken: string }) {

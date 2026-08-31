@@ -5,9 +5,10 @@ import { PetDetailView } from '../../Components/PetDetailView/PetDetailView';
 import { PetEditForm } from '../../Components/PetEditForm/PetEditForm';
 import { OnboardingFlow } from '../../Components/OnboardingFlow/OnboardingFlow';
 import { OwnerProfileModal } from '../../Components/OwnerProfileModal/OwnerProfileModal';
+import { ApplyRoleModal } from '../../Components/ApplyRoleModal/ApplyRoleModal';
 import { ThemeToggle } from '../../Components/ThemeToggle/ThemeToggle';
 import { LanguageSelector } from '../../Components/LanguageSelector/LanguageSelector';
-import { ChevronLeft, User as UserIcon, LogOut } from 'lucide-react';
+import { ChevronLeft, User as UserIcon, LogOut, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
 import type { PetProfile } from '../../schemas';
@@ -24,6 +25,7 @@ export const ProfilePage = () => {
   const [selectedPet, setSelectedPet] = useState<PetProfile | null>(null);
   const [editingPet, setEditingPet] = useState<PetProfile | null>(null);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
 
   const fetchPets = async () => {
     try {
@@ -101,14 +103,22 @@ export const ProfilePage = () => {
     }
   };
 
-  // Edit form view
+  // If editing a pet
   if (editingPet) {
     return (
       <div className="profile-page page page-padded" id="pet-edit-page">
         <div className="page-header">
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditingPet(null)}>
-            <ChevronLeft size={16} /> {t('action.back', 'Back')}
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            onClick={() => setEditingPet(null)}
+          >
+            <ChevronLeft size={20} />
           </button>
+          <div>
+            <h1 className="page-title">{t('profile.edit_pet', 'Edit Pet Details')}</h1>
+            <p className="page-subtitle">{editingPet.name}</p>
+          </div>
         </div>
         <PetEditForm
           pet={editingPet}
@@ -119,20 +129,23 @@ export const ProfilePage = () => {
     );
   }
 
-  // Detail view
+  // If viewing pet detail
   if (selectedPet) {
     return (
       <PetDetailView
         pet={selectedPet}
         onBack={() => setSelectedPet(null)}
-        onEdit={(pet) => setEditingPet(pet)}
+        onEdit={() => {
+          setEditingPet(selectedPet);
+          setSelectedPet(null);
+        }}
         onDelete={handleDelete}
         onToggleArchive={handleToggleArchive}
       />
     );
   }
 
-  // Onboarding flow
+  // If adding a new pet via onboarding flow
   if (showOnboarding) {
     return (
       <div className="profile-page page page-padded" id="onboarding-page">
@@ -190,6 +203,41 @@ export const ProfilePage = () => {
         </div>
       </div>
 
+      {/* Professional Role & Verification Banner */}
+      <div
+        className="card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.85rem 1rem',
+          marginBottom: '1rem',
+          background: 'linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(168,85,247,0.08) 100%)',
+          border: '1px solid rgba(56,189,248,0.2)',
+          borderRadius: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <ShieldCheck size={22} color="var(--color-primary, #38bdf8)" />
+          <div>
+            <strong style={{ fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+              Are you a Pet Sitter, Shelter, Clinic, or Merchant?
+            </strong>
+            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+              Get verified, earn community badges, and unlock dedicated portal access.
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => setShowApplyModal(true)}
+          style={{ whiteSpace: 'nowrap', fontWeight: 700 }}
+        >
+          Apply for Role
+        </button>
+      </div>
+
       {/* Modular PetList Component with Active vs Archived Segmentation */}
       <PetList
         pets={pets}
@@ -206,6 +254,11 @@ export const ProfilePage = () => {
         isOpen={showOwnerModal}
         onClose={() => setShowOwnerModal(false)}
       />
+
+      {/* Professional Role Application Modal */}
+      {showApplyModal && (
+        <ApplyRoleModal onClose={() => setShowApplyModal(false)} />
+      )}
     </div>
   );
 };

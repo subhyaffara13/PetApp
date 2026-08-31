@@ -9,6 +9,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
 import { User, UserSchema } from '../schemas/user.schema';
+import { AdminClaim, AdminClaimSchema } from '../admin/admin.schema';
 import { EmailModule } from '../email/email.module';
 
 @Module({
@@ -22,7 +23,10 @@ import { EmailModule } from '../email/email.module';
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: AdminClaim.name, schema: AdminClaimSchema },
+    ]),
     EmailModule,
   ],
   controllers: [AuthController],

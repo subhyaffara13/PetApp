@@ -27,8 +27,11 @@ export type AdminClaimDocument = AdminClaim & Document;
 
 @Schema({ timestamps: true })
 export class AdminClaim {
-  @Prop({ required: true, enum: ['clinic', 'store'] })
+  @Prop({ required: true, enum: ['clinic', 'store', 'shelter', 'sitter'] })
   entityType: string;
+
+  @Prop({ default: '' })
+  userId?: string;
 
   @Prop({ required: true })
   entityName: string;
