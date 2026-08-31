@@ -1,4 +1,5 @@
 import type { LanguageCode } from '../context/LanguageContext';
+import { API_URL } from '../config/api';
 
 /**
  * Calculates great-circle distance between two points in kilometers using Haversine formula
@@ -180,7 +181,7 @@ export interface GeocodedLocation {
 /**
  * Geocodes street address, landmark, postal code, or city globally
  */
-export async function searchLocations(query: string): Promise<GeocodedLocation[]> {
+export async function searchLocations(query: string, lang?: string): Promise<GeocodedLocation[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
@@ -202,6 +203,30 @@ export async function searchLocations(query: string): Promise<GeocodedLocation[]
     }
   }
 
+  // 1. Query Backend Google Geocoding & Places endpoint (ultra-accurate multilingual & fuzzy matching)
+  try {
+    const backendRes = await fetch(
+      `${API_URL}/emergency/geocode?q=${encodeURIComponent(trimmed)}&lang=${lang || 'en'}`
+    );
+    if (backendRes.ok) {
+      const data = await backendRes.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((item: any) => ({
+          name: item.name,
+          lat: item.lat,
+          lng: item.lng,
+          countryCode: item.countryCode,
+          street: item.street,
+          city: item.city,
+          type: item.type || 'street',
+        }));
+      }
+    }
+  } catch (backendErr) {
+    console.warn('Backend geocode endpoint notice, falling back to OSM:', backendErr);
+  }
+
+  // 2. Client-side Nominatim Fallback
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&namedetails=1&dedupe=1&limit=8&q=${encodeURIComponent(

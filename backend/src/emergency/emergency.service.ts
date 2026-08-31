@@ -716,4 +716,108 @@ export class EmergencyService {
     results.sort((a, b) => (a.distance || 999) - (b.distance || 999));
     return results;
   }
+
+  async geocodeAddress(query: string, lang?: string): Promise<any[]> {
+    const trimmed = (query || '').trim();
+    if (!trimmed) return [];
+
+    const results: any[] = [];
+
+    // 1. Google Geocoding API with multi-lingual fuzzy match
+    if (this.G_PLACES_API_KEY) {
+      try {
+        const geoUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
+        const geoRes = await firstValueFrom(
+          this.httpService.get(geoUrl, {
+            params: {
+              address: trimmed,
+              key: this.G_PLACES_API_KEY,
+              language: lang || 'en',
+            },
+            timeout: 5000,
+          }),
+        );
+
+        if (geoRes.data?.results && Array.isArray(geoRes.data.results)) {
+          for (const item of geoRes.data.results.slice(0, 8)) {
+            const loc = item.geometry?.location;
+            if (loc) {
+              const addrComponents = item.address_components || [];
+              const countryComp = addrComponents.find((c: any) => c.types.includes('country'));
+              const routeComp = addrComponents.find(
+                (c: any) => c.types.includes('route') || c.types.includes('street_address'),
+              );
+              const streetNumberComp = addrComponents.find((c: any) => c.types.includes('street_number'));
+              const localityComp = addrComponents.find(
+                (c: any) => c.types.includes('locality') || c.types.includes('postal_town'),
+              );
+
+              const street = routeComp
+                ? streetNumberComp
+                  ? `${routeComp.long_name} ${streetNumberComp.long_name}`
+                  : routeComp.long_name
+                : undefined;
+              const city = localityComp?.long_name;
+              const countryCode = countryComp?.short_name?.toLowerCase();
+
+              results.push({
+                name: item.formatted_address,
+                lat: loc.lat,
+                lng: loc.lng,
+                countryCode,
+                street,
+                city,
+                type: routeComp ? 'street' : 'city',
+              });
+            }
+          }
+        }
+      } catch (gErr: any) {
+        this.logger.warn('Google Geocoding error:', gErr?.message);
+      }
+    }
+
+    // 2. Fallback to Nominatim if 0 results
+    if (results.length === 0) {
+      try {
+        const nomUrl = 'https://nominatim.openstreetmap.org/search';
+        const nomRes = await firstValueFrom(
+          this.httpService.get(nomUrl, {
+            params: {
+              q: trimmed,
+              format: 'json',
+              addressdetails: 1,
+              limit: 8,
+            },
+            headers: { 'User-Agent': 'PetSOS-App/1.0' },
+            timeout: 4000,
+          }),
+        );
+
+        if (Array.isArray(nomRes.data)) {
+          for (const item of nomRes.data) {
+            const addr = item.address || {};
+            const road = addr.road || addr.street || '';
+            const houseNumber = addr.house_number || '';
+            const city = addr.city || addr.town || addr.village || '';
+            const street = road ? (houseNumber ? `${road} ${houseNumber}` : road) : undefined;
+
+            results.push({
+              name: item.display_name,
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+              countryCode: addr.country_code?.toLowerCase(),
+              street,
+              city,
+              type: road ? 'street' : 'city',
+            });
+          }
+        }
+      } catch (nomErr: any) {
+        this.logger.warn('Nominatim geocode fallback notice:', nomErr?.message);
+      }
+    }
+
+    return results;
+  }
 }

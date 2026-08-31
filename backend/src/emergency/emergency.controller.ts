@@ -21,6 +21,11 @@ export class EmergencyController {
     return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896, customQuery, lang, country);
   }
 
+  @Get('geocode')
+  async geocodeAddress(@Query('q') q: string, @Query('lang') lang?: string) {
+    return this.emergencyService.geocodeAddress(q, lang);
+  }
+
   @Get('clinics')
   async getAllClinics() {
     return this.emergencyService.getAllClinics();

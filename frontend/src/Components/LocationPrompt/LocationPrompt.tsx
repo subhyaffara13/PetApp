@@ -19,7 +19,7 @@ export const LocationPrompt = ({
   onLocationFound,
   onRecenter,
 }: LocationPromptProps) => {
-  const { t, setLang } = useTranslation();
+  const { t, setLang, currentLang } = useTranslation();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<GeocodedLocation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -28,7 +28,7 @@ export const LocationPrompt = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<number | undefined>(undefined);
 
-  // Debounced auto-complete query fetcher
+  // Debounced auto-complete query fetcher with current language
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
@@ -42,7 +42,7 @@ export const LocationPrompt = ({
       setIsSearching(true);
       setSearchError('');
       try {
-        const results = await searchLocations(trimmed);
+        const results = await searchLocations(trimmed, currentLang);
         setSuggestions(results);
         setShowDropdown(results.length > 0);
       } catch {
@@ -50,10 +50,10 @@ export const LocationPrompt = ({
       } finally {
         setIsSearching(false);
       }
-    }, 280);
+    }, 200);
 
     return () => window.clearTimeout(debounceTimer.current);
-  }, [query]);
+  }, [query, currentLang]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -123,9 +123,23 @@ export const LocationPrompt = ({
             placeholder={t('emergency.search_placeholder', 'Search street address, city, or postal code...')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && suggestions.length > 0) {
-                handleSelectLocation(suggestions[0]);
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const trimmed = query.trim();
+                if (suggestions.length > 0) {
+                  handleSelectLocation(suggestions[0]);
+                } else if (trimmed.length > 1) {
+                  setIsSearching(true);
+                  try {
+                    const direct = await searchLocations(trimmed, currentLang);
+                    if (direct.length > 0) {
+                      handleSelectLocation(direct[0]);
+                    }
+                  } finally {
+                    setIsSearching(false);
+                  }
+                }
               }
             }}
             onFocus={() => {
