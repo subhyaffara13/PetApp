@@ -717,14 +717,70 @@ export class EmergencyService {
     return results;
   }
 
-  async geocodeAddress(query: string, lang?: string): Promise<any[]> {
+  async geocodeAddress(query: string, lang?: string, lat?: number, lon?: number): Promise<any[]> {
     const trimmed = (query || '').trim();
     if (!trimmed) return [];
 
     const results: any[] = [];
+    const seenCoordinates = new Set<string>();
 
-    // 1. Google Geocoding API with multi-lingual fuzzy match
+    const addResult = (item: {
+      name: string;
+      lat: number;
+      lng: number;
+      countryCode?: string;
+      street?: string;
+      city?: string;
+      type: 'street' | 'city' | 'poi' | 'country';
+    }) => {
+      const coordKey = `${item.lat.toFixed(4)},${item.lng.toFixed(4)}`;
+      if (!seenCoordinates.has(coordKey)) {
+        seenCoordinates.add(coordKey);
+        results.push(item);
+      }
+    };
+
+    const googleLang = lang === 'he' ? 'iw' : lang || 'en';
+    const biasLat = lat || 32.794;
+    const biasLon = lon || 34.9896;
+
+    // 1. Google Places Text Search (Biased to user location & handles single street names like "ברכה חבס")
     if (this.G_PLACES_API_KEY) {
+      try {
+        const textSearchUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
+        const textRes = await firstValueFrom(
+          this.httpService.get(textSearchUrl, {
+            params: {
+              query: trimmed,
+              location: `${biasLat},${biasLon}`,
+              radius: 50000,
+              language: googleLang,
+              key: this.G_PLACES_API_KEY,
+            },
+            timeout: 4000,
+          }),
+        );
+
+        if (textRes.data?.results && Array.isArray(textRes.data.results)) {
+          for (const place of textRes.data.results.slice(0, 6)) {
+            const loc = place.geometry?.location;
+            if (loc) {
+              const formatted = place.formatted_address || place.name;
+              addResult({
+                name: formatted.includes(place.name) ? formatted : `${place.name}, ${formatted}`,
+                lat: loc.lat,
+                lng: loc.lng,
+                street: place.name,
+                type: 'street',
+              });
+            }
+          }
+        }
+      } catch (gPlacesErr: any) {
+        this.logger.warn('Google Places TextSearch error in geocode:', gPlacesErr?.message);
+      }
+
+      // 2. Google Geocoding API
       try {
         const geoUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
         const geoRes = await firstValueFrom(
@@ -732,14 +788,14 @@ export class EmergencyService {
             params: {
               address: trimmed,
               key: this.G_PLACES_API_KEY,
-              language: lang || 'en',
+              language: googleLang,
             },
-            timeout: 5000,
+            timeout: 4000,
           }),
         );
 
         if (geoRes.data?.results && Array.isArray(geoRes.data.results)) {
-          for (const item of geoRes.data.results.slice(0, 8)) {
+          for (const item of geoRes.data.results.slice(0, 6)) {
             const loc = item.geometry?.location;
             if (loc) {
               const addrComponents = item.address_components || [];
@@ -760,7 +816,7 @@ export class EmergencyService {
               const city = localityComp?.long_name;
               const countryCode = countryComp?.short_name?.toLowerCase();
 
-              results.push({
+              addResult({
                 name: item.formatted_address,
                 lat: loc.lat,
                 lng: loc.lng,
@@ -777,7 +833,50 @@ export class EmergencyService {
       }
     }
 
-    // 2. Fallback to Nominatim if 0 results
+    // 3. Photon OpenStreetMap Fuzzy Geocoder (World-class multilingual fuzzy street search with proximity biasing)
+    if (results.length === 0) {
+      try {
+        const photonUrl = 'https://photon.komoot.io/api/';
+        const photonRes = await firstValueFrom(
+          this.httpService.get(photonUrl, {
+            params: {
+              q: trimmed,
+              lat: biasLat,
+              lon: biasLon,
+              limit: 8,
+            },
+            timeout: 3500,
+          }),
+        );
+
+        if (photonRes.data?.features && Array.isArray(photonRes.data.features)) {
+          for (const feat of photonRes.data.features) {
+            const coords = feat.geometry?.coordinates;
+            const props = feat.properties || {};
+            if (coords && coords.length >= 2) {
+              const street = props.street || props.name;
+              const city = props.city || props.town || props.state;
+              const country = props.country;
+              const formatted = [street, props.housenumber, city, country].filter(Boolean).join(', ');
+
+              addResult({
+                name: formatted || street || 'Searched Location',
+                lat: coords[1],
+                lng: coords[0],
+                countryCode: props.countrycode?.toLowerCase(),
+                street,
+                city,
+                type: props.type === 'street' || props.street ? 'street' : 'city',
+              });
+            }
+          }
+        }
+      } catch (photonErr: any) {
+        this.logger.warn('Photon geocode notice:', photonErr?.message);
+      }
+    }
+
+    // 4. Fallback to Nominatim if still empty
     if (results.length === 0) {
       try {
         const nomUrl = 'https://nominatim.openstreetmap.org/search';
@@ -802,7 +901,7 @@ export class EmergencyService {
             const city = addr.city || addr.town || addr.village || '';
             const street = road ? (houseNumber ? `${road} ${houseNumber}` : road) : undefined;
 
-            results.push({
+            addResult({
               name: item.display_name,
               lat: parseFloat(item.lat),
               lng: parseFloat(item.lon),

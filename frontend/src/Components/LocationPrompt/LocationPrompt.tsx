@@ -9,6 +9,7 @@ export type LocationAccuracyMode = 'gps_exact' | 'city_selected' | 'approximate_
 interface LocationPromptProps {
   currentCityName?: string;
   accuracyMode: LocationAccuracyMode;
+  centerCoordinates?: { lat: number; lng: number } | null;
   onLocationFound: (coords: { lat: number; lng: number; name: string }) => void;
   onRecenter: () => void;
 }
@@ -16,6 +17,7 @@ interface LocationPromptProps {
 export const LocationPrompt = ({
   currentCityName,
   accuracyMode,
+  centerCoordinates,
   onLocationFound,
   onRecenter,
 }: LocationPromptProps) => {
@@ -28,7 +30,7 @@ export const LocationPrompt = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<number | undefined>(undefined);
 
-  // Debounced auto-complete query fetcher with current language
+  // Debounced auto-complete query fetcher with current language and proximity bias
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
@@ -42,7 +44,12 @@ export const LocationPrompt = ({
       setIsSearching(true);
       setSearchError('');
       try {
-        const results = await searchLocations(trimmed, currentLang);
+        const results = await searchLocations(
+          trimmed,
+          currentLang,
+          centerCoordinates?.lat,
+          centerCoordinates?.lng
+        );
         setSuggestions(results);
         setShowDropdown(results.length > 0);
       } catch {
@@ -53,7 +60,7 @@ export const LocationPrompt = ({
     }, 200);
 
     return () => window.clearTimeout(debounceTimer.current);
-  }, [query, currentLang]);
+  }, [query, currentLang, centerCoordinates?.lat, centerCoordinates?.lng]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -132,7 +139,12 @@ export const LocationPrompt = ({
                 } else if (trimmed.length > 1) {
                   setIsSearching(true);
                   try {
-                    const direct = await searchLocations(trimmed, currentLang);
+                    const direct = await searchLocations(
+                      trimmed,
+                      currentLang,
+                      centerCoordinates?.lat,
+                      centerCoordinates?.lng
+                    );
                     if (direct.length > 0) {
                       handleSelectLocation(direct[0]);
                     }

@@ -22,8 +22,13 @@ export class EmergencyController {
   }
 
   @Get('geocode')
-  async geocodeAddress(@Query('q') q: string, @Query('lang') lang?: string) {
-    return this.emergencyService.geocodeAddress(q, lang);
+  async geocodeAddress(
+    @Query('q') q: string,
+    @Query('lang') lang?: string,
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+  ) {
+    return this.emergencyService.geocodeAddress(q, lang, lat ? +lat : undefined, lon ? +lon : undefined);
   }
 
   @Get('clinics')

@@ -181,32 +181,39 @@ export interface GeocodedLocation {
 /**
  * Geocodes street address, landmark, postal code, or city globally
  */
-export async function searchLocations(query: string, lang?: string): Promise<GeocodedLocation[]> {
+export async function searchLocations(
+  query: string,
+  lang?: string,
+  lat?: number,
+  lon?: number
+): Promise<GeocodedLocation[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
   // Check if user directly typed coordinates: "32.794, 34.989"
   const coordMatch = trimmed.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
   if (coordMatch) {
-    const lat = parseFloat(coordMatch[1]);
-    const lng = parseFloat(coordMatch[3]);
-    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    const latNum = parseFloat(coordMatch[1]);
+    const lngNum = parseFloat(coordMatch[3]);
+    if (!isNaN(latNum) && !isNaN(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180) {
       return [
         {
-          name: `Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-          lat,
-          lng,
-          countryCode: getCountryFromCoordinates(lat, lng) || undefined,
+          name: `Coordinates (${latNum.toFixed(4)}, ${lngNum.toFixed(4)})`,
+          lat: latNum,
+          lng: lngNum,
+          countryCode: getCountryFromCoordinates(latNum, lngNum) || undefined,
           type: 'poi',
         },
       ];
     }
   }
 
-  // 1. Query Backend Google Geocoding & Places endpoint (ultra-accurate multilingual & fuzzy matching)
+  const proximityParams = lat && lon ? `&lat=${lat}&lon=${lon}` : '';
+
+  // 1. Query Backend Google Places & Geocoding endpoint (ultra-accurate multilingual & fuzzy matching)
   try {
     const backendRes = await fetch(
-      `${API_URL}/emergency/geocode?q=${encodeURIComponent(trimmed)}&lang=${lang || 'en'}`
+      `${API_URL}/emergency/geocode?q=${encodeURIComponent(trimmed)}&lang=${lang || 'en'}${proximityParams}`
     );
     if (backendRes.ok) {
       const data = await backendRes.json();
@@ -223,10 +230,44 @@ export async function searchLocations(query: string, lang?: string): Promise<Geo
       }
     }
   } catch (backendErr) {
-    console.warn('Backend geocode endpoint notice, falling back to OSM:', backendErr);
+    console.warn('Backend geocode endpoint notice, falling back to client geocoders:', backendErr);
   }
 
-  // 2. Client-side Nominatim Fallback
+  // 2. Client-side Photon Fuzzy Geocoder (High speed, multilingual street names with proximity)
+  try {
+    const biasLat = lat || 32.794;
+    const biasLon = lon || 34.9896;
+    const photonRes = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&lat=${biasLat}&lon=${biasLon}&limit=8`
+    );
+    if (photonRes.ok) {
+      const pData = await photonRes.json();
+      if (pData?.features && Array.isArray(pData.features) && pData.features.length > 0) {
+        return pData.features.map((feat: any) => {
+          const coords = feat.geometry?.coordinates || [0, 0];
+          const props = feat.properties || {};
+          const street = props.street || props.name;
+          const city = props.city || props.town || props.state;
+          const country = props.country;
+          const formatted = [street, props.housenumber, city, country].filter(Boolean).join(', ');
+
+          return {
+            name: formatted || street || trimmed,
+            lat: coords[1],
+            lng: coords[0],
+            countryCode: props.countrycode?.toLowerCase(),
+            street,
+            city,
+            type: props.type === 'street' || props.street ? 'street' : 'city',
+          };
+        });
+      }
+    }
+  } catch (photonErr) {
+    console.warn('Photon geocode fallback notice:', photonErr);
+  }
+
+  // 3. Client-side Nominatim Fallback
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&namedetails=1&dedupe=1&limit=8&q=${encodeURIComponent(

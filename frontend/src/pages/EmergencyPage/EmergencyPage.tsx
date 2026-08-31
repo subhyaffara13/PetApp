@@ -198,6 +198,7 @@ export const EmergencyPage = () => {
       <LocationPrompt
         currentCityName={cityName}
         accuracyMode={accuracyMode}
+        centerCoordinates={{ lat: userLocation.lat, lng: userLocation.lon }}
         onLocationFound={handleLocationFound}
         onRecenter={handleRecenter}
       />
