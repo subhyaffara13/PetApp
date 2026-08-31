@@ -228,6 +228,25 @@ export const EmergencyScreen = () => {
 
       {/* Providers List */}
       <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
+        {/* Live GPS Radar & Vicinity Banner */}
+        <View style={styles.radarCard}>
+          <View style={styles.radarHeader}>
+            <View style={styles.radarPulseIndicator}>
+              <View style={styles.radarDot} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.radarTitle}>Live Haifa Emergency Radar</Text>
+              <Text style={styles.radarSub}>3 Verified 24/7 ER Hospitals · 1 Mobile Unit On-Duty</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.btnOpenAllMaps}
+              onPress={() => Linking.openURL('https://maps.google.com/?q=24/7+Emergency+Veterinary+Hospital+Haifa')}
+            >
+              <Text style={styles.btnOpenAllMapsText}>🗺️ Full Map</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primaryLight} style={{ marginTop: 40 }} />
         ) : filteredClinics.length === 0 ? (
@@ -580,4 +599,56 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   btnSendDossierText: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  radarCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: Spacing.sm + 2,
+    marginBottom: Spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  radarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  radarPulseIndicator: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  radarDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primaryLight,
+  },
+  radarTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  radarSub: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  btnOpenAllMaps: {
+    backgroundColor: Colors.surfaceCard,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  btnOpenAllMapsText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.primaryLight,
+  },
 });
