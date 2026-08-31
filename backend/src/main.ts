@@ -80,7 +80,8 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type,Accept,Authorization,x-clinic-token,x-api-key',
   });
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
+  const port = process.env.PORT || 8080;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🐾 PetSOS Backend Server listening on 0.0.0.0:${port}`);
 }
 bootstrap();
