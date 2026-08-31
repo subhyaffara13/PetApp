@@ -5,6 +5,7 @@ import { CommunityService } from './community.service';
 import { Story, StorySchema, Post, PostSchema, DirectMessage, DirectMessageSchema, CommunityReport, CommunityReportSchema } from '../schemas/community.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
+import { SheltersModule } from '../shelters/shelters.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: User.name, schema: UserSchema },
     ]),
     AuthModule,
+    SheltersModule,
   ],
   controllers: [CommunityController],
   providers: [CommunityService],

@@ -95,7 +95,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
       } catch {}
 
       try {
-        const res = await axios.get<ShelterResult[]>(`${API_URL}/community/shelters/nearby`, {
+        const res = await axios.get<ShelterResult[]>(`${API_URL}/shelters`, {
           params: { country: detectedCountry },
         });
         setShelters(res.data || []);
@@ -113,7 +113,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
   useEffect(() => {
     const fetchAdoptablePets = async () => {
       try {
-        const res = await axios.get<AdoptablePetItem[]>(`${API_URL}/community/adoptable-pets`, {
+        const res = await axios.get<AdoptablePetItem[]>(`${API_URL}/shelters/adoptions`, {
           params: { species: selectedSpecies },
         });
         setAdoptablePets(res.data || []);
@@ -133,7 +133,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await axios.post(`${API_URL}/community/adoptable-pets`, {
+      const res = await axios.post(`${API_URL}/shelters/adoptions`, {
         name: newPetName,
         species: newPetSpecies,
         breed: newPetBreed,
@@ -161,7 +161,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
   };
 
   return (
-    <section className="shelters-section card animate-slide-up" style={{ padding: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+    <section className="shelters-section card animate-slide-up" style={{ padding: '1rem', border: '1px solid var(--color-border)' }}>
       {/* Collapsible Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div
@@ -170,10 +170,10 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
         >
           <span style={{ fontSize: '1.2rem' }}>🏡</span>
           <div>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               {activeCategory === 'adoption' ? 'Live Pet Adoption Directory' : 'Local Shelters & Rescues'}
             </h3>
-            <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
               {isCollapsed
                 ? `${shelters.length > 0 ? `${shelters.length} centers nearby` : 'Find rescue centers'} · Click to expand`
                 : activeCategory === 'adoption'
@@ -188,7 +188,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#38bdf8' }}
+            style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-primary, #38bdf8)' }}
           >
             {isCollapsed ? <><ChevronDown size={14} /> Expand</> : <><ChevronUp size={14} /> Collapse</>}
           </button>
@@ -197,7 +197,7 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
 
       {/* Expanded Content View */}
       {!isCollapsed && (
-        <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.85rem' }}>
+        <div style={{ marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.85rem' }}>
           {/* Action Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
             <button
@@ -206,9 +206,9 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
               onClick={() => (activeCategory === 'adoption' ? onGoToAll() : onGoToAdoption())}
               style={{
                 padding: '0.35rem 0.7rem',
-                background: activeCategory === 'adoption' ? 'rgba(255,255,255,0.08)' : 'var(--color-primary)',
-                color: activeCategory === 'adoption' ? '#f8fafc' : '#0f172a',
-                border: 'none',
+                background: activeCategory === 'adoption' ? 'var(--color-bg-secondary, rgba(0,0,0,0.06))' : 'var(--color-primary, #2563eb)',
+                color: activeCategory === 'adoption' ? 'var(--color-text-primary)' : '#ffffff',
+                border: '1px solid var(--color-border)',
                 borderRadius: 8,
                 fontSize: '0.74rem',
                 fontWeight: 800,

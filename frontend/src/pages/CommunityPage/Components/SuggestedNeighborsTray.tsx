@@ -59,22 +59,20 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
   if (suggestions.length === 0 && !isLoading) return null;
 
   return (
-    <div style={{ marginBottom: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem', padding: '0 0.25rem' }}>
+    <div className="suggested-neighbors-container card" style={{ padding: '0.85rem', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Sparkles size={15} color="#38bdf8" />
-          <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: 800 }}>Suggested Neighbors</h3>
+          <Sparkles size={15} color="var(--color-primary, #38bdf8)" />
+          <h3 style={{ margin: 0, fontSize: '0.88rem', color: 'var(--color-text-primary)', fontWeight: 800 }}>Suggested Neighbors</h3>
         </div>
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Based on proximity & pets</span>
+        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Nearby & Active</span>
       </div>
 
       <div
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
           gap: '0.65rem',
-          overflowX: 'auto',
-          paddingBottom: '0.4rem',
-          scrollbarWidth: 'none',
         }}
       >
         {suggestions.map((user) => (
@@ -82,11 +80,10 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
             key={user.id}
             onClick={() => onSelectUser(user)}
             style={{
-              flex: '0 0 148px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 14,
-              padding: '0.85rem 0.6rem',
+              background: 'var(--color-bg-elevated, rgba(255,255,255,0.03))',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: '0.75rem 0.5rem',
               textAlign: 'center',
               cursor: 'pointer',
               display: 'flex',
@@ -97,41 +94,42 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = 'rgba(56,189,248,0.4)';
+              e.currentTarget.style.borderColor = 'var(--color-primary, #38bdf8)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.borderColor = 'var(--color-border)';
             }}
           >
             <img
               src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80'}
               alt={user.name}
-              style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', marginBottom: '0.4rem', border: '2px solid #38bdf8' }}
+              style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', marginBottom: '0.35rem', border: '2px solid var(--color-primary, #38bdf8)' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', width: '100%' }}>
-              <strong style={{ color: '#f8fafc', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <strong style={{ color: 'var(--color-text-primary)', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.name}
               </strong>
               <VerificationBadge type={user.verificationBadge || (user.role === 'clinic_admin' ? 'veterinarian' : user.role === 'store_merchant' ? 'pet_store' : user.role === 'shelter_org' ? 'animal_shelter' : 'none')} size="sm" />
             </div>
-            <span style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'block', marginBottom: '0.35rem' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '0.68rem', display: 'block', marginBottom: '0.35rem' }}>
               {user.handle}
             </span>
 
             {/* Smart Reason Badge */}
             <div
               style={{
-                background: 'rgba(56,189,248,0.1)',
-                color: '#38bdf8',
+                background: 'rgba(56,189,248,0.12)',
+                color: 'var(--color-primary, #38bdf8)',
                 borderRadius: 6,
                 padding: '2px 4px',
                 fontSize: '0.64rem',
                 fontWeight: 700,
-                marginBottom: '0.6rem',
+                marginBottom: '0.5rem',
                 lineHeight: 1.2,
                 maxHeight: 28,
                 overflow: 'hidden',
+                width: '100%',
               }}
             >
               {user.suggestionReason || `${user.followersCount || 0} followers`}
@@ -143,9 +141,9 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
               style={{
                 width: '100%',
                 padding: '0.35rem',
-                background: user.isFollowing ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #38bdf8, #0284c7)',
-                border: user.isFollowing ? '1px solid rgba(255,255,255,0.2)' : 'none',
-                color: user.isFollowing ? '#f8fafc' : '#0f172a',
+                background: user.isFollowing ? 'var(--color-bg-secondary, rgba(0,0,0,0.05))' : 'linear-gradient(135deg, #38bdf8, #0284c7)',
+                border: user.isFollowing ? '1px solid var(--color-border)' : 'none',
+                color: user.isFollowing ? 'var(--color-text-primary)' : '#ffffff',
                 borderRadius: 6,
                 fontSize: '0.72rem',
                 fontWeight: 800,

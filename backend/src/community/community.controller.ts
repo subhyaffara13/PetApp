@@ -1,11 +1,42 @@
 import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { CommunityService } from './community.service';
+import { SheltersService } from '../shelters/shelters.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
 @Controller('community')
 @UseGuards(OptionalJwtAuthGuard)
 export class CommunityController {
-  constructor(private readonly communityService: CommunityService) {}
+  constructor(
+    private readonly communityService: CommunityService,
+    private readonly sheltersService: SheltersService,
+  ) {}
+
+  @Get('shelters/nearby')
+  async getNearbyShelters(
+    @Query('country') country?: string,
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+  ) {
+    return this.sheltersService.find({
+      country: country || 'israel',
+      lat: lat ? parseFloat(lat) : undefined,
+      lon: lon ? parseFloat(lon) : undefined,
+    });
+  }
+
+  @Get('adoptable-pets')
+  async getAdoptablePets(
+    @Query('species') species?: string,
+    @Query('status') status?: string,
+    @Query('city') city?: string,
+  ) {
+    return this.sheltersService.getAdoptablePets({ species, status, city });
+  }
+
+  @Post('adoptable-pets')
+  async createAdoptablePet(@Body() body: any) {
+    return this.sheltersService.createAdoptablePet(body);
+  }
 
   @Get('profile')
   async getCurrentUserProfile(@Req() req: any) {
