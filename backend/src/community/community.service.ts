@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Story, StoryDocument, Post, PostDocument, DirectMessage, DirectMessageDocument, CommunityReport, CommunityReportDocument } from '../schemas/community.schema';
@@ -24,7 +24,7 @@ export interface UserProfileResponse {
 }
 
 @Injectable()
-export class CommunityService {
+export class CommunityService implements OnModuleInit {
   private readonly logger = new Logger(CommunityService.name);
 
   constructor(
@@ -34,6 +34,27 @@ export class CommunityService {
     @InjectModel(CommunityReport.name) private reportModel: Model<CommunityReportDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
+
+  async onModuleInit() {
+    await this.cleanNonSubhyUsers();
+  }
+
+  /** Removes any legacy dummy users not named Subhy Affara so fresh user accounts can be tested */
+  async cleanNonSubhyUsers(): Promise<{ deletedCount: number }> {
+    try {
+      const res = await this.userModel.deleteMany({
+        name: { $not: /subhy\s*affara|subhi/i },
+        email: { $not: /subhyaffara|subhi/i },
+      }).exec();
+      if (res.deletedCount > 0) {
+        this.logger.log(`Cleaned up ${res.deletedCount} legacy test accounts; retained Subhy Affara.`);
+      }
+      return { deletedCount: res.deletedCount || 0 };
+    } catch (err: any) {
+      this.logger.warn('User cleanup note:', err?.message);
+      return { deletedCount: 0 };
+    }
+  }
 
   // --- STORIES ---
   async getStories(): Promise<StoryDocument[]> {

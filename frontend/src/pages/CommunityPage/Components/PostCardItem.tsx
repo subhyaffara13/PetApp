@@ -47,7 +47,7 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
   const isOwnPost = (post as any).authorId === 'current-user' || !post.likedBy;
   const authorName = (post as any).authorName || 'Pet Parent';
   const authorAvatar = (post as any).authorAvatar || post.petAvatar;
-  const authorId = (post as any).authorId || 'user-talia';
+  const authorId = (post as any).authorId || post._id;
   const isFollowing = (post as any).isFollowing;
 
   return (

@@ -53,6 +53,11 @@ export class CommunityController {
     return this.communityService.checkHandleAvailability(handle, userId);
   }
 
+  @Post('cleanup-test-users')
+  async cleanupTestUsers() {
+    return this.communityService.cleanNonSubhyUsers();
+  }
+
   @Patch('profile')
   async updateProfile(@Req() req: any, @Body() body: any) {
     const userId = req.user?.id || req.user?.sub;

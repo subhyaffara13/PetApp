@@ -50,10 +50,10 @@ export const CommunityPage: React.FC = () => {
 
   const [profile, setProfile] = useState<UserProfileData>({
     id: user?.id || 'current-user',
-    name: user?.name || 'Subhi Yaffara',
-    handle: user?.email ? `@${user.email.split('@')[0]}` : '@subhy_petsos',
+    name: user?.name || 'Subhy Affara',
+    handle: user?.email ? `@${user.email.split('@')[0]}` : '@subhyaffara',
     avatar: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    bio: 'Proud Golden Retriever dad in Haifa 🐾',
+    bio: 'Proud pet parent in Haifa 🐾',
     followersCount: 0,
     followingCount: 0,
     postsCount: 0,
