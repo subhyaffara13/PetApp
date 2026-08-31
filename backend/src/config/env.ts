@@ -26,6 +26,7 @@ const envSchema = z.object({
 
   // --- Stripe Payments ----------------------------------------
   STRIPE_SECRET_KEY: z.string().default('sk_test_mock_stripe_key'),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().default('whsec_mock_stripe_secret'),
 
   // --- Cloudinary (Image Uploads) -----------------------------

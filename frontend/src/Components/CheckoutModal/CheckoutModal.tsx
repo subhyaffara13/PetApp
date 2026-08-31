@@ -1,14 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { ShoppingBag, Lock, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
 
-const stripeKey =
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-  'pk_test_51TkD1WQ2yoEXOvhx83mDkX2gOFw5rjOelgKCcSlRd7z2zuS1ESWe7D3ncHjW4HNgvUm7raN5Eve6y00iFCS1xMc';
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+let cachedStripePromise: Promise<Stripe | null> | null = null;
+const getStripePromise = (): Promise<Stripe | null> => {
+  if (cachedStripePromise) return cachedStripePromise;
+  const envKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+  if (envKey) {
+    cachedStripePromise = loadStripe(envKey);
+    return cachedStripePromise;
+  }
+  cachedStripePromise = axios
+    .get<{ stripePublishableKey?: string }>(`${API_URL}/marketplace/config`)
+    .then((res) => {
+      const key =
+        res.data?.stripePublishableKey ||
+        'pk_test_51TkD1WQ2yoEXOvhx83mDkX2gOFw5rjOelgKCcSlRd7z2zuS1ESWe7D3ncHjW4HNgvUm7raN5Eve6y00iFCS1xMc';
+      return loadStripe(key);
+    })
+    .catch(() => null);
+  return cachedStripePromise;
+};
 
 interface CheckoutItem {
   name: string;
@@ -131,7 +146,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ items, totalAmount
         {isLoadingIntent && <p style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>Initializing secure payment...</p>}
         {intentError && <p style={{ textAlign: 'center', color: '#ef4444' }}>{intentError}</p>}
         {clientSecret && (
-          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#38bdf8' } } }}>
+          <Elements stripe={getStripePromise()} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#38bdf8' } } }}>
             <CheckoutForm totalAmount={totalAmount} onSuccess={onSuccess} onClose={onClose} />
           </Elements>
         )}

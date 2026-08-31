@@ -7,6 +7,13 @@ import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 export class MarketplaceController {
   constructor(private readonly marketplaceService: MarketplaceService) {}
 
+  @Get('config')
+  async getConfig() {
+    return {
+      stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    };
+  }
+
   @Get('shops')
   async getShops(@Query('lat') lat?: string, @Query('lon') lon?: string) {
     return this.marketplaceService.getShops(
