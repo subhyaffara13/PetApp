@@ -117,11 +117,9 @@ export const MapComponent = ({
 }: MapProps) => {
   const position: [number, number] = [userLocation.lat, userLocation.lon];
 
-  // High performance CartoDB & OpenStreetMap tile servers with multi-subdomain parallel loading
+  // Standard pure OpenStreetMap tile servers with zero watermarks and multi-subdomain loading
   const isDark = theme === 'dark';
-  const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   return (
     <div className={`map-container ${isDark ? 'dark-map' : 'light-map'}`}>
@@ -130,15 +128,14 @@ export const MapComponent = ({
         zoom={13}
         className="full-height-map"
         zoomControl={false}
-        attributionControl={true}
+        attributionControl={false}
         preferCanvas={true}
       >
         <TileLayer
           key={theme}
           url={tileUrl}
-          subdomains="abcd"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          maxZoom={20}
+          subdomains="abc"
+          maxZoom={19}
         />
 
         <MapUpdater

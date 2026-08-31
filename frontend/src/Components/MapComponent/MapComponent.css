@@ -101,3 +101,16 @@
     box-shadow: 0 0 0 0 rgba(236, 72, 153, 0);
   }
 }
+
+/* High-contrast modern dark mode styling for OpenStreetMap tiles with zero watermarks */
+.dark-map .leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.dark-map .leaflet-marker-pane,
+.dark-map .leaflet-shadow-pane,
+.dark-map .leaflet-overlay-pane,
+.dark-map .leaflet-popup-pane,
+.dark-map .leaflet-tooltip-pane {
+  filter: none !important;
+}
