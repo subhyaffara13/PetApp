@@ -23,6 +23,12 @@ export class PetShop {
   @Prop()
   rating?: number;
 
+  @Prop({ default: true })
+  isOpen: boolean;
+
+  @Prop({ default: false })
+  isClaimed: boolean;
+
   @Prop({ default: false })
   isRegistered: boolean;
 

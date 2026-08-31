@@ -124,6 +124,7 @@ export interface PetShop {
   tags: string[];
   rating?: number;
   isRegistered: boolean; // true = monetized partner, false = API backfill
+  isClaimed?: boolean;
   isOpen?: boolean;
   deliveryAvailable: boolean;
   pickupOnly: boolean;
