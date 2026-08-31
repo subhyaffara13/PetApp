@@ -47,27 +47,112 @@
   animation: pulse 2.2s ease-out infinite;
 }
 
-/* Provider Pin Markers */
-.pin {
-  border-radius: 50%;
-  box-sizing: border-box;
-}
-
-.pin-verified {
-  width: 22px;
-  height: 22px;
-  background: var(--alert, #e8432a);
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 0 6px var(--alert-dim, rgba(232, 67, 42, 0.16));
-  animation: pulse-alert 2.4s ease-out infinite;
-}
-
-.pin-unverified {
-  width: 12px;
-  height: 12px;
+/* Custom Vet Heart & Paw Markers */
+.custom-map-icon {
   background: transparent;
-  border: 2px solid var(--muted, #6b7280);
-  margin: 5px;
+  border: none;
+}
+
+.vet-heart-pin {
+  width: 28px;
+  height: 28px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+  transition: transform 0.15s ease;
+}
+
+.vet-heart-pin:hover {
+  transform: scale(1.18);
+}
+
+.vet-heart-svg {
+  width: 100%;
+  height: 100%;
+  fill: #dc2626;
+  filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.6));
+}
+
+.vet-heart-pin.verified .vet-heart-svg {
+  fill: #e11d48;
+  animation: pulse-heart 2s infinite ease-in-out;
+}
+
+.vet-heart-pin.unverified .vet-heart-svg {
+  fill: #64748b;
+  opacity: 0.85;
+}
+
+.vet-paw-glyph {
+  position: absolute;
+  font-size: 11px;
+  top: 5px;
+  left: 8px;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+
+/* Mobile Vet Ambulatory Pin */
+.mobile-vet-pin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #d946ef);
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.8);
+  position: relative;
+  cursor: pointer;
+  animation: pulse-shadow 2.2s infinite;
+}
+
+.mobile-vet-emoji {
+  font-size: 15px;
+}
+
+/* Marketplace Store Pin */
+.store-map-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.6);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.store-map-pin.pharmacy {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.store-map-pin:hover {
+  transform: scale(1.2);
+}
+
+.store-pin-emoji {
+  font-size: 13px;
+}
+
+@keyframes pulse-heart {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(225, 29, 72, 0.5));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px rgba(225, 29, 72, 0.9));
+  }
 }
 
 @keyframes pulse {

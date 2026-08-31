@@ -167,22 +167,79 @@ export async function reverseGeocodeCountry(
   return { countryCode: fallbackCode, cityName: fallbackCode === 'il' ? 'Haifa' : '' };
 }
 
+export interface GeocodedLocation {
+  name: string;
+  lat: number;
+  lng: number;
+  countryCode?: string;
+  street?: string;
+  city?: string;
+  type?: 'street' | 'poi' | 'city' | 'country';
+}
+
 /**
- * Geocodes city or address query using OpenStreetMap Nominatim API globally
+ * Geocodes street address, landmark, postal code, or city globally
  */
 export async function searchLocations(query: string): Promise<GeocodedLocation[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  // Check if user directly typed coordinates: "32.794, 34.989"
+  const coordMatch = trimmed.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[3]);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return [
+        {
+          name: `Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+          lat,
+          lng,
+          countryCode: getCountryFromCoordinates(lat, lng) || undefined,
+          type: 'poi',
+        },
+      ];
+    }
+  }
+
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`
+      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&namedetails=1&dedupe=1&limit=8&q=${encodeURIComponent(
+        trimmed
+      )}`
     );
     const data = await res.json();
-    if (Array.isArray(data)) {
-      return data.map((item: any) => ({
-        name: item.display_name,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        countryCode: item.address?.country_code?.toLowerCase() || '',
-      }));
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((item: any) => {
+        const addr = item.address || {};
+        const road = addr.road || addr.street || addr.pedestrian || addr.footway || addr.path || '';
+        const houseNumber = addr.house_number || '';
+        const neighborhood = addr.neighbourhood || addr.suburb || '';
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+        const country = addr.country || '';
+
+        let formattedName = item.display_name;
+        if (road) {
+          const streetPart = houseNumber ? `${road} ${houseNumber}` : road;
+          const locParts = [streetPart, neighborhood, city, country].filter(Boolean);
+          formattedName = locParts.slice(0, 3).join(', ');
+        }
+
+        let locType: 'street' | 'poi' | 'city' | 'country' = 'city';
+        if (road || houseNumber) locType = 'street';
+        else if (item.type === 'amenity' || item.class === 'shop' || item.class === 'tourism') locType = 'poi';
+        else if (addr.country && !city) locType = 'country';
+
+        return {
+          name: formattedName,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          countryCode: addr.country_code?.toLowerCase() || '',
+          street: road ? (houseNumber ? `${road} ${houseNumber}` : road) : undefined,
+          city: city || neighborhood || undefined,
+          type: locType,
+        };
+      });
     }
   } catch (err) {
     console.error('Failed to search locations:', err);

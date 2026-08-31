@@ -9,8 +9,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme/theme';
+import { Colors, Spacing } from '../theme/theme';
 import { MarketplaceApi } from '../services/api';
 
 interface Product {
@@ -20,7 +21,48 @@ interface Product {
   price: number;
   isEmergencyItem?: boolean;
   storeName: string;
+  distanceKm?: number;
 }
+
+interface NearbyStore {
+  id: string;
+  name: string;
+  address: string;
+  distanceKm: number;
+  isOpen: boolean;
+  isPharmacy: boolean;
+  woltDelivery: boolean;
+}
+
+const SAMPLE_STORES: NearbyStore[] = [
+  {
+    id: 's1',
+    name: 'Carmel Pet Care & 24/7 Pharmacy',
+    address: 'HaNassi Ave 45, Central Carmel, Haifa',
+    distanceKm: 0.6,
+    isOpen: true,
+    isPharmacy: true,
+    woltDelivery: true,
+  },
+  {
+    id: 's2',
+    name: 'Haifa Animal Supplies & Nutrition Hub',
+    address: 'Moriah Ave 112, Ahuza, Haifa',
+    distanceKm: 1.2,
+    isOpen: true,
+    isPharmacy: false,
+    woltDelivery: true,
+  },
+  {
+    id: 's3',
+    name: 'VetCare Express Prescription Depot',
+    address: 'HaAliya HaShniya St 39, Bat Galim, Haifa',
+    distanceKm: 2.4,
+    isOpen: true,
+    isPharmacy: true,
+    woltDelivery: false,
+  },
+];
 
 const SAMPLE_PRODUCTS: Product[] = [
   {
@@ -30,6 +72,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 85,
     isEmergencyItem: true,
     storeName: 'Carmel Pet Care & Pharmacy',
+    distanceKm: 0.6,
   },
   {
     id: 'p2',
@@ -38,6 +81,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 135,
     isEmergencyItem: true,
     storeName: 'Haifa Animal Supplies Hub',
+    distanceKm: 1.2,
   },
   {
     id: 'p3',
@@ -46,6 +90,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 49,
     isEmergencyItem: true,
     storeName: 'Carmel Pet Care & Pharmacy',
+    distanceKm: 0.6,
   },
   {
     id: 'p4',
@@ -54,6 +99,7 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 189,
     isEmergencyItem: false,
     storeName: 'Haifa Animal Supplies Hub',
+    distanceKm: 1.2,
   },
   {
     id: 'p5',
@@ -62,12 +108,16 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 389,
     isEmergencyItem: false,
     storeName: 'Haifa Animal Supplies Hub',
+    distanceKm: 1.2,
   },
 ];
 
 export const MarketplaceScreen = () => {
+  const [stores, setStores] = useState<NearbyStore[]>(SAMPLE_STORES);
   const [products] = useState<Product[]>(SAMPLE_PRODUCTS);
   const [categoryFilter, setCategoryFilter] = useState<'All' | 'Medication' | 'Food' | 'Supplies'>('All');
+  const [searchStreet, setSearchStreet] = useState('');
+  const [selectedStore, setSelectedStore] = useState<NearbyStore | null>(null);
   const [cart, setCart] = useState<Record<string, number>>({});
   const [deliveryMode, setDeliveryMode] = useState<'wolt' | 'pickup'>('wolt');
 
@@ -79,6 +129,12 @@ export const MarketplaceScreen = () => {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      !searchStreet.trim() ||
+      p.name.toLowerCase().includes(searchStreet.toLowerCase()) ||
+      p.storeName.toLowerCase().includes(searchStreet.toLowerCase());
+
+    if (!matchesSearch) return false;
     if (categoryFilter === 'All') return true;
     return p.category === categoryFilter;
   });
@@ -127,9 +183,14 @@ export const MarketplaceScreen = () => {
     }, 1200);
   };
 
+  const handleOpenMaps = (address: string) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    Linking.openURL(url);
+  };
+
   return (
     <View style={styles.container}>
-      {/* Wolt DaaS & Proximity Delivery Header */}
+      {/* 1. Wolt DaaS Header */}
       <View style={styles.woltBanner}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -138,11 +199,65 @@ export const MarketplaceScreen = () => {
               <Text style={styles.speedBadgeText}>⚡ 25-35 MIN</Text>
             </View>
           </View>
-          <Text style={styles.woltSub}>Live courier tracking & counter pickup across Haifa stores</Text>
+          <Text style={styles.woltSub}>Interactive store radar, 30-min courier delivery & counter pickup</Text>
         </View>
       </View>
 
-      {/* Category Filter Pills */}
+      {/* 2. Street-Level Address Search Bar */}
+      <View style={styles.searchBarContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search street, store, or product..."
+          placeholderTextColor={Colors.textMuted}
+          value={searchStreet}
+          onChangeText={setSearchStreet}
+        />
+        {searchStreet.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchStreet('')}>
+            <Text style={styles.searchClear}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* 3. Interactive Store Radar Map Card */}
+      <View style={styles.storeRadarCard}>
+        <View style={styles.radarHeader}>
+          <View style={styles.radarDotPulse}>
+            <View style={styles.radarDot} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.radarTitle}>🗺️ Nearby Pet Stores & Pharmacies</Text>
+            <Text style={styles.radarSub}>{stores.length} verified stores in proximity</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.btnOpenAllMaps}
+            onPress={() => handleOpenMaps(searchStreet || 'Haifa Pet Stores')}
+          >
+            <Text style={styles.btnOpenAllMapsText}>Open Map ↗</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Store Quick Selector Chips */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.storeChipsRow}>
+          {stores.map((s) => {
+            const isSel = selectedStore?.id === s.id;
+            return (
+              <TouchableOpacity
+                key={s.id}
+                style={[styles.storeChip, isSel && styles.storeChipActive]}
+                onPress={() => setSelectedStore(isSel ? null : s)}
+              >
+                <Text style={[styles.storeChipText, isSel && styles.storeChipTextActive]}>
+                  {s.isPharmacy ? '💊' : '🛍️'} {s.name.split(' ')[0]} ({s.distanceKm} km)
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* 4. Category Filter Pills */}
       <View style={styles.filterRow}>
         {(['All', 'Medication', 'Food', 'Supplies'] as const).map((cat) => (
           <TouchableOpacity
@@ -157,7 +272,7 @@ export const MarketplaceScreen = () => {
         ))}
       </View>
 
-      {/* Product Catalog */}
+      {/* 5. Product & Store Catalog List */}
       <ScrollView style={styles.catalogScroll} contentContainerStyle={styles.catalogContent}>
         {filteredProducts.map((product) => {
           const qty = cart[product.id] || 0;
@@ -172,7 +287,9 @@ export const MarketplaceScreen = () => {
                     </View>
                   )}
                   <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.storeName}>🏪 {product.storeName}</Text>
+                  <Text style={styles.storeName}>
+                    🏪 {product.storeName} · 📍 {product.distanceKm} km
+                  </Text>
                 </View>
                 <Text style={styles.priceText}>₪{product.price}</Text>
               </View>
@@ -203,7 +320,7 @@ export const MarketplaceScreen = () => {
         })}
       </ScrollView>
 
-      {/* Floating Cart Bar */}
+      {/* 6. Floating Cart Bar */}
       {cartCount > 0 && (
         <View style={styles.cartBar}>
           <View>
@@ -216,7 +333,7 @@ export const MarketplaceScreen = () => {
         </View>
       )}
 
-      {/* Checkout Modal */}
+      {/* 7. Checkout Modal */}
       <Modal visible={showCheckout} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
@@ -281,7 +398,12 @@ export const MarketplaceScreen = () => {
                 <Text style={styles.summaryLabel}>Delivery Fee ({deliveryMode === 'wolt' ? 'Wolt Drive' : 'Pickup'})</Text>
                 <Text style={styles.summaryVal}>₪{deliveryFee.toFixed(2)}</Text>
               </View>
-              <View style={[styles.summaryRow, { borderTopWidth: 1, borderColor: Colors.border, paddingTop: 6, marginTop: 4 }]}>
+              <View
+                style={[
+                  styles.summaryRow,
+                  { borderTopWidth: 1, borderColor: Colors.border, paddingTop: 6, marginTop: 4 },
+                ]}
+              >
                 <Text style={[styles.summaryLabel, { fontWeight: '800', color: Colors.text }]}>Total</Text>
                 <Text style={[styles.summaryVal, { fontWeight: '900', color: Colors.primaryLight, fontSize: 16 }]}>
                   ₪{grandTotal.toFixed(2)}
@@ -294,7 +416,11 @@ export const MarketplaceScreen = () => {
               onPress={handleCheckout}
               disabled={isPlacingOrder}
             >
-              {isPlacingOrder ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPlaceOrderText}>🚀 Confirm Order & Pay ₪{grandTotal.toFixed(2)}</Text>}
+              {isPlacingOrder ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnPlaceOrderText}>🚀 Confirm Order & Pay ₪{grandTotal.toFixed(2)}</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.btnCancel} onPress={() => setShowCheckout(false)}>
@@ -327,12 +453,92 @@ const styles = StyleSheet.create({
   },
   speedBadgeText: { color: '#0f172a', fontSize: 9, fontWeight: '900' },
   woltSub: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  searchIcon: { fontSize: 13, marginRight: 6 },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: Colors.text,
+    fontSize: 12,
+  },
+  searchClear: { color: Colors.textMuted, fontSize: 13, padding: 4 },
+  storeRadarCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    padding: Spacing.sm + 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.25)',
+  },
+  radarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  radarDotPulse: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  radarDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primaryLight,
+  },
+  radarTitle: { fontSize: 12, fontWeight: '800', color: Colors.text },
+  radarSub: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
+  btnOpenAllMaps: {
+    backgroundColor: Colors.surfaceCard,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  btnOpenAllMapsText: { fontSize: 10, fontWeight: '700', color: Colors.primaryLight },
+  storeChipsRow: {
+    flexDirection: 'row',
+    marginTop: Spacing.xs + 2,
+  },
+  storeChip: {
+    backgroundColor: Colors.surfaceCard,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  storeChipActive: {
+    backgroundColor: 'rgba(14, 165, 233, 0.2)',
+    borderColor: Colors.primaryLight,
+  },
+  storeChipText: { fontSize: 10, color: Colors.textMuted, fontWeight: '600' },
+  storeChipTextActive: { color: Colors.primaryLight, fontWeight: '800' },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
     backgroundColor: Colors.surface,
+    marginTop: Spacing.xs,
   },
   filterPill: {
     paddingHorizontal: 10,

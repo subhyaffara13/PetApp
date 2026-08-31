@@ -120,9 +120,14 @@ export const LocationPrompt = ({
             type="text"
             id="location-search-input"
             className="location-search-input"
-            placeholder={t('emergency.search_placeholder', 'Search city...')}
+            placeholder={t('emergency.search_placeholder', 'Search street address, city, or postal code...')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && suggestions.length > 0) {
+                handleSelectLocation(suggestions[0]);
+              }
+            }}
             onFocus={() => {
               if (suggestions.length > 0) setShowDropdown(true);
             }}
@@ -153,9 +158,12 @@ export const LocationPrompt = ({
               className="location-dropdown-item"
               onClick={() => handleSelectLocation(item)}
             >
-              <MapPin size={14} className="dropdown-pin-icon" />
+              <MapPin size={15} className={`dropdown-pin-icon ${item.type === 'street' ? 'pin-street' : ''}`} />
               <div className="dropdown-item-text">
-                <strong>{item.name.split(',')[0]}</strong>
+                <div className="dropdown-item-header">
+                  <strong>{item.name.split(',')[0]}</strong>
+                  {item.type === 'street' && <span className="street-badge">Street</span>}
+                </div>
                 <span>{item.name.split(',').slice(1).join(', ')}</span>
               </div>
             </button>
