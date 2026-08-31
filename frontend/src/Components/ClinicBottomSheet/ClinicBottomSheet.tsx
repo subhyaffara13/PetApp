@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Clinic, UserLocation } from '../../schemas';
 import { haversine, getDirectionsUrl } from '../../utils/geo';
-import { ChevronUp, ChevronDown, Phone, Navigation, Globe, Send } from 'lucide-react';
+import { ChevronUp, ChevronDown, Phone, Navigation, Globe, Send, Search, X } from 'lucide-react';
 import { EmergencyDispatchModal } from '../EmergencyDispatchModal/EmergencyDispatchModal';
 import { useTranslation } from '../../context/LanguageContext';
 import './ClinicBottomSheet.css';
@@ -30,6 +30,7 @@ export const ClinicBottomSheet = ({
   const startDragY = useRef<number>(0);
   const startHeight = useRef<number>(30);
   const [clinicFilter, setClinicFilter] = useState<'all' | 'open' | 'verified' | 'capacity'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [dispatchClinic, setDispatchClinic] = useState<Clinic | null>(null);
 
   // Compute distances & sort: verified 24/7 first, then distance
@@ -50,9 +51,16 @@ export const ClinicBottomSheet = ({
     });
 
   const displayClinics = sortedClinics.filter((c) => {
-    if (clinicFilter === 'open') return c.isOpenNow;
-    if (clinicFilter === 'verified') return c.isVerified;
-    if (clinicFilter === 'capacity') return c.capacityStatus === 'accepting';
+    if (clinicFilter === 'open' && !c.isOpenNow) return false;
+    if (clinicFilter === 'verified' && !c.isVerified) return false;
+    if (clinicFilter === 'capacity' && c.capacityStatus !== 'accepting') return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchAddr = (c.address || '').toLowerCase().includes(q);
+      const matchPhone = (c.phoneNum || '').includes(q);
+      return matchName || matchAddr || matchPhone;
+    }
     return true;
   });
 
@@ -140,8 +148,48 @@ export const ClinicBottomSheet = ({
           </div>
         </div>
 
+        {/* Quick Clinic / Vet / Neighborhood Search Bar */}
+        <div style={{ padding: '0.4rem 0.85rem 0.2rem', background: 'var(--color-bg-secondary, #0f172a)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: 'var(--color-bg-elevated, rgba(255,255,255,0.06))',
+              border: '1px solid var(--color-border, #334155)',
+              borderRadius: 8,
+              padding: '0.35rem 0.65rem',
+            }}
+          >
+            <Search size={14} color="var(--color-primary, #38bdf8)" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by clinic name, doctor, street (e.g. Bat Galim, Moriah, שורשים)..."
+              style={{
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--color-text-primary, #f8fafc)',
+                fontSize: '0.78rem',
+                width: '100%',
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Interactive Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.4rem', padding: '0.5rem 1rem', overflowX: 'auto', background: '#0f172a', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '0.4rem 1rem', overflowX: 'auto', background: '#0f172a', borderBottom: '1px solid #334155' }}>
           <button
             type="button"
             style={{
