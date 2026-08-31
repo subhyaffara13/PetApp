@@ -423,7 +423,9 @@ export class MarketplaceService implements OnModuleInit {
       });
     }
 
-    const serviceFee = Math.round(actualSubtotal * SERVICE_FEE_RATE * 100) / 100;
+    // Non-profit animal shelters and rescues have 0% platform fee (100% goes to animals)
+    const isNonProfit = (shop as any).isNonProfit || (shop as any).isCharity || shop.type === 'shelter' || (shop as any).category === 'shelter';
+    const serviceFee = isNonProfit ? 0 : Math.round(actualSubtotal * SERVICE_FEE_RATE * 100) / 100;
     const total = actualSubtotal + serviceFee;
 
     let stripePaymentIntentId: string | undefined;

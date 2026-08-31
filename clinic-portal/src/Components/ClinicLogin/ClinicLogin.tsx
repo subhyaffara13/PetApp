@@ -45,8 +45,9 @@ export const ClinicLogin: React.FC<ClinicLoginProps> = ({ onLogin }) => {
 
       // Decode payload
       const jwtPayload = JSON.parse(atob(accessToken.split('.')[1]));
-      if (tab === 'login' && jwtPayload.role !== 'clinic_admin') {
-        setError('This account does not have clinic admin access.');
+      const allowedRoles = ['clinic_admin', 'shelter_org', 'superadmin'];
+      if (tab === 'login' && !allowedRoles.includes(jwtPayload.role)) {
+        setError('This account does not have clinical or shelter medical access.');
         return;
       }
 
