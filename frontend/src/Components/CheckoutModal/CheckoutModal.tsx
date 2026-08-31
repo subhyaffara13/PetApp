@@ -3,9 +3,12 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { ShoppingBag, Lock, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { API_URL } from '../../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripeKey =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  'pk_test_51TkD1WQ2yoEXOvhx83mDkX2gOFw5rjOelgKCcSlRd7z2zuS1ESWe7D3ncHjW4HNgvUm7raN5Eve6y00iFCS1xMc';
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface CheckoutItem {
   name: string;

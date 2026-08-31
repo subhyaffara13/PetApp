@@ -11,7 +11,7 @@ import { ClinicBottomSheet } from '../../Components/ClinicBottomSheet/ClinicBott
 import type { Clinic, UserLocation } from '../../schemas';
 import './EmergencyPage.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 const DEFAULT_COORDS: UserLocation = { lat: 32.794, lon: 34.9896 };
 const LOCATION_STORAGE_KEY = 'petsos_user_saved_location_v1';
 const CITY_NAME_STORAGE_KEY = 'petsos_user_saved_city_name_v1';
@@ -58,9 +58,10 @@ export const EmergencyPage = () => {
       setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
       setAccuracyMode('gps_exact');
 
-      // Auto-detect country from GPS and adapt UI language
+      // Auto-detect country from GPS and adapt UI language ONLY on initial visit if user hasn't chosen a language
       reverseGeocodeCountry(geoLoc.lat, geoLoc.lon).then((res) => {
-        if (res.countryCode) {
+        const isManuallySelected = localStorage.getItem('petsos_lang_manual') === 'true';
+        if (!isManuallySelected && res.countryCode) {
           const detectedLang = mapCountryToLanguage(res.countryCode);
           setLang(detectedLang);
         }

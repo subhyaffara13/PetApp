@@ -22,7 +22,7 @@ import { ReportSafetyModal } from './Components/ReportSafetyModal';
 import type { StoryItem, PostItem } from '../../schemas';
 import './CommunityPage.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 const SAMPLE_PHOTO = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80';
 
 export const CommunityPage: React.FC = () => {

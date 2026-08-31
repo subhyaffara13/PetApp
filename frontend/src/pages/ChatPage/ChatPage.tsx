@@ -13,7 +13,7 @@ import { Sparkles } from 'lucide-react';
 import type { ChatMessage, ChatThread } from '../../schemas';
 import './ChatPage.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 const THREADS_STORAGE_KEY = 'petsos_chat_threads_v2';
 
 export const ChatPage = () => {

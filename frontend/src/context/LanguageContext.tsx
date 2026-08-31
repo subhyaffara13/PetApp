@@ -1007,6 +1007,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLang = (lang: LanguageCode) => {
     if (TRANSLATIONS[lang]) {
+      localStorage.setItem('petsos_lang_manual', 'true');
+      localStorage.setItem('petsos_lang', lang);
       setCurrentLangState(lang);
     }
   };

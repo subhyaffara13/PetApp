@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Search, X } from 'lucide-react';
 import type { UserProfileData } from './SocialProfileBar';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface UserSearchHeaderProps {
   onSelectUser: (user: UserProfileData) => void;

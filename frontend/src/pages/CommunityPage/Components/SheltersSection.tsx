@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { useImageUpload } from '../../../Hooks/useImageUpload';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface ShelterResult {
   id: string;

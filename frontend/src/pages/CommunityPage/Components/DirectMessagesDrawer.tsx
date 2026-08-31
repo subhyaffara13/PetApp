@@ -7,7 +7,7 @@ import { useImageUpload } from '../../../Hooks/useImageUpload';
 import { encryptMessage, decryptMessage } from '../../../utils/cryptoUtils';
 import type { UserProfileData } from './SocialProfileBar';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface MessageItem {
   _id: string;

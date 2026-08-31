@@ -12,7 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import type { PetShop, CartItem } from '../../schemas';
 import './MarketplacePage.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config/api';
 const TAG_FILTERS = ['All', 'Delivery', 'Pickup Only', 'Food', 'Toys', 'Grooming', 'Health'];
 
 export const MarketplacePage = () => {

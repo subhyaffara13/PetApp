@@ -6,7 +6,7 @@ import { useToast } from '../../../context/ToastContext';
 import type { UserProfileData } from './SocialProfileBar';
 import type { PostItem } from '../../../schemas';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface UserProfileModalProps {
   userId: string;

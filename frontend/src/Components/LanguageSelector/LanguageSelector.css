@@ -1,32 +1,32 @@
 .language-selector-wrap {
   position: relative;
   display: inline-block;
-  z-index: 150;
+  z-index: 2000;
 }
 
 .lang-btn {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  border-radius: var(--radius-full);
+  background: var(--bg-card, #1f2329);
+  border: 1px solid var(--border, #2a2e35);
+  color: var(--text, #f3f1ec);
+  border-radius: 9999px;
   padding: 0.35rem 0.65rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .lang-btn:hover {
-  border-color: var(--color-primary);
-  background: var(--color-bg-secondary);
+  border-color: var(--color-primary, #3b82f6);
+  background: var(--bg-elevated, #2a2e35);
 }
 
 .lang-icon {
-  color: var(--color-primary);
+  color: var(--color-primary, #3b82f6);
 }
 
 .lang-flag {
@@ -40,8 +40,8 @@
 }
 
 .lang-chevron {
-  color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
+  color: var(--text-dim, #9aa0a8);
+  transition: transform 0.2s ease;
 }
 
 .lang-chevron--open {
@@ -51,15 +51,16 @@
 /* DROPDOWN MENU */
 .lang-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  width: 220px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  width: 230px;
+  background: var(--bg-card, #1f2329);
+  border: 1px solid var(--border, #3b424d);
+  border-radius: 12px;
   padding: 0.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  z-index: 300;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  z-index: 99999;
+  backdrop-filter: blur(16px);
 }
 
 [dir="rtl"] .lang-dropdown {
