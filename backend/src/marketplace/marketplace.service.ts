@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
@@ -529,6 +529,32 @@ export class MarketplaceService implements OnModuleInit {
       automatic_payment_methods: { enabled: true },
     });
     return { clientSecret: paymentIntent.client_secret! };
+  }
+
+  /** Secure Stripe Webhook Signature Verification and Event Dispatch */
+  async handleStripeWebhook(signature: string, rawBody: Buffer): Promise<{ received: boolean }> {
+    if (!this.stripe) return { received: false };
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      this.logger.warn('STRIPE_WEBHOOK_SECRET is not configured on server');
+      return { received: false };
+    }
+
+    try {
+      const event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      if (event.type === 'payment_intent.succeeded') {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const orderId = paymentIntent.metadata?.orderId;
+        if (orderId) {
+          await this.confirmOrderPayment(orderId, paymentIntent.id);
+          this.logger.log(`Stripe webhook: Order ${orderId} confirmed via payment_intent.succeeded`);
+        }
+      }
+      return { received: true };
+    } catch (err: any) {
+      this.logger.error(`Stripe Webhook Signature Verification Failed: ${err?.message}`);
+      throw new BadRequestException(`Webhook Error: ${err?.message}`);
+    }
   }
 }
 

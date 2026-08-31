@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Headers, Req, BadRequestException } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -6,6 +6,17 @@ import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 @UseGuards(OptionalJwtAuthGuard)
 export class MarketplaceController {
   constructor(private readonly marketplaceService: MarketplaceService) {}
+
+  @Post('webhook')
+  async handleWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() req: any,
+  ) {
+    if (!signature) {
+      throw new BadRequestException('Missing stripe-signature header');
+    }
+    return this.marketplaceService.handleStripeWebhook(signature, req.rawBody);
+  }
 
   @Get('config')
   async getConfig() {

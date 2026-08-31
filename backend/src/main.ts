@@ -74,7 +74,7 @@ async function bootstrap() {
       },
       credentials: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type,Accept,Authorization,x-clinic-token,x-api-key',
+      allowedHeaders: 'Content-Type,Accept,Authorization,x-clinic-token,x-admin-token,x-store-token,x-api-key,x-requested-with',
     });
 
     const port = Number(process.env.PORT) || 8080;
