@@ -4,6 +4,7 @@ import { MapPin, Phone, Globe, Home, Loader2, Plus, X, MessageCircle } from 'luc
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { useImageUpload } from '../../../Hooks/useImageUpload';
+import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../../data/petBreeds';
 
 import { API_URL } from '../../../config/api';
 
@@ -415,18 +416,35 @@ export const SheltersSection: React.FC<SheltersSectionProps> = ({
                 <input type="text" value={newPetName} onChange={(e) => setNewPetName(e.target.value)} required style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }} />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Species</label>
-                  <select value={newPetSpecies} onChange={(e) => setNewPetSpecies(e.target.value as any)} style={{ width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }}>
-                    <option value="dog">Dog</option>
-                    <option value="cat">Cat</option>
-                    <option value="other">Other</option>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '130px' }}>
+                  <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>1. Species</label>
+                  <select
+                    value={newPetSpecies}
+                    onChange={(e) => {
+                      const sp = e.target.value as any;
+                      setNewPetSpecies(sp);
+                      const breeds = getBreedsForSpecies(sp);
+                      setNewPetBreed(breeds[0] || 'Mixed');
+                    }}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }}
+                  >
+                    {SPECIES_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.emoji} {opt.label}</option>
+                    ))}
                   </select>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Breed</label>
-                  <input type="text" value={newPetBreed} onChange={(e) => setNewPetBreed(e.target.value)} placeholder="e.g. Mixed, Labrador" required style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }} />
+                <div style={{ flex: 1, minWidth: '160px' }}>
+                  <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>2. Breed</label>
+                  <select
+                    value={newPetBreed}
+                    onChange={(e) => setNewPetBreed(e.target.value)}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.45rem' }}
+                  >
+                    {getBreedsForSpecies(newPetSpecies).map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

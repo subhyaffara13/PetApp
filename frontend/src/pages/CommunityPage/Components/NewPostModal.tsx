@@ -1,6 +1,10 @@
-import React from 'react';
-import { ImagePlus, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { ImagePlus, X, Loader2, Sparkles } from 'lucide-react';
 import { useImageUpload } from '../../../Hooks/useImageUpload';
+import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../../data/petBreeds';
+import { API_URL } from '../../../config/api';
+import type { PetProfile } from '../../../schemas';
 
 const PRESET_SAMPLE_PHOTOS = [
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80',
@@ -46,17 +50,86 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   isSubmitting, onClose, onSubmit,
 }) => {
   const { image, isUploading, uploadError, openPicker, clearImage, handleFileChange, inputRef } = useImageUpload('posts');
+  const [userPets, setUserPets] = useState<PetProfile[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string>('custom');
+  const [selectedSpecies, setSelectedSpecies] = useState<string>('dog');
+  const [isCustomBreed, setIsCustomBreed] = useState(false);
+
+  // Fetch user's registered pets from database
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchUserPets = async () => {
+      try {
+        const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile`);
+        if (res.data && res.data.length > 0) {
+          setUserPets(res.data);
+          // Auto-select first pet if none selected yet
+          const firstPet = res.data[0];
+          setSelectedPetId(firstPet._id || 'pet-0');
+          setSelectedPetName(firstPet.name);
+          setSelectedPetBreed(firstPet.breed);
+          setSelectedSpecies(firstPet.species || 'dog');
+          if (firstPet.photoUrl) {
+            setNewPostImage(firstPet.photoUrl);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load user pets', err);
+      }
+    };
+    fetchUserPets();
+  }, [isOpen]);
+
+  const handleSelectPet = (petId: string) => {
+    setSelectedPetId(petId);
+    if (petId === 'custom') {
+      setSelectedPetName('');
+      setSelectedPetBreed('');
+      setSelectedSpecies('dog');
+      return;
+    }
+
+    const found = userPets.find((p) => (p._id || '') === petId);
+    if (found) {
+      setSelectedPetName(found.name);
+      setSelectedPetBreed(found.breed);
+      setSelectedSpecies(found.species || 'dog');
+      if (found.photoUrl) {
+        setNewPostImage(found.photoUrl);
+      }
+    }
+  };
+
+  const handleSpeciesChange = (newSpecies: string) => {
+    setSelectedSpecies(newSpecies);
+    const breeds = getBreedsForSpecies(newSpecies);
+    const firstBreed = breeds[0] || 'Mixed Breed';
+    setSelectedPetBreed(firstBreed);
+    setIsCustomBreed(false);
+  };
+
+  const handleBreedSelect = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomBreed(true);
+      setSelectedPetBreed('');
+    } else {
+      setIsCustomBreed(false);
+      setSelectedPetBreed(val);
+    }
+  };
 
   // Sync Cloudinary URL up to parent when upload completes
-  React.useEffect(() => {
+  useEffect(() => {
     if (image?.url) setNewPostImage(image.url);
   }, [image?.url]);
 
   if (!isOpen) return null;
 
+  const currentBreeds = getBreedsForSpecies(selectedSpecies);
+
   return (
     <div className="modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+      <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="modal-header">
           <h3>{postMode === 'story' ? '📸 Add 24h Story' : '✍️ Share Community Post'}</h3>
           <button className="btn-close" onClick={onClose}>✕</button>
@@ -72,14 +145,89 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
             </button>
           </div>
 
+          {/* ── Auto-Fill from Registered Pets Database ── */}
+          {userPets.length > 0 && (
+            <div className="form-group" style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', padding: '0.75rem', borderRadius: 10 }}>
+              <label style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Sparkles size={14} /> Auto-Fill from Your Pets Database
+              </label>
+              <select
+                className="input"
+                value={selectedPetId}
+                onChange={(e) => handleSelectPet(e.target.value)}
+                style={{ marginTop: '0.35rem', background: '#0f172a', borderColor: '#38bdf8' }}
+              >
+                {userPets.map((p) => (
+                  <option key={p._id || p.name} value={p._id || p.name}>
+                    🐾 {p.name} ({p.species} · {p.breed})
+                  </option>
+                ))}
+                <option value="custom">+ Other / Custom Pet</option>
+              </select>
+            </div>
+          )}
+
+          {/* ── 1. Pick Kind of Animal / Species First ── */}
           <div className="form-group">
-            <label>Pet Name</label>
-            <input type="text" className="input" value={selectedPetName} onChange={(e) => setSelectedPetName(e.target.value)} placeholder="e.g. Rocky, Luna, Milo" required />
+            <label>1. Kind of Animal (Species)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', marginTop: '0.25rem' }}>
+              {SPECIES_OPTIONS.map((sp) => (
+                <button
+                  key={sp.value}
+                  type="button"
+                  onClick={() => handleSpeciesChange(sp.value)}
+                  style={{
+                    padding: '0.45rem 0.3rem',
+                    borderRadius: 8,
+                    border: selectedSpecies === sp.value ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
+                    background: selectedSpecies === sp.value ? 'rgba(56,189,248,0.18)' : 'rgba(255,255,255,0.03)',
+                    color: selectedSpecies === sp.value ? '#38bdf8' : '#cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem',
+                  }}
+                >
+                  <span>{sp.emoji}</span> {sp.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 2. Pick Breed from Dynamic List ── */}
+          <div className="form-group">
+            <label>2. Breed / Variant</label>
+            <select
+              className="input"
+              value={isCustomBreed ? '__custom__' : selectedPetBreed}
+              onChange={(e) => handleBreedSelect(e.target.value)}
+              style={{ marginTop: '0.25rem' }}
+            >
+              {currentBreeds.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+              <option value="__custom__">✏️ Other / Custom Breed (Type manually)...</option>
+            </select>
+
+            {isCustomBreed && (
+              <input
+                type="text"
+                className="input"
+                style={{ marginTop: '0.4rem' }}
+                placeholder="Type custom breed name..."
+                value={selectedPetBreed}
+                onChange={(e) => setSelectedPetBreed(e.target.value)}
+                autoFocus
+              />
+            )}
           </div>
 
           <div className="form-group">
-            <label>Breed / Age / Tag</label>
-            <input type="text" className="input" value={selectedPetBreed} onChange={(e) => setSelectedPetBreed(e.target.value)} placeholder="e.g. Golden Retriever · 3 yrs" />
+            <label>Pet Name</label>
+            <input type="text" className="input" value={selectedPetName} onChange={(e) => setSelectedPetName(e.target.value)} placeholder="e.g. Rocky, Luna, Milo" required />
           </div>
 
           <div className="form-group">
@@ -92,13 +240,6 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
               <option value="adoption">🏡 For Adoption</option>
             </select>
           </div>
-
-          {newPostCategory === 'adoption' && (
-            <div className="form-group">
-              <label>Breed / Age / Description</label>
-              <input type="text" className="input" value={selectedPetBreed} onChange={(e) => setSelectedPetBreed(e.target.value)} placeholder="e.g. Golden Retriever, 3 yrs, good with kids" />
-            </div>
-          )}
 
           {/* ── Photo Section ── */}
           <div className="form-group">

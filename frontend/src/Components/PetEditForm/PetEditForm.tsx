@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { PetProfile } from '../../schemas';
+import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../data/petBreeds';
 import './PetEditForm.css';
 
 interface PetEditFormProps {
@@ -9,15 +10,6 @@ interface PetEditFormProps {
   onCancel: () => void;
 }
 
-const speciesOptions = [
-  { value: 'dog', label: '🐕 Dog' },
-  { value: 'cat', label: '🐈 Cat' },
-  { value: 'bird', label: '🐦 Bird' },
-  { value: 'reptile', label: '🦎 Reptile' },
-  { value: 'small_mammal', label: '🐹 Small Mammal' },
-  { value: 'other', label: '🐾 Other' },
-] as const;
-
 export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
   const initialIsMonths = pet.age !== undefined && pet.age < 1 && pet.age > 0;
   const [ageUnit, setAgeUnit] = useState<'years' | 'months'>(initialIsMonths ? 'months' : 'years');
@@ -25,6 +17,7 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
     initialIsMonths ? Math.round(pet.age * 12) || 2 : pet.age || 1
   );
   const [dateOfBirth, setDateOfBirth] = useState<string>(pet.dateOfBirth || '');
+  const [isCustomBreed, setIsCustomBreed] = useState(false);
 
   const [form, setForm] = useState({
     name: pet.name,
@@ -41,6 +34,27 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSpeciesSelect = (newSpecies: PetProfile['species']) => {
+    const availableBreeds = getBreedsForSpecies(newSpecies);
+    const defaultBreed = availableBreeds[0] || 'Mixed Breed';
+    setForm((prev) => ({
+      ...prev,
+      species: newSpecies,
+      breed: defaultBreed,
+    }));
+    setIsCustomBreed(false);
+  };
+
+  const handleBreedChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomBreed(true);
+      update('breed', '');
+    } else {
+      setIsCustomBreed(false);
+      update('breed', val);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -53,7 +67,7 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
       ...pet,
       name: form.name.trim(),
       species: form.species,
-      breed: form.breed.trim(),
+      breed: form.breed.trim() || 'Mixed Breed',
       age: computedAgeYears,
       dateOfBirth: dateOfBirth || undefined,
       weight: form.weight,
@@ -74,6 +88,8 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
 
     onSave(updated);
   };
+
+  const currentBreeds = getBreedsForSpecies(form.species);
 
   return (
     <form className="pet-edit-form glass-card" onSubmit={handleSubmit} id="pet-edit-form">
@@ -96,32 +112,48 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
           id="edit-pet-name"
         />
 
-        {/* Species */}
-        <label className="pet-edit-form__label">Species</label>
+        {/* 1. Species (Picked First) */}
+        <label className="pet-edit-form__label">1. Species (Kind of Animal)</label>
         <div className="pet-edit-form__species-grid">
-          {speciesOptions.map((opt) => (
+          {SPECIES_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               className={`pet-edit-form__species-btn ${
                 form.species === opt.value ? 'pet-edit-form__species-btn--active' : ''
               }`}
-              onClick={() => update('species', opt.value)}
+              onClick={() => handleSpeciesSelect(opt.value as PetProfile['species'])}
             >
-              {opt.label}
+              {opt.emoji} {opt.label}
             </button>
           ))}
         </div>
 
-        {/* Breed */}
-        <label className="pet-edit-form__label">Breed</label>
-        <input
+        {/* 2. Breed Dropdown (Auto-updates with relevant animal's breeds) */}
+        <label className="pet-edit-form__label">2. Breed / Variant</label>
+        <select
           className="input"
-          value={form.breed}
-          onChange={(e) => update('breed', e.target.value)}
-          placeholder="e.g. Golden Retriever"
-          id="edit-pet-breed"
-        />
+          value={isCustomBreed ? '__custom__' : form.breed}
+          onChange={(e) => handleBreedChange(e.target.value)}
+          id="edit-pet-breed-select"
+        >
+          {currentBreeds.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+          <option value="__custom__">✏️ Other / Custom Breed (Type manually)...</option>
+        </select>
+
+        {isCustomBreed && (
+          <input
+            className="input"
+            style={{ marginTop: '0.4rem' }}
+            value={form.breed}
+            onChange={(e) => update('breed', e.target.value)}
+            placeholder="Type custom breed name..."
+            autoFocus
+            id="edit-pet-breed-custom"
+          />
+        )}
 
         {/* Date of Birth / Growth Age */}
         <div className="pet-edit-form__field" style={{ marginBottom: '1rem' }}>

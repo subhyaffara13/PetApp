@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { API_URL } from '../../config/api';
+import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../data/petBreeds';
 
 interface QuickAddPetInlineProps {
   onPetAdded: (newPet: any) => void;
@@ -9,11 +10,29 @@ interface QuickAddPetInlineProps {
 
 export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded, onCancel }) => {
   const [name, setName] = useState('');
-  const [species, setSpecies] = useState<'dog' | 'cat' | 'other'>('dog');
-  const [breed, setBreed] = useState('');
+  const [species, setSpecies] = useState<string>('dog');
+  const [breed, setBreed] = useState('Golden Retriever');
+  const [isCustomBreed, setIsCustomBreed] = useState(false);
   const [age, setAge] = useState<number>(2);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const handleSpeciesChange = (newSpecies: string) => {
+    setSpecies(newSpecies);
+    const availableBreeds = getBreedsForSpecies(newSpecies);
+    setBreed(availableBreeds[0] || 'Mixed Breed');
+    setIsCustomBreed(false);
+  };
+
+  const handleBreedChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomBreed(true);
+      setBreed('');
+    } else {
+      setIsCustomBreed(false);
+      setBreed(val);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,9 +41,9 @@ export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded
     setError('');
 
     const payload = {
-      name,
+      name: name.trim(),
       species,
-      breed: breed || (species === 'dog' ? 'Mixed Canine' : 'Domestic Shorthair'),
+      breed: breed.trim() || (species === 'dog' ? 'Mixed Canine' : 'Domestic Shorthair'),
       age: Number(age) || 1,
       gender: 'male',
       weight: 12,
@@ -40,6 +59,8 @@ export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded
     }
   };
 
+  const currentBreeds = getBreedsForSpecies(species);
+
   return (
     <form className="quick-add-pet-form" onSubmit={handleSubmit}>
       <div className="quick-add-title">
@@ -47,7 +68,7 @@ export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded
         <button type="button" className="btn-cancel-inline" onClick={onCancel}>✕</button>
       </div>
 
-      <div className="quick-add-inputs-row">
+      <div className="quick-add-inputs-row" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
         <input
           type="text"
           required
@@ -55,17 +76,27 @@ export const QuickAddPetInline: React.FC<QuickAddPetInlineProps> = ({ onPetAdded
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <select value={species} onChange={(e) => setSpecies(e.target.value as any)}>
-          <option value="dog">🐕 Dog</option>
-          <option value="cat">🐈 Cat</option>
-          <option value="other">🐾 Other</option>
+        <select value={species} onChange={(e) => handleSpeciesChange(e.target.value)}>
+          {SPECIES_OPTIONS.map((sp) => (
+            <option key={sp.value} value={sp.value}>{sp.emoji} {sp.label}</option>
+          ))}
         </select>
-        <input
-          type="text"
-          placeholder="Breed (e.g. Beagle)"
-          value={breed}
-          onChange={(e) => setBreed(e.target.value)}
-        />
+        <select value={isCustomBreed ? '__custom__' : breed} onChange={(e) => handleBreedChange(e.target.value)}>
+          {currentBreeds.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+          <option value="__custom__">✏️ Custom Breed...</option>
+        </select>
+        {isCustomBreed && (
+          <input
+            type="text"
+            placeholder="Type breed..."
+            value={breed}
+            onChange={(e) => setBreed(e.target.value)}
+            style={{ width: '120px' }}
+            autoFocus
+          />
+        )}
         <input
           type="number"
           placeholder="Age"
