@@ -10,6 +10,14 @@
   --admin-text-muted: #94a3b8;
 }
 
+.admin-layout[data-theme="light"] {
+  --admin-bg: #f1f5f9;
+  --admin-surface: #ffffff;
+  --admin-card-border: #e2e8f0;
+  --admin-text: #0f172a;
+  --admin-text-muted: #64748b;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
@@ -22,6 +30,9 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .admin-navbar {

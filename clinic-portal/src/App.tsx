@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { Sun, Moon } from 'lucide-react';
 import './App.css';
 import { ClinicLogin, loadClinicAuth, type ClinicUser } from './Components/ClinicLogin/ClinicLogin';
 import { BillingTab } from './Components/BillingTab';
@@ -54,9 +55,18 @@ const STATUS_OPTIONS: StatusOption[] = [
 
 function App() {
   const [clinicUser, setClinicUser] = useState<ClinicUser | null>(() => loadClinicAuth());
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('petsos_clinic_theme') as 'dark' | 'light') || 'dark';
+  });
   const [activeTab, setActiveTab] = useState<'queue' | 'billing' | 'records' | 'status' | 'merchant' | 'community'>('community');
   const [claimableClinics, setClaimableClinics] = useState<ClaimableClinic[]>([]);
   const [showClaimModal, setShowClaimModal] = useState(false);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('petsos_clinic_theme', nextTheme);
+  };
 
   // Claimed Clinic State (Single source of truth listing)
   const [currentClinic, setCurrentClinic] = useState<ClaimableClinic>(() => {
@@ -272,7 +282,7 @@ function App() {
   };
 
   return (
-    <div className="portal">
+    <div className="portal" data-theme={theme}>
       {/* Top Navigation Bar */}
       <header className="portal-header">
         <div className="portal-header__brand">
@@ -357,9 +367,34 @@ function App() {
           </button>
         </div>
 
-        <div className="portal-header__status-pill" style={{ '--status-color': currentStatus.color } as any}>
-          <span className="portal-header__status-dot" />
-          {currentStatus.label}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="portal-header__status-pill" style={{ '--status-color': currentStatus.color } as any}>
+            <span className="portal-header__status-dot" />
+            {currentStatus.label}
+          </div>
+
+          <button
+            type="button"
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Bright Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Bright / Dark Mode"
+            style={{
+              background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              border: '1px solid var(--border-color, #334155)',
+              color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+              borderRadius: '8px',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
         </div>
       </header>
 

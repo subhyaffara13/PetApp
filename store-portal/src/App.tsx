@@ -10,7 +10,7 @@ import { ProductManagementTab } from './Components/ProductManagementTab';
 import { FinancialReportsTab } from './Components/FinancialReportsTab';
 import { StoreCommunityTab } from './Components/StoreCommunityTab';
 import { StoreLogin, loadStoreAuth, type StoreUser } from './Components/StoreLogin/StoreLogin';
-import { Bell, Flame, RefreshCw, Sun, LayoutGrid, Package, TrendingUp, Sparkles } from 'lucide-react';
+import { Bell, Flame, RefreshCw, Sun, Moon, LayoutGrid, Package, TrendingUp, Sparkles } from 'lucide-react';
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -19,7 +19,16 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 export default function App() {
   useRegisterSW();
   const [storeUser, setStoreUser] = useState<StoreUser | null>(() => loadStoreAuth());
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('petsos_store_theme') as 'dark' | 'light') || 'dark';
+  });
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'reports' | 'community'>('community');
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('petsos_store_theme', nextTheme);
+  };
   const [stores, setStores] = useState<any[]>([]);
   const [currentStore, setCurrentStore] = useState<any>({
     _id: '64f1a2b3c4d5e6f7a8b9c0d1',
@@ -90,7 +99,7 @@ export default function App() {
   }
 
   return (
-    <div className="merchant-app-container">
+    <div className="merchant-app-container" data-theme={theme}>
       <header className="merchant-header-bar">
         <div className="merchant-header-left">
           <div>
@@ -139,7 +148,10 @@ export default function App() {
               <button className={`btn-rush-mode ${isRushMode ? 'btn-rush-mode--active' : ''}`} onClick={handleToggleRushMode}><Flame size={13} /> {isRushMode ? 'Rush ON' : 'Open'}</button>
             </>
           )}
-          <button className="btn-refresh-orders" onClick={fetchLiveOrders}><RefreshCw size={13} /></button>
+          <button className="btn-refresh-orders" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to Bright Mode' : 'Switch to Dark Mode'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
+          <button className="btn-refresh-orders" onClick={fetchLiveOrders} title="Refresh live orders"><RefreshCw size={13} /></button>
         </div>
       </header>
 

@@ -1,10 +1,31 @@
+:root {
+  --portal-bg: #0f172a;
+  --portal-card-bg: #1e293b;
+  --portal-header-bg: #1e293b;
+  --portal-border: #334155;
+  --portal-text: #f8fafc;
+  --portal-text-muted: #94a3b8;
+  --portal-input-bg: rgba(255, 255, 255, 0.05);
+}
+
+.portal[data-theme="light"] {
+  --portal-bg: #f1f5f9;
+  --portal-card-bg: #ffffff;
+  --portal-header-bg: #ffffff;
+  --portal-border: #e2e8f0;
+  --portal-text: #0f172a;
+  --portal-text-muted: #64748b;
+  --portal-input-bg: #f8fafc;
+}
+
 .portal {
   min-height: 100vh;
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: var(--portal-bg);
+  color: var(--portal-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .portal-header {
@@ -12,10 +33,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  background-color: #1e293b;
-  border-bottom: 1px solid #334155;
+  background-color: var(--portal-header-bg);
+  border-bottom: 1px solid var(--portal-border);
   gap: 1.5rem;
   flex-wrap: wrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .portal-header__brand {

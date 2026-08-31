@@ -1,11 +1,28 @@
+:root {
+  --store-bg: #0b0f19;
+  --store-header-bg: #111827;
+  --store-border: #1f2937;
+  --store-text: #f8fafc;
+  --store-text-muted: #94a3b8;
+}
+
+.merchant-app-container[data-theme="light"] {
+  --store-bg: #f8fafc;
+  --store-header-bg: #ffffff;
+  --store-border: #e2e8f0;
+  --store-text: #0f172a;
+  --store-text-muted: #64748b;
+}
+
 .merchant-app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #0b0f19;
-  color: #f8fafc;
+  background: var(--store-bg);
+  color: var(--store-text);
   overflow: hidden;
   box-sizing: border-box;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .merchant-header-bar {
@@ -13,10 +30,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1.25rem;
-  background: #111827;
-  border-bottom: 2px solid #1f2937;
+  background: var(--store-header-bg);
+  border-bottom: 2px solid var(--store-border);
   gap: 0.75rem;
   flex-wrap: wrap;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .merchant-header-left, .merchant-header-right {

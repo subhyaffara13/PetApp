@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, Users, ShieldCheck, Bug, RefreshCw, Server, ShieldAlert } from 'lucide-react';
+import { Activity, Users, ShieldCheck, Bug, RefreshCw, Server, ShieldAlert, Sun, Moon } from 'lucide-react';
 import { PinGate } from './Components/PinGate';
 import { SystemHealthTab, type ServiceStatus } from './Components/SystemHealthTab';
 import { UserManagementTab, type UserAccount } from './Components/UserManagementTab';
@@ -16,7 +16,16 @@ axios.interceptors.request.use((config) => {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function App() {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('petsos_admin_theme') as 'dark' | 'light') || 'dark';
+  });
   const [activeTab, setActiveTab] = useState<'health' | 'users' | 'claims' | 'reports' | 'logs'>('health');
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('petsos_admin_theme', nextTheme);
+  };
   const [services, setServices] = useState<ServiceStatus[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
@@ -107,7 +116,7 @@ export default function App() {
   const pendingClaimsCount = claims.filter((c) => c.status === 'pending').length;
 
   const dashboard = (
-    <div className="admin-layout">
+    <div className="admin-layout" data-theme={theme}>
       {/* Super Admin Top Bar */}
       <nav className="admin-navbar">
         <div className="admin-brand">
@@ -132,7 +141,15 @@ export default function App() {
           <button className={`nav-tab-btn ${activeTab === 'logs' ? 'nav-tab-btn--active' : ''}`} onClick={() => setActiveTab('logs')}>
             <Bug size={14} /> Incidents &amp; Error Feed
           </button>
-          <button className="nav-tab-btn" style={{ background: 'rgba(255,255,255,0.06)', marginLeft: '0.5rem' }} onClick={fetchAdminData} title="Refresh Telemetry">
+          <button
+            className="nav-tab-btn"
+            style={{ background: 'rgba(255,255,255,0.06)', marginLeft: '0.5rem' }}
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Bright Mode' : 'Switch to Dark Mode'}
+          >
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+          </button>
+          <button className="nav-tab-btn" style={{ background: 'rgba(255,255,255,0.06)', marginLeft: '0.25rem' }} onClick={fetchAdminData} title="Refresh Telemetry">
             <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
         </div>

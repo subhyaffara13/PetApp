@@ -5,6 +5,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { LanguageSelector } from '../../Components/LanguageSelector/LanguageSelector';
+import { ThemeToggle } from '../../Components/ThemeToggle/ThemeToggle';
 import { SocialProfileBar } from './Components/SocialProfileBar';
 import type { UserProfileData } from './Components/SocialProfileBar';
 import { StoriesTraySection } from './Components/StoriesTraySection';
@@ -282,6 +283,7 @@ export const CommunityPage: React.FC = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <LanguageSelector variant="compact" />
+            <ThemeToggle className="theme-toggle-btn-page" />
             <button
               type="button"
               className="btn btn-ghost btn-icon"
