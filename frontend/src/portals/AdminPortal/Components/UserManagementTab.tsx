@@ -138,7 +138,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                   style={{ width: '100%', padding: '0.5rem', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: 6 }}
                 >
                   <option value="customer">🐾 Pet Parent (Customer)</option>
-                  <option value="clinic_admin">🏥 Clinic Admin (PIMS)</option>
+                  <option value="clinic_admin">🏥 Clinic / Vet Admin (EMR)</option>
                   <option value="store_merchant">🏪 Store Merchant</option>
                 </select>
               </div>

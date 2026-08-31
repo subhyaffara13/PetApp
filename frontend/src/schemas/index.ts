@@ -19,7 +19,6 @@ export interface Clinic {
   heading?: number;
   speed?: number;
   distance?: number; // in km
-  pimsProvider?: string;
 }
 
 export interface UserLocation {

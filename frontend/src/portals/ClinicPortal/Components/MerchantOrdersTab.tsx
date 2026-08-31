@@ -186,6 +186,16 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                       <span className="order-total-pill">₪{subOrder.subtotalAmount + subOrder.deliveryFee}</span>
                     </div>
 
+                    <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px dashed #f59e0b', borderRadius: 8, padding: '0.4rem 0.6rem', margin: '0.4rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                      <div>
+                        <span style={{ color: '#fbbf24', fontWeight: 800 }}>📦 Courier Handoff PIN:</span>{' '}
+                        <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                          #{subOrder._id.slice(-5).toUpperCase()}
+                        </strong>
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                    </div>
+
                     <div className="order-address-box">
                       📍 <strong>{deliveryAddress.street}, {deliveryAddress.city}</strong>
                       {deliveryAddress.notes && <span className="address-note">{deliveryAddress.notes}</span>}
@@ -255,6 +265,16 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                     </span>
                   </div>
 
+                  <div style={{ background: 'rgba(56,189,248,0.12)', border: '1px dashed #38bdf8', borderRadius: 8, padding: '0.4rem 0.6rem', margin: '0.4rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                    <div>
+                      <span style={{ color: '#38bdf8', fontWeight: 800 }}>📦 Courier Handoff PIN:</span>{' '}
+                      <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                        #{subOrder._id.slice(-5).toUpperCase()}
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                  </div>
+
                   <div className="packing-checklist-box">
                     <label className="checklist-heading">Packing Checklist:</label>
                     {subOrder.items.map((it, idx) => {
@@ -308,6 +328,16 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                     <span className="daas-provider-tag">
                       {subOrder.dispatchInfo?.provider === 'wolt_drive' ? '🔷 Wolt Drive' : '⬛ Uber Direct'}
                     </span>
+                  </div>
+
+                  <div style={{ background: 'rgba(168,85,247,0.12)', border: '1px dashed #a855f7', borderRadius: 8, padding: '0.4rem 0.6rem', margin: '0.4rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                    <div>
+                      <span style={{ color: '#c084fc', fontWeight: 800 }}>📦 Courier Verification PIN:</span>{' '}
+                      <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                        #{subOrder._id.slice(-5).toUpperCase()}
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Driver Verification</span>
                   </div>
 
                   <div className="courier-profile-card">

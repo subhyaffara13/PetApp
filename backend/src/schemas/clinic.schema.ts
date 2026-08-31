@@ -23,15 +23,6 @@ export class Clinic {
   @Prop({ default: 'accepting', enum: ['accepting', 'limited', 'at_capacity'] })
   capacityStatus: string;
 
-  @Prop()
-  pimsProvider?: string;
-
-  @Prop()
-  pimsApiKey?: string;
-
-  @Prop()
-  pimsClinicId?: string;
-
   @Prop({ default: '' })
   authToken: string;
 

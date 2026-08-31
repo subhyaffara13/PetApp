@@ -33,6 +33,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                   {subOrder.items.some((i: any) => i.isEmergencyItem) && <span className="sos-pill-badge">🚨 EMERGENCY</span>}
                   <span className="order-total-pill">₪{subOrder.subtotalAmount + subOrder.deliveryFee}</span>
                 </div>
+                <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px dashed #f59e0b', borderRadius: 8, padding: '0.35rem 0.5rem', margin: '0.35rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                  <div>
+                    <span style={{ color: '#fbbf24', fontWeight: 800 }}>📦 Courier Handoff PIN:</span>{' '}
+                    <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                      #{subOrder._id.slice(-5).toUpperCase()}
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                </div>
                 <div className="order-address-box">📍 <strong>{deliveryAddress.street}, {deliveryAddress.city}</strong></div>
                 <div className="order-items-box">
                   <ul>{subOrder.items.map((it: any, idx: number) => <li key={idx}><strong>{it.quantity}x</strong> {it.productName}</li>)}</ul>
@@ -63,6 +72,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                 <div className="order-card-header">
                   <span className="order-short-id">#{subOrder._id.slice(-5).toUpperCase()}</span>
                   <span className="prep-target-tag"><Clock size={12} /> Target: {subOrder.targetPrepMinutes || 15}m</span>
+                </div>
+                <div style={{ background: 'rgba(56,189,248,0.12)', border: '1px dashed #38bdf8', borderRadius: 8, padding: '0.35rem 0.5rem', margin: '0.35rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                  <div>
+                    <span style={{ color: '#38bdf8', fontWeight: 800 }}>📦 Courier Handoff PIN:</span>{' '}
+                    <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                      #{subOrder._id.slice(-5).toUpperCase()}
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
                 </div>
                 <div className="packing-checklist-box">
                   {subOrder.items.map((it: any, idx: number) => {
@@ -103,6 +121,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                     <span className="daas-provider-tag" style={{ background: isPickup ? 'rgba(16, 185, 129, 0.2)' : undefined, color: isPickup ? '#10b981' : undefined }}>
                       {isPickup ? '🛍️ איסוף עצמי (Self Pickup)' : subOrder.dispatchInfo?.provider === 'wolt_drive' ? '🔷 Wolt Drive' : '⬛ Uber Direct'}
                     </span>
+                  </div>
+
+                  <div style={{ background: 'rgba(168,85,247,0.12)', border: '1px dashed #a855f7', borderRadius: 8, padding: '0.35rem 0.5rem', margin: '0.35rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                    <div>
+                      <span style={{ color: '#c084fc', fontWeight: 800 }}>📦 Verification PIN:</span>{' '}
+                      <strong style={{ fontFamily: 'JetBrains Mono, monospace', color: '#fff', fontSize: '0.85rem' }}>
+                        #{subOrder._id.slice(-5).toUpperCase()}
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{isPickup ? 'Customer PIN' : 'Driver PIN'}</span>
                   </div>
 
                   {isPickup ? (

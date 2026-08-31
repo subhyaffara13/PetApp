@@ -43,18 +43,6 @@ const envSchema = z.object({
   UBER_DIRECT_CLIENT_SECRET: z.string().default('uber_mock_secret'),
   UBER_WEBHOOK_SECRET: z.string().default('uber_mock_webhook_secret_dev'),
 
-  // --- Priza (Pet Insurance) ----------------------------------
-  PRIZA_API_KEY: z.string().optional(),
-
-  // --- Digitail (Vet Practice Management) ---------------------
-  DIGITAIL_API_KEY: z.string().optional(),
-
-  // --- RapidOne (Veterinary Diagnostics) ----------------------
-  RAPIDONE_API_KEY: z.string().optional(),
-
-  // --- ProVet Cloud (Clinic Management) -----------------------
-  PROVET_API_KEY: z.string().optional(),
-
   // --- AI & Maps ----------------------------------------------
   GEMINI_API_KEY: z.string().optional(),
   GOOGLE_PLACES_API_KEY: z.string().optional(),
@@ -108,10 +96,6 @@ export function validateEnvironment(): ValidatedEnv {
     const integrations: Array<{ key: keyof ValidatedEnv; name: string; url: string }> = [
       { key: 'WOLT_DRIVE_API_KEY', name: 'Wolt Drive DaaS', url: 'https://developers.wolt.com/docs/drive' },
       { key: 'UBER_DIRECT_CLIENT_ID', name: 'Uber Direct DaaS', url: 'https://developer.uber.com/docs/deliveries' },
-      { key: 'PRIZA_API_KEY', name: 'Priza Pet Insurance', url: 'https://www.priza.co.il' },
-      { key: 'DIGITAIL_API_KEY', name: 'Digitail Vet Management', url: 'https://digitail.io' },
-      { key: 'RAPIDONE_API_KEY', name: 'RapidOne Diagnostics', url: 'https://www.rapidone.co.il' },
-      { key: 'PROVET_API_KEY', name: 'ProVet Cloud', url: 'https://provetcloud.com/integrations' },
       { key: 'GEMINI_API_KEY', name: 'Google Gemini AI', url: 'https://aistudio.google.com/app/apikey' },
     ];
     for (const integration of integrations) {

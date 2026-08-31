@@ -69,7 +69,7 @@ export const ClinicLogin: React.FC<ClinicLoginProps> = ({ onLogin }) => {
             <Stethoscope size={30} color="#38bdf8" />
           </div>
           <h1 style={{ margin: '0 0 0.25rem', color: '#f8fafc', fontSize: '1.4rem', fontWeight: 800 }}>PetSOS Clinic Station</h1>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>PIMS — Veterinary Practice Portal</p>
+          <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem' }}>Clinical EMR & Smart Passport Scanner</p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '0.25rem' }}>

@@ -10,7 +10,6 @@ import { ChatModule } from './chat/chat.module';
 import { PetProfileModule } from './pet-profile/pet-profile.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { ClinicModule } from './clinic/clinic.module';
-import { PimsModule } from './pims/pims.module';
 import { CommunityModule } from './community/community.module';
 import { DeliveryManagementModule } from './delivery-management/delivery-management.module';
 import { AdminModule } from './admin/admin.module';
@@ -70,7 +69,6 @@ const logger = new Logger('MongoConnection');
     PetProfileModule,
     MarketplaceModule,
     ClinicModule,
-    PimsModule,
     CommunityModule,
     DeliveryManagementModule,
     AdminModule,
