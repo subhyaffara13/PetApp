@@ -132,6 +132,7 @@ export interface PetShop {
   imageUrl?: string;
   photoUrl?: string;
   distance?: number;
+  distanceKm?: number;
 }
 
 export interface Product {

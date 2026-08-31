@@ -7,216 +7,113 @@ import { PetShop, PetShopDocument } from '../schemas/pet-shop.schema';
 import { Product, ProductDocument } from '../schemas/product.schema';
 import { Order, OrderDocument } from '../schemas/order.schema';
 
-const SERVICE_FEE_RATE = 0.025; // 2.5%
-
-const INITIAL_HAIFA_SHOPS = [
-  {
-    _id: 'shop-haifa-1',
-    name: 'PetBuy Haifa — Grand Canyon',
-    address: 'Simcha Golan Rd 54, Grand Canyon Mall, Haifa',
-    location: { lat: 32.789, lng: 35.007 },
-    phone: '04-812-3456',
-    tags: ['Delivery', 'Food', 'Toys', 'Grooming'],
-    rating: 4.8,
-    isRegistered: true,
-    isClaimed: true,
-    isOpen: true,
-    deliveryAvailable: true,
-    pickupOnly: false,
-    products: [
-      {
-        _id: 'prod-1',
-        name: 'Royal Canin Adult Medium Dry Dog Food 15kg',
-        description: 'Balanced nutrition for adult dogs weighing 11 to 25 kg.',
-        price: 289.0,
-        category: 'Food',
-        inStock: true,
-        shopId: 'shop-haifa-1',
-      },
-      {
-        _id: 'prod-2',
-        name: 'KONG Classic Dog Toy Large',
-        description: 'Durable rubber chew toy for active dogs.',
-        price: 65.0,
-        category: 'Toys',
-        inStock: true,
-        shopId: 'shop-haifa-1',
-      },
-      {
-        _id: 'prod-3',
-        name: 'Pro Plan Cat Sterilised Salmon 3kg',
-        description: 'Complete food for sterilised adult cats.',
-        price: 139.0,
-        category: 'Food',
-        inStock: true,
-        shopId: 'shop-haifa-1',
-      },
-      {
-        _id: 'prod-4',
-        name: 'Bravaucto Flea & Tick Treatment Dog 20-40kg',
-        description: '12-week flea and tick protection chew.',
-        price: 185.0,
-        category: 'Health',
-        inStock: true,
-        shopId: 'shop-haifa-1',
-      },
-    ],
-  },
-  {
-    _id: 'shop-haifa-2',
-    name: 'Jungle Pet Shop Moriah',
-    address: 'Moriah Ave 108, Carmel, Haifa',
-    location: { lat: 32.802, lng: 34.985 },
-    phone: '04-838-9900',
-    tags: ['Delivery', 'Food', 'Toys', 'Health'],
-    rating: 4.9,
-    isRegistered: true,
-    isClaimed: true,
-    isOpen: true,
-    deliveryAvailable: true,
-    pickupOnly: false,
-    products: [
-      {
-        _id: 'prod-5',
-        name: 'Acana Grasslands Grain-Free Dog Food 11.4kg',
-        description: 'Rich in free-run lamb, duck, and wild fish.',
-        price: 349.0,
-        category: 'Food',
-        inStock: true,
-        shopId: 'shop-haifa-2',
-      },
-      {
-        _id: 'prod-6',
-        name: 'Catit Flower Water Fountain 3L',
-        description: 'Fresh filtered drinking water fountain for cats.',
-        price: 129.0,
-        category: 'Toys',
-        inStock: true,
-        shopId: 'shop-haifa-2',
-      },
-    ],
-  },
-  {
-    _id: 'shop-haifa-3',
-    name: 'Animal Center Neve Sha\'anan',
-    address: 'Trumpeldor Ave 42, Neve Sha\'anan, Haifa',
-    location: { lat: 32.783, lng: 35.012 },
-    phone: '04-823-7744',
-    tags: ['Delivery', 'Food', 'Health', 'Aquatics'],
-    rating: 4.7,
-    isRegistered: true,
-    isClaimed: true,
-    isOpen: false, // Claimed but currently closed
-    deliveryAvailable: true,
-    pickupOnly: false,
-    products: [
-      {
-        _id: 'prod-7',
-        name: 'Orijen Cat & Kitten Food 5.4kg',
-        description: 'Biologically appropriate grain-free cat food.',
-        price: 245.0,
-        category: 'Food',
-        inStock: true,
-        shopId: 'shop-haifa-3',
-      },
-      {
-        _id: 'prod-8',
-        name: 'Furminator Undercoat Deshedding Tool Dog L',
-        description: 'Reduces loose hair shedding up to 90%.',
-        price: 119.0,
-        category: 'Grooming',
-        inStock: true,
-        shopId: 'shop-haifa-3',
-      },
-    ],
-  },
-  {
-    _id: 'shop-haifa-4',
-    name: 'Haifa Bay Pet Kingdom',
-    address: 'HaHistadrut Blvd 200, Haifa Bay',
-    location: { lat: 32.815, lng: 35.042 },
-    phone: '04-872-1100',
-    tags: ['Delivery', 'Food', 'Toys', 'Reptiles', 'Birds'],
-    rating: 4.8,
-    isRegistered: true,
-    isClaimed: true,
-    isOpen: true,
-    deliveryAvailable: true,
-    pickupOnly: false,
-    products: [
-      {
-        _id: 'prod-9',
-        name: 'Taste of the Wild High Prairie Canine 12.2kg',
-        description: 'Roasted bison and venison grain-free recipe.',
-        price: 319.0,
-        category: 'Food',
-        inStock: true,
-        shopId: 'shop-haifa-4',
-      },
-      {
-        _id: 'prod-10',
-        name: 'Trixie Cat Scratching Post & Tree 120cm',
-        description: 'Multi-level scratching post with sisal rope.',
-        price: 199.0,
-        category: 'Toys',
-        inStock: true,
-        shopId: 'shop-haifa-4',
-      },
-    ],
-  },
-  {
-    _id: 'shop-haifa-5',
-    name: 'Zookesh Carmel',
-    address: 'Horev St 14, Carmel Center, Haifa',
-    location: { lat: 32.793, lng: 34.989 },
-    phone: '04-824-1122',
-    tags: ['Pickup Only', 'Grooming'],
-    isRegistered: false,
-    isClaimed: false,
-    isOpen: true, // Unclaimed & Open for calls/walk-ins
-    deliveryAvailable: false,
-    pickupOnly: true,
-    products: [],
-  },
-  {
-    _id: 'shop-haifa-6',
-    name: 'Krayot Dog & Cat Superstore',
-    address: 'Sderot Goshen 35, Kiryat Motzkin',
-    location: { lat: 32.838, lng: 35.075 },
-    phone: '04-875-9988',
-    tags: ['Pickup Only', 'Food'],
-    isRegistered: false,
-    isClaimed: false,
-    isOpen: false, // Unclaimed & Closed
-    deliveryAvailable: false,
-    pickupOnly: true,
-    products: [],
-  },
-  {
-    _id: 'shop-haifa-7',
-    name: 'Haifa Pet Boutique Horev',
-    address: 'Netiv Hen St 2, Horev Center, Haifa',
-    location: { lat: 32.791, lng: 34.988 },
-    phone: '04-825-4433',
-    tags: ['Pickup Only', 'Grooming'],
-    isRegistered: false,
-    isClaimed: false,
-    isOpen: true, // Unclaimed & Open
-    deliveryAvailable: false,
-    pickupOnly: true,
-    products: [],
-  },
-];
-
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+
+const SERVICE_FEE_RATE = 0.025; // 2.5%
+
+export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of Earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+export function getLocalizedPetStoreKeywords(
+  lang?: string,
+  country?: string,
+  lat?: number,
+  lon?: number,
+): { keywords: string[]; langCode: string } {
+  const normLang = (lang || '').toLowerCase().slice(0, 2);
+  const normCountry = (country || '').toLowerCase();
+
+  let detectedLang = normLang;
+  if (!detectedLang || detectedLang === 'un') {
+    if (
+      normCountry.includes('israel') ||
+      (lat && lat > 29.4 && lat < 33.4 && lon && lon > 34.2 && lon < 35.9)
+    ) {
+      detectedLang = 'he';
+    } else if (
+      normCountry.includes('germany') ||
+      normCountry.includes('austria') ||
+      normCountry.includes('switzerland')
+    ) {
+      detectedLang = 'de';
+    } else if (
+      normCountry.includes('france') ||
+      normCountry.includes('belgium')
+    ) {
+      detectedLang = 'fr';
+    } else if (
+      normCountry.includes('spain') ||
+      normCountry.includes('mexico') ||
+      normCountry.includes('argentina') ||
+      normCountry.includes('colombia')
+    ) {
+      detectedLang = 'es';
+    } else if (normCountry.includes('italy')) {
+      detectedLang = 'it';
+    } else if (
+      normCountry.includes('russia') ||
+      normCountry.includes('ukraine') ||
+      normCountry.includes('belarus')
+    ) {
+      detectedLang = 'ru';
+    } else if (normCountry.includes('japan')) {
+      detectedLang = 'ja';
+    } else if (
+      normCountry.includes('uae') ||
+      normCountry.includes('egypt') ||
+      normCountry.includes('saudi') ||
+      normCountry.includes('jordan') ||
+      normCountry.includes('morocco')
+    ) {
+      detectedLang = 'ar';
+    } else if (
+      normCountry.includes('brazil') ||
+      normCountry.includes('portugal')
+    ) {
+      detectedLang = 'pt';
+    } else {
+      detectedLang = 'en';
+    }
+  }
+
+  const keywordMap: Record<string, string[]> = {
+    he: ['חנות חיות', 'מזון לבעלי חיים', 'ציוד לחיות מחמד', 'חנות לחיות מחמד'],
+    ar: ['محل حيوانات أليفة', 'مستلزمات حيوانات', 'طعام كلاب وقطط', 'متجر حيوانات'],
+    de: ['Zoohandlung', 'Tierhandlung', 'Haustierbedarf', 'Tierfutter'],
+    fr: ['animalerie', 'magasin pour animaux', 'accessoires animaux', 'nourriture pour animaux'],
+    es: ['tienda de mascotas', 'artículos para mascotas', 'tienda de animales', 'alimento para mascotas'],
+    it: ['negozio di animali', 'articoli per animali', 'pet shop', 'cibo per animali'],
+    pt: ['pet shop', 'loja de animais', 'rações e acessórios', 'produtos para animais'],
+    ru: ['зоомагазин', 'товары для животных', 'корм для животных', 'зоотовары'],
+    ja: ['ペットショップ', 'ペット用品', 'ペットフード'],
+    zh: ['宠物店', '宠物用品店', '宠物食品'],
+    en: ['pet store', 'pet shop', 'pet supplies', 'pet food and accessories'],
+  };
+
+  const selectedKeywords = keywordMap[detectedLang] || keywordMap.en;
+  return {
+    keywords: selectedKeywords,
+    langCode: detectedLang,
+  };
+}
 
 @Injectable()
 export class MarketplaceService implements OnModuleInit {
   private readonly logger = new Logger(MarketplaceService.name);
   private stripe: Stripe | null = null;
   private G_PLACES_API_KEY: string | undefined;
-  private inMemoryShops = INITIAL_HAIFA_SHOPS;
   private inMemoryOrders: any[] = [];
 
   constructor(
@@ -234,39 +131,7 @@ export class MarketplaceService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    try {
-      const existingShops = await this.shopModel.countDocuments();
-      if (existingShops === 0) {
-        this.logger.log('Seeding initial verified Pet Shops & Products to MongoDB Atlas...');
-        for (const s of INITIAL_HAIFA_SHOPS) {
-          const shopDoc = await this.shopModel.create({
-            name: s.name,
-            address: s.address,
-            location: s.location,
-            phone: s.phone,
-            tags: s.tags,
-            rating: s.rating,
-            isRegistered: s.isRegistered,
-            deliveryAvailable: s.deliveryAvailable,
-            pickupOnly: s.pickupOnly,
-          });
-
-          for (const p of s.products) {
-            await this.productModel.create({
-              name: p.name,
-              description: p.description,
-              price: p.price,
-              category: p.category,
-              inStock: p.inStock,
-              shopId: shopDoc._id.toString(),
-            });
-          }
-        }
-        this.logger.log('Marketplace database seeding complete.');
-      }
-    } catch (err: any) {
-      this.logger.warn('Marketplace seeding notice:', err?.message);
-    }
+    this.logger.log('MarketplaceService initialized with Live Google Places API + MongoDB partner stores.');
   }
 
   async addProduct(shopId: string, dto: any): Promise<ProductDocument> {
@@ -282,39 +147,50 @@ export class MarketplaceService implements OnModuleInit {
     return this.productModel.findByIdAndDelete(productId).exec();
   }
 
-  async getShops(lat: number = 32.794, lon: number = 34.9896, query?: string, lang: string = 'en'): Promise<any[]> {
+  async getShops(
+    lat: number = 32.794,
+    lon: number = 34.9896,
+    query?: string,
+    lang?: string,
+    country?: string,
+  ): Promise<any[]> {
     const shopsMap = new Map<string, any>();
+    const { keywords, langCode } = getLocalizedPetStoreKeywords(lang, country, lat, lon);
 
     // 1. Load claimed & verified database partner stores with their product catalog
     try {
       const dbShops = await this.shopModel.find().exec();
       for (const shop of dbShops) {
         const id = shop._id.toString();
+        const shopLat = shop.location?.lat || lat;
+        const shopLng = shop.location?.lng || lon;
+        const distanceKm = getDistanceKm(lat, lon, shopLat, shopLng);
+
+        const shopObj = typeof shop.toObject === 'function' ? shop.toObject() : shop;
         shopsMap.set(id, {
-          ...shop.toObject(),
+          ...shopObj,
           _id: id,
           isClaimed: true,
+          isRegistered: true,
           isOpen: shop.isOpen ?? true,
           deliveryAvailable: shop.deliveryAvailable ?? true,
+          distanceKm,
         });
       }
     } catch (err: any) {
-      this.logger.warn('MongoDB shop query error, falling back to local registry:', err?.message);
-      for (const shop of this.inMemoryShops) {
-        shopsMap.set(shop._id, shop);
-      }
+      this.logger.warn('MongoDB shop query error:', err?.message);
     }
 
-    // 2. Query Live Google Places API for real-world pet stores nearby (30km radius)
+    // 2. Query Live Google Places API for real-world pet stores nearby with dynamic localized keywords
     if (this.G_PLACES_API_KEY) {
       try {
         const placesQueries: any[] = [
-          { type: 'pet_store', radius: 30000 },
-          { keyword: 'חנות חיות OR pet shop OR pet store OR מזון לבעלי חיים', radius: 30000 },
+          { type: 'pet_store', radius: 35000 },
+          { keyword: keywords.join(' OR '), radius: 35000 },
         ];
 
         if (query && query.trim()) {
-          placesQueries.push({ keyword: `${query} pet shop`, radius: 40000 });
+          placesQueries.push({ keyword: `${query} pet store OR ${query} ${keywords[0] || 'pet shop'}`, radius: 45000 });
         }
 
         for (const q of placesQueries) {
@@ -322,7 +198,7 @@ export class MarketplaceService implements OnModuleInit {
           const params = {
             location: `${lat},${lon}`,
             key: this.G_PLACES_API_KEY,
-            language: lang.slice(0, 2),
+            language: langCode,
             ...q,
           };
 
@@ -330,22 +206,26 @@ export class MarketplaceService implements OnModuleInit {
           if (response.data?.results?.length > 0) {
             for (const place of response.data.results) {
               const placeId = place.place_id;
-              // Only add if not already in the map as a registered partner
               if (!shopsMap.has(placeId)) {
+                const shopLat = place.geometry?.location?.lat || lat;
+                const shopLng = place.geometry?.location?.lng || lon;
+                const distanceKm = getDistanceKm(lat, lon, shopLat, shopLng);
+
                 shopsMap.set(placeId, {
                   _id: placeId,
                   name: place.name,
-                  address: place.vicinity || place.formatted_address || 'Local Neighborhood Store',
-                  location: place.geometry?.location || { lat, lng: lon },
+                  address: place.vicinity || place.formatted_address || 'Local Neighborhood Pet Store',
+                  location: { lat: shopLat, lng: shopLng },
                   phone: null,
-                  tags: ['Pickup Only', 'Local Store'],
-                  rating: place.rating || 4.5,
+                  tags: ['Pickup Only', 'Google Verified Store'],
+                  rating: place.rating || 4.6,
                   isRegistered: false,
                   isClaimed: false,
                   isOpen: place.opening_hours ? place.opening_hours.open_now : true,
                   deliveryAvailable: false,
                   pickupOnly: true,
-                  products: [], // ZERO placeholder fake products for unclaimed shops
+                  distanceKm,
+                  products: [], // Zero mock fake products for unclaimed Google Places stores
                 });
               }
             }
@@ -356,10 +236,46 @@ export class MarketplaceService implements OnModuleInit {
       }
     }
 
-    // 3. Fallback: if map is completely empty, populate local Haifa shops
+    // 3. Fallback: Query Worldwide OpenStreetMap (OSM Overpass) for live pet stores if needed
     if (shopsMap.size === 0) {
-      for (const s of this.inMemoryShops) {
-        shopsMap.set(s._id, s);
+      try {
+        const overpassQuery = `[out:json][timeout:5];(node["shop"="pet"](around:35000,${lat},${lon});way["shop"="pet"](around:35000,${lat},${lon});node["amenity"="pet_shop"](around:35000,${lat},${lon}););out center 35;`;
+        const osmRes = await firstValueFrom(
+          this.httpService.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`, {
+            timeout: 4000,
+          }),
+        );
+        if (osmRes.data?.elements?.length > 0) {
+          for (const el of osmRes.data.elements) {
+            const elLat = el.lat || el.center?.lat;
+            const elLon = el.lon || el.center?.lon;
+            const name = el.tags?.name || el.tags?.['name:en'] || 'Local Pet Store';
+            const street = el.tags?.['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}, ${el.tags['addr:city'] || ''}` : 'Local Pet Supplies';
+            const osmId = `osm-store-${el.id}`;
+
+            if (elLat && elLon && !shopsMap.has(osmId)) {
+              const distanceKm = getDistanceKm(lat, lon, elLat, elLon);
+              shopsMap.set(osmId, {
+                _id: osmId,
+                name,
+                address: street,
+                location: { lat: elLat, lng: elLon },
+                phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
+                tags: ['Pickup Only', 'OSM Community Store'],
+                rating: 4.5,
+                isRegistered: false,
+                isClaimed: false,
+                isOpen: true,
+                deliveryAvailable: false,
+                pickupOnly: true,
+                distanceKm,
+                products: [],
+              });
+            }
+          }
+        }
+      } catch (osmErr: any) {
+        this.logger.warn('OSM Overpass pet stores query warning:', osmErr?.message);
       }
     }
 
@@ -375,6 +291,9 @@ export class MarketplaceService implements OnModuleInit {
       );
     }
 
+    // Sort by proximity distance (closest stores first)
+    results.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+
     return results;
   }
 
@@ -383,15 +302,43 @@ export class MarketplaceService implements OnModuleInit {
       const shop = await this.shopModel.findById(id).exec();
       if (shop) {
         const products = await this.productModel.find({ shopId: id }).exec();
-        return { ...shop.toObject(), products };
+        const shopObj = typeof shop.toObject === 'function' ? shop.toObject() : shop;
+        return { ...shopObj, products };
       }
-    } catch (err) {
-      // Fallback
+    } catch {
+      // Continue to Google Places details
     }
 
-    const localShop = this.inMemoryShops.find((s) => s._id === id);
-    if (!localShop) throw new NotFoundException(`Shop ${id} not found`);
-    return localShop;
+    // If it's a Google Place ID, query Google Places Place Details API
+    if (this.G_PLACES_API_KEY && !id.startsWith('shop-') && !id.startsWith('osm-')) {
+      try {
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(id)}&fields=name,formatted_address,geometry,formatted_phone_number,opening_hours,rating,website&key=${this.G_PLACES_API_KEY}`;
+        const res = await firstValueFrom(this.httpService.get(detailsUrl));
+        const result = res.data?.result;
+        if (result) {
+          return {
+            _id: id,
+            name: result.name,
+            address: result.formatted_address || 'Address on file',
+            location: result.geometry?.location || { lat: 32.794, lng: 34.9896 },
+            phone: result.formatted_phone_number || null,
+            website: result.website || null,
+            rating: result.rating || 4.7,
+            isRegistered: false,
+            isClaimed: false,
+            isOpen: result.opening_hours ? result.opening_hours.open_now : true,
+            deliveryAvailable: false,
+            pickupOnly: true,
+            tags: ['Pickup Only', 'Google Place'],
+            products: [],
+          };
+        }
+      } catch (err: any) {
+        this.logger.warn(`Could not fetch details for Google Place ${id}:`, err?.message);
+      }
+    }
+
+    throw new NotFoundException(`Shop ${id} not found`);
   }
 
   async createOrder(dto: {

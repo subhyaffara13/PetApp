@@ -31,12 +31,14 @@ export class MarketplaceController {
     @Query('lon') lon?: string,
     @Query('query') query?: string,
     @Query('lang') lang?: string,
+    @Query('country') country?: string,
   ) {
     return this.marketplaceService.getShops(
       lat ? parseFloat(lat) : 32.794,
       lon ? parseFloat(lon) : 34.9896,
       query,
       lang || 'en',
+      country,
     );
   }
 

@@ -76,6 +76,16 @@ export const ShopCard = ({ shop, onClick }: ShopCardProps) => {
             <AlertCircle size={11} /> Unclaimed Listing (Call / Address Only)
           </span>
         )}
+
+        {/* Proximity Distance Badge */}
+        {typeof (shop.distanceKm ?? shop.distance) === 'number' && (
+          <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.08)', color: 'var(--color-text-primary, #fff)', border: '1px solid rgba(255,255,255,0.12)', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <MapPin size={10} color="#38bdf8" />
+            {(shop.distanceKm ?? shop.distance)! < 1
+              ? `${Math.round((shop.distanceKm ?? shop.distance)! * 1000)}m`
+              : `${(shop.distanceKm ?? shop.distance)!.toFixed(1)} km`}
+          </span>
+        )}
       </div>
 
       {/* Feature Tags (Delivery, Pickup, etc.) */}
