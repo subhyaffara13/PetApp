@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 import { LostPetAlert, LostPetAlertDocument } from '../schemas/emergency-dispatch.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 
 export interface EmergencyClinicResult {
   id: string;
@@ -18,6 +19,12 @@ export interface EmergencyClinicResult {
   isClaimed?: boolean;
   rating?: number;
   capacityStatus?: 'accepting' | 'limited' | 'at_capacity';
+  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+  isMobileVet?: boolean;
+  isLiveLocation?: boolean;
+  heading?: number;
+  speed?: number;
+  distance?: number;
 }
 
 const HAIFA_FALLBACK_CLINICS: EmergencyClinicResult[] = [
@@ -302,8 +309,66 @@ export class EmergencyService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     @InjectModel(LostPetAlert.name) private lostPetAlertModel: Model<LostPetAlertDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {
     this.G_PLACES_API_KEY = this.configService.get<string>('GOOGLE_PLACES_API_KEY');
+  }
+
+  // --- LIVE MOBILE VET LOCATION BROADCASTING ---
+  async updateMobileVetLocation(
+    userId: string,
+    dto: { lat: number; lng: number; heading?: number; speed?: number; isActive: boolean },
+  ): Promise<{ success: boolean; liveLocation: any }> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        liveLocation: {
+          lat: dto.lat,
+          lng: dto.lng,
+          heading: dto.heading ?? 0,
+          speed: dto.speed ?? 0,
+          updatedAt: new Date(),
+          isActive: dto.isActive,
+        },
+      },
+      { new: true },
+    );
+    return { success: true, liveLocation: user?.liveLocation };
+  }
+
+  async getLiveMobileVets(): Promise<any[]> {
+    try {
+      const mobileVets = await this.userModel
+        .find({
+          role: 'clinic_admin',
+          isVerified: true,
+          practiceType: 'mobile_vet',
+          'liveLocation.isActive': true,
+        })
+        .select('name organizationName phone bio avatar liveLocation')
+        .exec();
+
+      return mobileVets.map((v) => ({
+        id: v._id.toString(),
+        name: v.organizationName || v.name,
+        doctorName: v.name,
+        phone: (v as any).phone || '054-000-0000',
+        avatar: v.avatar,
+        bio: v.bio,
+        practiceType: 'mobile_vet',
+        isMobileVet: true,
+        isLiveLocation: true,
+        location: {
+          lat: v.liveLocation?.lat || 32.794,
+          lng: v.liveLocation?.lng || 34.9896,
+        },
+        heading: v.liveLocation?.heading,
+        speed: v.liveLocation?.speed,
+        updatedAt: v.liveLocation?.updatedAt,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   // --- RATE-LIMITED NEIGHBORHOOD LOST PET SOS ---
@@ -391,6 +456,57 @@ export class EmergencyService {
   ): Promise<EmergencyClinicResult[]> {
     const placesMap = new Map<string, EmergencyClinicResult>();
     const { keywords, langCode } = getLocalizedVetKeywords(lang, country, lat, lon);
+
+    // 0. Include Live On-Duty Mobile Vets broadcasting live GPS in real-time
+    try {
+      const activeMobileVets = await this.userModel
+        .find({
+          role: 'clinic_admin',
+          isVerified: true,
+          practiceType: 'mobile_vet',
+          'liveLocation.isActive': true,
+        })
+        .select('name organizationName phone bio avatar liveLocation')
+        .exec();
+
+      for (const vet of activeMobileVets) {
+        const vetLat = vet.liveLocation?.lat || lat;
+        const vetLng = vet.liveLocation?.lng || lon;
+        const dLat = ((vetLat - lat) * Math.PI) / 180;
+        const dLon = ((vetLng - lon) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((lat * Math.PI) / 180) *
+            Math.cos((vetLat * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distanceKm = Math.round(6371 * c * 10) / 10;
+
+        const id = `mobile-vet-${vet._id}`;
+        placesMap.set(id, {
+          id,
+          name: vet.organizationName ? `${vet.organizationName} (Dr. ${vet.name})` : `Dr. ${vet.name} — Mobile Vet Unit`,
+          address: '🚐 On-the-Move Vet Ambulatory (Live Approximate Location)',
+          isOpenNow: true,
+          location: { lat: vetLat, lng: vetLng },
+          phone: (vet as any).phone || '054-000-0000',
+          openingHours: 'Live On-Duty Ambulatory Dispatch',
+          tier: 'verified',
+          isClaimed: true,
+          rating: 5.0,
+          capacityStatus: 'accepting',
+          practiceType: 'mobile_vet',
+          isMobileVet: true,
+          isLiveLocation: true,
+          heading: vet.liveLocation?.heading,
+          speed: vet.liveLocation?.speed,
+          distance: distanceKm,
+        });
+      }
+    } catch (vetErr: any) {
+      this.logger.warn('Could not load active mobile vets:', vetErr?.message);
+    }
 
     // 1. If Google Places API key is present, query nearby & textsearch with localized language
     if (this.G_PLACES_API_KEY) {

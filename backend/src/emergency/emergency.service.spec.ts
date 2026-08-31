@@ -5,9 +5,22 @@ import { ConfigService } from '@nestjs/config';
 import { of } from 'rxjs';
 import { EmergencyService } from './emergency.service';
 import { LostPetAlert } from '../schemas/emergency-dispatch.schema';
+import { User } from '../schemas/user.schema';
 
 describe('EmergencyService', () => {
   let service: EmergencyService;
+
+  const mockUserModel: any = {
+    find: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([]),
+      }),
+    }),
+    findByIdAndUpdate: jest.fn().mockResolvedValue({
+      _id: 'user-123',
+      liveLocation: { lat: 32.794, lng: 34.9896, isActive: true },
+    }),
+  };
 
   const mockHttpService = {
     get: jest.fn().mockReturnValue(of({ data: { results: [] } })),
@@ -50,6 +63,7 @@ describe('EmergencyService', () => {
         { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: getModelToken(LostPetAlert.name), useValue: mockLostPetModel },
+        { provide: getModelToken(User.name), useValue: mockUserModel },
       ],
     }).compile();
 

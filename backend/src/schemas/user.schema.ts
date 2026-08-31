@@ -32,6 +32,29 @@ export class User {
   @Prop({ default: '' })
   licenseNumber?: string;
 
+  @Prop({ enum: ['stationary_clinic', 'mobile_vet', 'none'], default: 'none' })
+  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+
+  @Prop({
+    type: {
+      lat: Number,
+      lng: Number,
+      heading: Number,
+      speed: Number,
+      updatedAt: Date,
+      isActive: Boolean,
+    },
+    default: null,
+  })
+  liveLocation?: {
+    lat: number;
+    lng: number;
+    heading?: number;
+    speed?: number;
+    updatedAt?: Date;
+    isActive?: boolean;
+  } | null;
+
   @Prop({ default: '' })
   avatar: string;
 

@@ -8,8 +8,27 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() body: { name: string; email: string; password: string; role?: UserRole }) {
-    return this.authService.register(body.name, body.email, body.password, body.role);
+  async register(
+    @Body()
+    body: {
+      name: string;
+      email: string;
+      password: string;
+      role?: UserRole;
+      organizationName?: string;
+      licenseNumber?: string;
+      practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+    },
+  ) {
+    return this.authService.register(
+      body.name,
+      body.email,
+      body.password,
+      body.role,
+      body.organizationName,
+      body.licenseNumber,
+      body.practiceType,
+    );
   }
 
   @Post('login')

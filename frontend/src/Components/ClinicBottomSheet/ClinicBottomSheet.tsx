@@ -29,11 +29,11 @@ export const ClinicBottomSheet = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const startDragY = useRef<number>(0);
   const startHeight = useRef<number>(30);
-  const [clinicFilter, setClinicFilter] = useState<'all' | 'open' | 'verified' | 'capacity'>('all');
+  const [clinicFilter, setClinicFilter] = useState<'all' | 'open' | 'verified' | 'capacity' | 'mobile'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dispatchClinic, setDispatchClinic] = useState<Clinic | null>(null);
 
-  // Compute distances & sort: verified 24/7 first, then distance
+  // Compute distances & sort: mobile vets & verified 24/7 first, then distance
   const sortedClinics: Array<Clinic & { computedDist: number; isVerified: boolean }> = clinics
     .map((c) => {
       const dist =
@@ -46,11 +46,14 @@ export const ClinicBottomSheet = ({
       return { ...c, isClaimed: c.isClaimed, computedDist: dist, isVerified };
     })
     .sort((a, b) => {
+      if (a.isMobileVet && !b.isMobileVet) return -1;
+      if (!a.isMobileVet && b.isMobileVet) return 1;
       if (a.isVerified !== b.isVerified) return a.isVerified ? -1 : 1;
       return a.computedDist - b.computedDist;
     });
 
   const displayClinics = sortedClinics.filter((c) => {
+    if (clinicFilter === 'mobile' && !c.isMobileVet && c.practiceType !== 'mobile_vet') return false;
     if (clinicFilter === 'open' && !c.isOpenNow) return false;
     if (clinicFilter === 'verified' && !c.isVerified) return false;
     if (clinicFilter === 'capacity' && c.capacityStatus !== 'accepting') return false;
@@ -199,6 +202,14 @@ export const ClinicBottomSheet = ({
           </button>
           <button
             type="button"
+            className={`sheet-filter-pill ${clinicFilter === 'mobile' ? 'sheet-filter-pill--active-verified' : ''}`}
+            onClick={() => setClinicFilter('mobile')}
+            style={clinicFilter === 'mobile' ? { background: 'rgba(236,72,153,0.2)', color: '#f472b6', borderColor: '#ec4899' } : {}}
+          >
+            🚐 On-The-Move Vets
+          </button>
+          <button
+            type="button"
             className={`sheet-filter-pill ${clinicFilter === 'open' ? 'sheet-filter-pill--active-open' : ''}`}
             onClick={() => setClinicFilter('open')}
           >
@@ -232,13 +243,18 @@ export const ClinicBottomSheet = ({
             return (
               <div
                 key={clinic.id}
-                className={`card ${clinic.isVerified ? 'card-verified' : 'card-standard'}`}
+                className={`card ${clinic.isMobileVet ? 'card-verified' : clinic.isVerified ? 'card-verified' : 'card-standard'}`}
                 id={`card-${clinic.id}`}
                 onClick={() => onClinicCardClick?.(clinic)}
+                style={clinic.isMobileVet ? { borderColor: 'rgba(236,72,153,0.4)', background: 'linear-gradient(135deg, rgba(236,72,153,0.06) 0%, rgba(15,23,42,0.6) 100%)' } : {}}
               >
                 <div className="card-top">
                   <div>
-                    {clinic.isVerified ? (
+                    {clinic.isMobileVet || clinic.practiceType === 'mobile_vet' ? (
+                      <span className="tag" style={{ background: 'rgba(236,72,153,0.2)', color: '#f472b6', border: '1px solid rgba(236,72,153,0.4)', fontWeight: 800 }}>
+                        🚐 ON-THE-MOVE VET (LIVE GPS)
+                      </span>
+                    ) : clinic.isVerified ? (
                       <span className="tag tag-emergency">{t('emergency.tag_verified_er', 'VERIFIED 24/7 ER')}</span>
                     ) : clinic.isOpenNow ? (
                       <span className="tag tag-regular">{t('emergency.tag_community_open', 'COMMUNITY VET · OPEN NOW')}</span>
@@ -246,7 +262,7 @@ export const ClinicBottomSheet = ({
                       <span className="tag tag-closed">{t('emergency.tag_closed', 'CLOSED NOW')}</span>
                     )}
                     <h3>{clinic.name}</h3>
-                    <p className={`hours ${clinic.isVerified ? '' : 'hours-unverified'}`}>
+                    <p className={`hours ${clinic.isVerified || clinic.isMobileVet ? '' : 'hours-unverified'}`}>
                       {clinic.openingHours || (clinic.isOpenNow ? t('emergency.filter_open', 'Open Now') : t('emergency.tag_closed', 'Closed'))}
                     </p>
                   </div>

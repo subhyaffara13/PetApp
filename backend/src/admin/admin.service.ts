@@ -162,6 +162,7 @@ export class AdminService {
       id: d._id.toString(),
       userId: d.userId,
       entityType: d.entityType,
+      practiceType: d.practiceType || 'none',
       entityName: d.entityName,
       entityAddress: d.entityAddress,
       contactName: d.contactName,
@@ -196,13 +197,19 @@ export class AdminService {
           verificationBadge = 'pet_sitter';
         }
 
-        await this.authUserModel.findByIdAndUpdate(claim.userId, {
+        const updatePayload: any = {
           role,
           isVerified: true,
           verificationBadge,
           organizationName: claim.entityName,
           licenseNumber: claim.businessLicense,
-        }).exec();
+        };
+
+        if (claim.entityType === 'clinic' && claim.practiceType) {
+          updatePayload.practiceType = claim.practiceType;
+        }
+
+        await this.authUserModel.findByIdAndUpdate(claim.userId, updatePayload).exec();
       } catch (err: any) {
         this.logger.warn(`Could not elevate user ${claim.userId} during claim approval:`, err?.message);
       }
@@ -211,6 +218,7 @@ export class AdminService {
     return {
       id: claim._id.toString(),
       entityType: claim.entityType,
+      practiceType: claim.practiceType || 'none',
       entityName: claim.entityName,
       entityAddress: claim.entityAddress,
       contactName: claim.contactName,

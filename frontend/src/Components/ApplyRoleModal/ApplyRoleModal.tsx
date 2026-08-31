@@ -17,6 +17,7 @@ export const ApplyRoleModal: React.FC<ApplyRoleModalProps> = ({ onClose }) => {
   const { showToast } = useToast();
 
   const [selectedType, setSelectedType] = useState<ProfessionalType>('sitter');
+  const [practiceType, setPracticeType] = useState<'stationary_clinic' | 'mobile_vet'>('stationary_clinic');
   const [orgName, setOrgName] = useState('');
   const [address, setAddress] = useState('Haifa, Israel');
   const [contactName, setContactName] = useState(user?.name || '');
@@ -46,8 +47,9 @@ export const ApplyRoleModal: React.FC<ApplyRoleModalProps> = ({ onClose }) => {
         `${API_URL}/auth/apply-verification`,
         {
           entityType: selectedType,
+          practiceType: selectedType === 'clinic' ? practiceType : 'none',
           entityName,
-          entityAddress: address,
+          entityAddress: selectedType === 'clinic' && practiceType === 'mobile_vet' ? `${address} (Mobile Ambulatory Coverage Area)` : address,
           contactName,
           contactPhone,
           businessLicense: refDetails || 'Submitted Application',
@@ -139,13 +141,76 @@ export const ApplyRoleModal: React.FC<ApplyRoleModalProps> = ({ onClose }) => {
               </button>
             </div>
 
+            {selectedType === 'clinic' && (
+              <div className="apply-field">
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--color-text-muted)' }}>
+                  Veterinary Practice Type
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPracticeType('stationary_clinic')}
+                    style={{
+                      padding: '0.6rem 0.5rem',
+                      borderRadius: 8,
+                      border: practiceType === 'stationary_clinic' ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                      background: practiceType === 'stationary_clinic' ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.03)',
+                      color: practiceType === 'stationary_clinic' ? '#38bdf8' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.15rem',
+                    }}
+                  >
+                    <span>🏥 Physical Clinic</span>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 400 }}>Fixed Address / Hospital</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPracticeType('mobile_vet')}
+                    style={{
+                      padding: '0.6rem 0.5rem',
+                      borderRadius: 8,
+                      border: practiceType === 'mobile_vet' ? '1.5px solid #ec4899' : '1px solid rgba(255,255,255,0.1)',
+                      background: practiceType === 'mobile_vet' ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.03)',
+                      color: practiceType === 'mobile_vet' ? '#f472b6' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.15rem',
+                    }}
+                  >
+                    <span>🚐 On-The-Move Vet</span>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 400 }}>Live GPS / House Visits</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {selectedType !== 'sitter' && (
               <div className="apply-field">
-                <label>Organization / Business Name</label>
+                <label>
+                  {selectedType === 'clinic' && practiceType === 'mobile_vet'
+                    ? 'Mobile Service / Doctor Name'
+                    : 'Organization / Business Name'}
+                </label>
                 <input
                   type="text"
                   className="input"
-                  placeholder={selectedType === 'shelter' ? 'e.g. SOS Pets Rescue Haifa' : 'e.g. Carmel Pet Care'}
+                  placeholder={
+                    selectedType === 'shelter'
+                      ? 'e.g. SOS Pets Rescue Haifa'
+                      : selectedType === 'clinic' && practiceType === 'mobile_vet'
+                      ? 'e.g. Dr. Sarah Cohen — Mobile Vet Ambulatory'
+                      : 'e.g. Carmel Pet Care'
+                  }
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   required

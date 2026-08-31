@@ -82,6 +82,47 @@ function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date());
   const [error, setError] = useState<string | null>(null);
 
+  // Live Mobile Vet GPS State
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [currentGps, setCurrentGps] = useState<{ lat: number; lng: number } | null>(null);
+
+  const broadcastLocation = useCallback(async (lat: number, lng: number, isActive: boolean) => {
+    try {
+      await axios.post(`${API_URL}/emergency/mobile-vet/location`, {
+        lat,
+        lng,
+        isActive,
+        userId: clinicUser?.id,
+      }, {
+        headers: { Authorization: `Bearer ${clinicUser?.accessToken}` },
+      });
+    } catch (e) {
+      console.warn('Could not broadcast location:', e);
+    }
+  }, [clinicUser]);
+
+  const toggleLiveGps = () => {
+    if (isBroadcasting) {
+      setIsBroadcasting(false);
+      if (currentGps) {
+        broadcastLocation(currentGps.lat, currentGps.lng, false);
+      }
+    } else {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setCurrentGps(coords);
+            setIsBroadcasting(true);
+            broadcastLocation(coords.lat, coords.lng, true);
+          },
+          (err) => alert(`Geolocation error: ${err.message}`),
+          { enableHighAccuracy: true },
+        );
+      }
+    }
+  };
+
   // Incoming Dispatches
   const [dispatches, setDispatches] = useState<IncomingDispatch[]>([]);
 
@@ -397,6 +438,75 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* Mobile Vet / On-The-Move Live Location Broadcasting Widget */}
+      {clinicUser.practiceType === 'mobile_vet' && (
+        <div
+          style={{
+            margin: '1rem 1.5rem 0',
+            padding: '0.85rem 1.25rem',
+            background: isBroadcasting
+              ? 'linear-gradient(90deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))'
+              : 'rgba(255, 255, 255, 0.04)',
+            border: isBroadcasting ? '1px solid rgba(236, 72, 153, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🚐</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#f472b6' }}>
+                  ON-THE-MOVE VET AMBULATORY
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontWeight: 700,
+                    background: isBroadcasting ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: isBroadcasting ? '#22c55e' : '#ef4444',
+                    border: isBroadcasting ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+                  }}
+                >
+                  {isBroadcasting ? '🟢 LIVE GPS ON-DUTY' : '⚪ OFF-DUTY'}
+                </span>
+              </div>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+                {isBroadcasting && currentGps
+                  ? `Broadcasting live GPS: (${currentGps.lat.toFixed(4)}, ${currentGps.lng.toFixed(4)}) — Showing on PetSOS Emergency Directory`
+                  : 'Turn on Live Broadcasting to show your approximate live mobile position on the emergency map & directory'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleLiveGps}
+            style={{
+              padding: '0.55rem 1.15rem',
+              borderRadius: 8,
+              border: 'none',
+              background: isBroadcasting
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #ec4899, #d946ef)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              boxShadow: isBroadcasting ? '0 0 12px rgba(239, 68, 68, 0.4)' : '0 0 12px rgba(236, 72, 153, 0.3)',
+            }}
+          >
+            {isBroadcasting ? '⏹ Pause Location Broadcasting' : '📡 Broadcast Live Location'}
+          </button>
+        </div>
+      )}
 
       {/* Main Body */}
       <main className="portal-main">

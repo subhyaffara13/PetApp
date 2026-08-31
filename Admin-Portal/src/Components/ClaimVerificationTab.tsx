@@ -5,6 +5,7 @@ export interface ClaimRequest {
   id: string;
   userId?: string;
   entityType: 'clinic' | 'store' | 'shelter' | 'sitter';
+  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
   entityName: string;
   entityAddress: string;
   contactName: string;
@@ -65,9 +66,26 @@ export const ClaimVerificationTab: React.FC<ClaimVerificationTabProps> = ({ clai
                 <tr key={claim.id}>
                   <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.78rem' }}>{claim.id}</td>
                   <td>
-                    <span className="badge-status" style={{ background: cfg.bg, color: cfg.color }}>
-                      {cfg.label}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                      <span className="badge-status" style={{ background: cfg.bg, color: cfg.color }}>
+                        {cfg.label}
+                      </span>
+                      {claim.entityType === 'clinic' && (
+                        <span
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            background: claim.practiceType === 'mobile_vet' ? 'rgba(236,72,153,0.15)' : 'rgba(56,189,248,0.15)',
+                            color: claim.practiceType === 'mobile_vet' ? '#f472b6' : '#38bdf8',
+                            border: claim.practiceType === 'mobile_vet' ? '1px solid rgba(236,72,153,0.3)' : '1px solid rgba(56,189,248,0.3)',
+                          }}
+                        >
+                          {claim.practiceType === 'mobile_vet' ? '🚐 ON-THE-MOVE VET' : '🏥 LOCAL CLINIC'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <strong>{claim.entityName}</strong>

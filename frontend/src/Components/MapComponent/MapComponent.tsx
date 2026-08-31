@@ -13,13 +13,23 @@ const userIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-const createClinicIcon = (isVerified: boolean) =>
-  L.divIcon({
+const createClinicIcon = (isVerified: boolean, isMobileVet?: boolean) => {
+  if (isMobileVet) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="background: linear-gradient(135deg, #ec4899, #d946ef); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 0 14px rgba(236,72,153,0.7); border: 2px solid #fff; animation: pulse-shadow 2s infinite;">🚐</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+  }
+
+  return L.divIcon({
     className: '',
     html: `<div class="pin ${isVerified ? 'pin-verified' : 'pin-unverified'}"></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
+};
 
 // --- Map Center & Viewport Synchronizer ---
 interface MapUpdaterProps {
@@ -111,7 +121,7 @@ export const MapComponent = ({
             <Marker
               key={clinic.id}
               position={[clinic.location.lat, clinic.location.lng]}
-              icon={createClinicIcon(Boolean(isVerified))}
+              icon={createClinicIcon(Boolean(isVerified), Boolean(clinic.isMobileVet || clinic.practiceType === 'mobile_vet'))}
               eventHandlers={{
                 click: () => onClinicSelect?.(clinic),
               }}

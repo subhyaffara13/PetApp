@@ -33,6 +33,9 @@ export class AdminClaim {
   @Prop({ default: '' })
   userId?: string;
 
+  @Prop({ enum: ['stationary_clinic', 'mobile_vet', 'none'], default: 'none' })
+  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+
   @Prop({ required: true })
   entityName: string;
 

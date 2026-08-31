@@ -13,6 +13,11 @@ export interface Clinic {
   website?: string | null;
   rating?: number;
   capacityStatus?: 'accepting' | 'limited' | 'at_capacity';
+  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+  isMobileVet?: boolean;
+  isLiveLocation?: boolean;
+  heading?: number;
+  speed?: number;
   distance?: number; // in km
   pimsProvider?: string;
 }

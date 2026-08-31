@@ -101,6 +101,12 @@ export const EmergencyPage = () => {
           website: item.website || null,
           rating: item.rating || 4.7,
           capacityStatus: item.capacityStatus || 'accepting',
+          practiceType: item.practiceType || 'stationary_clinic',
+          isMobileVet: item.isMobileVet === true,
+          isLiveLocation: item.isLiveLocation === true,
+          heading: item.heading,
+          speed: item.speed,
+          distance: item.distance,
         }));
         setClinics(transformed);
       }

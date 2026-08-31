@@ -34,6 +34,18 @@ export class EmergencyController {
     return this.emergencyService.updateClinic(id, updates);
   }
 
+  // --- LIVE MOBILE VET LOCATION BROADCASTING ---
+  @Post('mobile-vet/location')
+  async updateMobileVetLocation(@Req() req: any, @Body() body: { lat: number; lng: number; heading?: number; speed?: number; isActive: boolean; userId?: string }) {
+    const userId = req.user?.id || body.userId;
+    return this.emergencyService.updateMobileVetLocation(userId, body);
+  }
+
+  @Get('mobile-vets/live')
+  async getLiveMobileVets() {
+    return this.emergencyService.getLiveMobileVets();
+  }
+
   // --- RATE-LIMITED LOST PET SOS BROADCASTS ---
   @Post('lost-pet')
   async broadcastLostPetAlert(@Body() body: any, @Req() req: any) {

@@ -54,7 +54,15 @@ export class AuthService implements OnModuleInit {
     // No mock/placeholder users are created automatically.
   }
 
-  async register(name: string, email: string, password: string, role: UserRole = 'customer', organizationName?: string, licenseNumber?: string): Promise<AuthTokens> {
+  async register(
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole = 'customer',
+    organizationName?: string,
+    licenseNumber?: string,
+    practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none',
+  ): Promise<AuthTokens> {
     const complexity = validatePasswordComplexity(password);
     if (!complexity.isValid) {
       throw new BadRequestException(complexity.message);
@@ -92,6 +100,7 @@ export class AuthService implements OnModuleInit {
       verificationBadge,
       organizationName: organizationName || '',
       licenseNumber: licenseNumber || '',
+      practiceType: practiceType || (role === 'clinic_admin' ? 'stationary_clinic' : 'none'),
     });
 
     return this.issueTokens(user);
@@ -254,6 +263,7 @@ export class AuthService implements OnModuleInit {
 
   async applyVerification(userId: string, dto: {
     entityType: 'clinic' | 'store' | 'shelter' | 'sitter';
+    practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
     entityName: string;
     entityAddress: string;
     contactName: string;
@@ -266,12 +276,13 @@ export class AuthService implements OnModuleInit {
     const claim = new this.claimModel({
       ...dto,
       userId,
+      practiceType: dto.practiceType || (dto.entityType === 'clinic' ? 'stationary_clinic' : 'none'),
       businessLicense: dto.businessLicense || 'Online Professional Application',
       status: 'pending',
     });
     const saved = await claim.save();
 
-    this.logger.log(`New verification claim submitted by user ${userId} for ${dto.entityType} (${dto.entityName})`);
+    this.logger.log(`New verification claim submitted by user ${userId} for ${dto.entityType} (${dto.entityName}) [practiceType: ${claim.practiceType}]`);
 
     return {
       message: 'Your verification claim has been submitted to the PetSOS Admin team for review.',
