@@ -49,35 +49,10 @@ export class AuthService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Only seed demo accounts in development — never in production
-    if (process.env.NODE_ENV === 'production') return;
-
-    try {
-      const defaultUsers: Array<{ email: string; name: string; role: UserRole }> = [
-        { email: 'clinic@petsos.app', name: 'Haifa Vet Emergency Hospital', role: 'clinic_admin' },
-        { email: 'store@petsos.app', name: 'PetBuy Store Manager', role: 'store_merchant' },
-      ];
-
-      for (const u of defaultUsers) {
-        const exists = await this.userModel.findOne({ email: u.email });
-        if (!exists) {
-          const hash = await bcrypt.hash('DemoPass2025!', 12);
-          await this.userModel.create({
-            email: u.email,
-            name: u.name,
-            passwordHash: hash,
-            role: u.role,
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-          });
-          this.logger.log(`Seeded staff account: ${u.email} (${u.role})`);
-        }
-      }
-    } catch (err: any) {
-      this.logger.warn('Initial user seeding notice:', err?.message);
-    }
+    // No mock/placeholder users are created automatically.
   }
 
-  async register(name: string, email: string, password: string, role: UserRole = 'customer'): Promise<AuthTokens> {
+  async register(name: string, email: string, password: string, role: UserRole = 'customer', organizationName?: string, licenseNumber?: string): Promise<AuthTokens> {
     const complexity = validatePasswordComplexity(password);
     if (!complexity.isValid) {
       throw new BadRequestException(complexity.message);
@@ -87,7 +62,35 @@ export class AuthService implements OnModuleInit {
     if (existing) throw new ConflictException('An account with this email already exists.');
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await this.userModel.create({ name, email: email.toLowerCase().trim(), passwordHash, role });
+    
+    // Distinct verification status based on registration portal / role
+    let isVerified = false;
+    let verificationBadge: any = 'none';
+
+    if (role === 'clinic_admin') {
+      isVerified = true;
+      verificationBadge = 'veterinarian';
+    } else if (role === 'store_merchant') {
+      isVerified = true;
+      verificationBadge = 'pet_store';
+    } else if (role === 'shelter_org') {
+      isVerified = true;
+      verificationBadge = 'animal_shelter';
+    } else if (role === 'superadmin') {
+      isVerified = true;
+      verificationBadge = 'platform_admin';
+    }
+
+    const user = await this.userModel.create({
+      name,
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      role,
+      isVerified,
+      verificationBadge,
+      organizationName: organizationName || '',
+      licenseNumber: licenseNumber || '',
+    });
 
     return this.issueTokens(user);
   }

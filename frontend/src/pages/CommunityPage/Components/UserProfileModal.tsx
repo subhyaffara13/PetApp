@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import type { UserProfileData } from './SocialProfileBar';
 import type { PostItem } from '../../../schemas';
-
+import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
 import { API_URL } from '../../../config/api';
 
 interface UserProfileModalProps {
@@ -119,8 +119,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       >
         {/* Header Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>{profile.handle}</h3>
+            <VerificationBadge
+              type={profile.verificationBadge || (profile.role === 'clinic_admin' ? 'veterinarian' : profile.role === 'store_merchant' ? 'pet_store' : profile.role === 'shelter_org' ? 'animal_shelter' : profile.role === 'superadmin' ? 'platform_admin' : 'none')}
+              size="md"
+              showLabel={true}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', position: 'relative' }}>
             {!isSelf && (

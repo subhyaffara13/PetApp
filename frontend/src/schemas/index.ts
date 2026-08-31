@@ -163,13 +163,29 @@ export interface Order {
 
 // --- Community Types ---
 
+export type UserRole = 'customer' | 'clinic_admin' | 'store_merchant' | 'shelter_org' | 'superadmin';
+export type VerificationBadge = 'none' | 'veterinarian' | 'pet_store' | 'animal_shelter' | 'platform_admin';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  bio?: string;
+  handle?: string;
+  isVerified?: boolean;
+  verificationBadge?: VerificationBadge;
+  organizationName?: string;
+}
+
 export interface StoryItem {
   _id: string;
   authorId?: string;
   authorName?: string;
   authorAvatar?: string;
-  authorBadge?: 'vet' | 'merchant' | 'none';
-  authorRole?: string;
+  authorBadge?: VerificationBadge;
+  authorRole?: UserRole;
   petId?: string;
   petName: string;
   petAvatar: string;
@@ -195,8 +211,8 @@ export interface PostItem {
   authorId?: string;
   authorName?: string;
   authorAvatar?: string;
-  authorBadge?: 'vet' | 'merchant' | 'none';
-  authorRole?: string;
+  authorBadge?: VerificationBadge;
+  authorRole?: UserRole;
   petId?: string;
   petName: string;
   petBreed?: string;

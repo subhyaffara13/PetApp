@@ -1,5 +1,7 @@
 import React from 'react';
 import { Users } from 'lucide-react';
+import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
+import type { VerificationBadge as BadgeType, UserRole } from '../../../schemas';
 
 export interface UserProfileData {
   id: string;
@@ -13,6 +15,10 @@ export interface UserProfileData {
   isFollowing?: boolean;
   petBreeds?: string[];
   suggestionReason?: string;
+  role?: UserRole;
+  isVerified?: boolean;
+  verificationBadge?: BadgeType;
+  organizationName?: string;
 }
 
 interface SocialProfileBarProps {
@@ -31,9 +37,12 @@ export const SocialProfileBar: React.FC<SocialProfileBarProps> = ({
   return (
     <section className="community-profile-bar animate-fade-in">
       <div className="profile-bar__left">
-        <img src={profile.avatar} alt={profile.name} className="profile-bar__avatar" />
+        <img src={profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'} alt={profile.name} className="profile-bar__avatar" />
         <div>
-          <h3 className="profile-bar__name">{profile.name}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <h3 className="profile-bar__name">{profile.name}</h3>
+            <VerificationBadge type={profile.verificationBadge || (profile.role === 'clinic_admin' ? 'veterinarian' : profile.role === 'store_merchant' ? 'pet_store' : profile.role === 'shelter_org' ? 'animal_shelter' : 'none')} size="sm" />
+          </div>
           <p className="profile-bar__handle">{profile.handle}</p>
         </div>
       </div>

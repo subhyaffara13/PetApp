@@ -17,6 +17,10 @@ export interface UserProfileResponse {
   petBreeds?: string[];
   distanceKm?: number;
   suggestionReason?: string;
+  role?: string;
+  isVerified?: boolean;
+  verificationBadge?: string;
+  organizationName?: string;
 }
 
 @Injectable()
@@ -141,6 +145,10 @@ export class CommunityService {
       handle: user.handle || `@${user.email.split('@')[0]}`,
       avatar: user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       bio: user.bio || 'Proud pet parent 🐾',
+      role: user.role,
+      isVerified: user.isVerified || false,
+      verificationBadge: user.verificationBadge || (user.role === 'clinic_admin' ? 'veterinarian' : user.role === 'store_merchant' ? 'pet_store' : user.role === 'shelter_org' ? 'animal_shelter' : user.role === 'superadmin' ? 'platform_admin' : 'none'),
+      organizationName: user.organizationName || '',
       followersCount: followers.length,
       followingCount: following.length,
       postsCount,
@@ -176,6 +184,8 @@ export class CommunityService {
 
     const allUsers = await this.userModel.find({
       _id: { $ne: currentUser?._id },
+      email: { $nin: ['clinic@petsos.app', 'store@petsos.app', 'demo@petsos.app', 'admin@petsos.app'] },
+      isActive: true,
     }).limit(30).exec();
 
     const scoredUsers = await Promise.all(

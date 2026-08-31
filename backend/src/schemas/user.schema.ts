@@ -3,7 +3,8 @@ import { Document } from 'mongoose';
 
 export type UserDocument = User & Document;
 
-export type UserRole = 'customer' | 'clinic_admin' | 'store_merchant' | 'superadmin';
+export type UserRole = 'customer' | 'clinic_admin' | 'store_merchant' | 'shelter_org' | 'superadmin';
+export type VerificationBadge = 'none' | 'veterinarian' | 'pet_store' | 'animal_shelter' | 'platform_admin';
 
 @Schema({ timestamps: true })
 export class User {
@@ -16,8 +17,20 @@ export class User {
   @Prop({ required: true })
   passwordHash: string;
 
-  @Prop({ enum: ['customer', 'clinic_admin', 'store_merchant', 'superadmin'], default: 'customer' })
+  @Prop({ enum: ['customer', 'clinic_admin', 'store_merchant', 'shelter_org', 'superadmin'], default: 'customer' })
   role: UserRole;
+
+  @Prop({ default: false })
+  isVerified: boolean;
+
+  @Prop({ enum: ['none', 'veterinarian', 'pet_store', 'animal_shelter', 'platform_admin'], default: 'none' })
+  verificationBadge: VerificationBadge;
+
+  @Prop({ default: '' })
+  organizationName?: string;
+
+  @Prop({ default: '' })
+  licenseNumber?: string;
 
   @Prop({ default: '' })
   avatar: string;

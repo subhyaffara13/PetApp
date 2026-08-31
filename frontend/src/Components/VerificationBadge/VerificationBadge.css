@@ -1,0 +1,66 @@
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.verified-badge--sm {
+  padding: 2px 4px;
+  font-size: 0.7rem;
+}
+
+.verified-badge--md {
+  padding: 3px 8px;
+  font-size: 0.78rem;
+}
+
+.verified-badge--lg {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+/* Specific Badges */
+.badge--vet {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.badge--merchant {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
+}
+
+.badge--shelter {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+}
+
+.badge--admin {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+}
+
+.badge--generic {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.verified-badge__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}

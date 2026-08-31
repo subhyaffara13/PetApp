@@ -3,8 +3,8 @@ import axios from 'axios';
 import { Sparkles, UserPlus, UserCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
+import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
 import type { UserProfileData } from './SocialProfileBar';
-
 import { API_URL } from '../../../config/api';
 
 interface SuggestedNeighborsTrayProps {
@@ -109,10 +109,12 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
               alt={user.name}
               style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', marginBottom: '0.4rem', border: '2px solid #38bdf8' }}
             />
-
-            <strong style={{ color: '#f8fafc', fontSize: '0.8rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>
-              {user.name}
-            </strong>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', width: '100%' }}>
+              <strong style={{ color: '#f8fafc', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name}
+              </strong>
+              <VerificationBadge type={user.verificationBadge || (user.role === 'clinic_admin' ? 'veterinarian' : user.role === 'store_merchant' ? 'pet_store' : user.role === 'shelter_org' ? 'animal_shelter' : 'none')} size="sm" />
+            </div>
             <span style={{ color: '#94a3b8', fontSize: '0.68rem', display: 'block', marginBottom: '0.35rem' }}>
               {user.handle}
             </span>

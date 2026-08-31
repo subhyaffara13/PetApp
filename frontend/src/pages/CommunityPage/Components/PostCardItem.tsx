@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../context/LanguageContext';
 import { useToast } from '../../../context/ToastContext';
+import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
 import type { PostItem, PostComment } from '../../../schemas';
 
 interface PostCardItemProps {
@@ -59,16 +60,11 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
             <div className="author-text-info">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                 <span className="author-main-name">{authorName}</span>
-                {((post as any).authorBadge === 'vet' || post.category === 'vet_update' || (post.category === 'health_tip' && (post as any).authorRole === 'clinic_admin')) && (
-                  <span style={{ background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: 10, fontSize: '0.66rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                    🏥 Verified Vet
-                  </span>
-                )}
-                {((post as any).authorBadge === 'merchant' || post.category === 'promo' || (post as any).authorRole === 'store_merchant') && (
-                  <span style={{ background: '#d97706', color: '#fff', padding: '1px 6px', borderRadius: 10, fontSize: '0.66rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                    🏪 Verified Store
-                  </span>
-                )}
+                <VerificationBadge
+                  type={(post as any).authorBadge || ((post as any).authorRole === 'clinic_admin' || post.category === 'vet_update' ? 'veterinarian' : (post as any).authorRole === 'store_merchant' || post.category === 'promo' ? 'pet_store' : (post as any).authorRole === 'shelter_org' || post.category === 'adoption' ? 'animal_shelter' : (post as any).authorRole === 'superadmin' ? 'platform_admin' : 'none')}
+                  size="sm"
+                  showLabel={true}
+                />
               </div>
               <span className="author-sub-desc">
                 {post.petName} · {post.petBreed || 'Haifa, Israel'}

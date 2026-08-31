@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Search, X } from 'lucide-react';
+import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
 import type { UserProfileData } from './SocialProfileBar';
-
 import { API_URL } from '../../../config/api';
 
 interface UserSearchHeaderProps {
@@ -144,10 +144,11 @@ export const UserSearchHeader: React.FC<UserSearchHeaderProps> = ({ onSelectUser
                   style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                     <strong style={{ color: '#f8fafc', fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.name}
                     </strong>
+                    <VerificationBadge type={user.verificationBadge || (user.role === 'clinic_admin' ? 'veterinarian' : user.role === 'store_merchant' ? 'pet_store' : user.role === 'shelter_org' ? 'animal_shelter' : 'none')} size="sm" />
                     <span style={{ color: '#38bdf8', fontSize: '0.72rem' }}>{user.handle}</span>
                   </div>
                   <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.73rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
