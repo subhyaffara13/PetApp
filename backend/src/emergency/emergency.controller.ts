@@ -5,6 +5,7 @@ import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 export class NearbyQueryDto {
   lat: string;
   lon: string;
+  query?: string;
 }
 
 @Controller('emergency')
@@ -14,8 +15,8 @@ export class EmergencyController {
 
   @Get('nearby')
   async getNearbyClinics(@Query() query: NearbyQueryDto) {
-    const { lat, lon } = query;
-    return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896);
+    const { lat, lon, query: customQuery } = query;
+    return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896, customQuery);
   }
 
   @Get('clinics')

@@ -299,16 +299,23 @@ export class EmergencyService {
     return updated;
   }
 
-  async findNearby(lat: number, lon: number): Promise<EmergencyClinicResult[]> {
+  async findNearby(lat: number, lon: number, customQuery?: string): Promise<EmergencyClinicResult[]> {
     const placesMap = new Map<string, EmergencyClinicResult>();
 
-    // 1. If Google Places API key is present, query both types and bilingual keywords
+    // 1. If Google Places API key is present, query nearby & textsearch
     if (this.G_PLACES_API_KEY) {
       try {
-        const queries = [
+        const queries: any[] = [
           { type: 'veterinary_care', radius: 30000 },
           { keyword: 'וטרינר OR מרפאה וטרינרית OR veterinary', radius: 30000 },
         ];
+
+        if (customQuery && customQuery.trim()) {
+          queries.push({
+            keyword: `${customQuery} vet OR ${customQuery} וטרינר`,
+            radius: 40000,
+          });
+        }
 
         for (const query of queries) {
           const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`;
@@ -328,7 +335,7 @@ export class EmergencyService {
                   name: place.name,
                   address: place.vicinity || place.formatted_address || 'Address unavailable',
                   isOpenNow: place.opening_hours ? place.opening_hours.open_now : true,
-                  location: place.geometry.location,
+                  location: place.geometry?.location || { lat, lng: lon },
                   phone: null,
                   tier: 'unverified',
                   isClaimed: false,
