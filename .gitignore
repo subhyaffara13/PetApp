@@ -20,10 +20,6 @@ pnpm-debug.log*
 *sa-key.json
 *.key.json
 
-# Database layouts & type structures
-/clinic-portal/src/schemas/
-/frontend/src/schemas/
-
 # System & OS Files
 .DS_Store
 Thumbs.db
