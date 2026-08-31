@@ -11,6 +11,9 @@ RUN npm ci
 
 COPY . .
 
+ARG VITE_API_URL=https://petapp-837846168269.europe-west1.run.app
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build Vite SPA with production bundle
 RUN npm run build
 
