@@ -126,6 +126,7 @@ export const EmergencyPage = () => {
 
   const handleLocationFound = (coords: { lat: number; lng: number; name: string }) => {
     manualLocationSet.current = true;
+    setSelectedClinic(null);
     const newLoc = { lat: coords.lat, lon: coords.lng };
     const shortName = coords.name.split(',')[0];
     setUserLocation(newLoc);
