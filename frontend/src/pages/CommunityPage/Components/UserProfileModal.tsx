@@ -35,8 +35,31 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editHandle, setEditHandle] = useState('');
+  const [handleStatus, setHandleStatus] = useState<{ checking: boolean; available?: boolean; message?: string }>({ checking: false });
 
   const isSelf = authUser?.id === userId || (userId === 'current-user' && authUser);
+
+  // Debounced real-time handle availability checking
+  useEffect(() => {
+    if (!isEditing || !editHandle.trim() || editHandle === profile?.handle) {
+      setHandleStatus({ checking: false });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setHandleStatus({ checking: true });
+      try {
+        const res = await axios.get<{ available: boolean; handle: string; message: string }>(`${API_URL}/community/check-handle`, {
+          params: { handle: editHandle },
+        });
+        setHandleStatus({ checking: false, available: res.data.available, message: res.data.message });
+      } catch {
+        setHandleStatus({ checking: false });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [editHandle, isEditing, profile?.handle]);
 
   const fetchProfileAndPosts = async () => {
     setIsLoading(true);
@@ -84,6 +107,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (handleStatus.available === false) {
+      showToast(handleStatus.message || 'Handle is not available.', 'error', '❌ Invalid Handle');
+      return;
+    }
+
     try {
       const res = await axios.patch<UserProfileData>(`${API_URL}/community/profile`, {
         name: editName,
@@ -93,8 +121,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setProfile(res.data);
       setIsEditing(false);
       showToast('Profile updated successfully!', 'success', '✨ Updated');
-    } catch (err) {
-      showToast('Failed to update profile.', 'error', '❌ Error');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to update profile.';
+      showToast(msg, 'error', '❌ Error');
     }
   };
 
@@ -333,8 +362,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.4rem', fontSize: '0.85rem' }} />
             </div>
             <div>
-              <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Handle (@username)</label>
-              <input type="text" value={editHandle} onChange={(e) => setEditHandle(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', borderRadius: 6, padding: '0.4rem', fontSize: '0.85rem' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Handle (@username)</label>
+                {handleStatus.checking && <span style={{ fontSize: '0.68rem', color: '#38bdf8' }}>Checking availability...</span>}
+                {!handleStatus.checking && handleStatus.available === true && <span style={{ fontSize: '0.68rem', color: '#4ade80', fontWeight: 700 }}>✅ Available</span>}
+                {!handleStatus.checking && handleStatus.available === false && <span style={{ fontSize: '0.68rem', color: '#ef4444', fontWeight: 700 }}>❌ {handleStatus.message || 'Taken'}</span>}
+              </div>
+              <input
+                type="text"
+                value={editHandle}
+                onChange={(e) => setEditHandle(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: handleStatus.available === false ? '1px solid #ef4444' : handleStatus.available === true ? '1px solid #4ade80' : '1px solid rgba(255,255,255,0.12)',
+                  color: '#fff',
+                  borderRadius: 6,
+                  padding: '0.4rem',
+                  fontSize: '0.85rem',
+                }}
+              />
             </div>
             <div>
               <label style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Bio</label>

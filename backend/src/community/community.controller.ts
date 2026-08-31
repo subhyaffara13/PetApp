@@ -9,13 +9,25 @@ export class CommunityController {
 
   @Get('profile')
   async getCurrentUserProfile(@Req() req: any) {
-    const userId = req.user?.id || 'current-user';
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId || userId === 'guest-anonymous') {
+      return null;
+    }
     return this.communityService.getUserProfile(userId, userId);
+  }
+
+  @Get('check-handle')
+  async checkHandle(@Query('handle') handle: string, @Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.communityService.checkHandleAvailability(handle, userId);
   }
 
   @Patch('profile')
   async updateProfile(@Req() req: any, @Body() body: any) {
-    const userId = req.user?.id || 'current-user';
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId || userId === 'guest-anonymous' || userId === 'current-user') {
+      return this.communityService.updateProfile('guest', body);
+    }
     return this.communityService.updateProfile(userId, body);
   }
 

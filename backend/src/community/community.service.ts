@@ -157,7 +157,57 @@ export class CommunityService {
     };
   }
 
+  async checkHandleAvailability(rawHandle: string, currentUserId?: string): Promise<{ available: boolean; handle: string; message: string }> {
+    if (!rawHandle || !rawHandle.trim()) {
+      return { available: false, handle: '', message: 'Handle cannot be empty.' };
+    }
+    let handle = rawHandle.trim().toLowerCase();
+    if (!handle.startsWith('@')) handle = `@${handle}`;
+
+    const isValid = /^@[a-z0-9_]{3,24}$/.test(handle);
+    if (!isValid) {
+      return { available: false, handle, message: 'Handle must be 3-24 characters (letters, numbers, underscores only).' };
+    }
+
+    const query: any = { handle };
+    if (currentUserId && currentUserId !== 'current-user' && currentUserId !== 'guest-anonymous' && currentUserId !== 'guest') {
+      try {
+        query._id = { $ne: currentUserId };
+      } catch {}
+    }
+
+    const existing = await this.userModel.findOne(query).exec();
+    if (existing) {
+      return { available: false, handle, message: `The handle ${handle} is already taken.` };
+    }
+    return { available: true, handle, message: `${handle} is available!` };
+  }
+
   async updateProfile(userId: string, dto: { name?: string; bio?: string; handle?: string; avatar?: string; petBreeds?: string[] }): Promise<UserProfileResponse> {
+    if (!userId || userId === 'guest' || userId === 'guest-anonymous' || userId === 'current-user') {
+      // Return updated transient profile
+      return {
+        id: 'guest',
+        name: dto.name || 'Pet Parent',
+        handle: dto.handle || '@petparent',
+        avatar: dto.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        bio: dto.bio || 'Proud pet parent 🐾',
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        isFollowing: false,
+        petBreeds: dto.petBreeds || ['Golden Retriever'],
+      };
+    }
+
+    if (dto.handle) {
+      const avail = await this.checkHandleAvailability(dto.handle, userId);
+      if (!avail.available) {
+        throw new NotFoundException(avail.message);
+      }
+      dto.handle = avail.handle;
+    }
+
     const updated = await this.userModel.findByIdAndUpdate(userId, { $set: dto }, { new: true }).exec();
     if (!updated) throw new NotFoundException('User not found');
     return this.getUserProfile(userId);

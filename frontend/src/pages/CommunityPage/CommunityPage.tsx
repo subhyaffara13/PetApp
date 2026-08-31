@@ -217,27 +217,51 @@ export const CommunityPage: React.FC = () => {
     if (!newPostCaption.trim()) return;
 
     setIsSubmitting(true);
-    const postPayload = {
-      authorId: user?.id || 'current-user',
-      authorName: user?.name || profile.name,
-      authorAvatar: user?.avatar || profile.avatar,
-      petName: selectedPetName,
-      petBreed: selectedPetBreed,
-      petAvatar: newPostImage,
-      mediaUrl: newPostImage,
-      caption: newPostCaption,
-      locationTag: newPostLocation,
-      category: newPostCategory,
-      contactPhone,
-    };
 
-    try {
-      const res = await axios.post(`${API_URL}/community/feed`, postPayload);
-      setPosts((prev) => [res.data, ...prev]);
-      setProfile((prev) => ({ ...prev, postsCount: prev.postsCount + 1 }));
-      showToast('Published to PetSOS Community!', 'success', '🎉 Post Published');
-    } catch {
-      showToast('Failed to publish post.', 'error', '❌ Publish Failed');
+    if (postMode === 'story') {
+      const storyPayload = {
+        authorId: user?.id || 'current-user',
+        authorName: user?.name || profile.name,
+        authorAvatar: user?.avatar || profile.avatar,
+        petName: selectedPetName,
+        petAvatar: newPostImage,
+        mediaUrl: newPostImage,
+        caption: newPostCaption,
+        type: newPostCategory === 'lost_found' ? 'lost_pet_sos' : 'moment',
+        locationName: newPostLocation,
+        contactPhone,
+      };
+
+      try {
+        const res = await axios.post(`${API_URL}/community/stories`, storyPayload);
+        setStories((prev) => [res.data, ...prev]);
+        showToast('Story published! Active for 24 hours ⚡', 'success', '📸 Story Live');
+      } catch {
+        showToast('Failed to publish story.', 'error', '❌ Story Failed');
+      }
+    } else {
+      const postPayload = {
+        authorId: user?.id || 'current-user',
+        authorName: user?.name || profile.name,
+        authorAvatar: user?.avatar || profile.avatar,
+        petName: selectedPetName,
+        petBreed: selectedPetBreed,
+        petAvatar: newPostImage,
+        mediaUrl: newPostImage,
+        caption: newPostCaption,
+        locationTag: newPostLocation,
+        category: newPostCategory,
+        contactPhone,
+      };
+
+      try {
+        const res = await axios.post(`${API_URL}/community/feed`, postPayload);
+        setPosts((prev) => [res.data, ...prev]);
+        setProfile((prev) => ({ ...prev, postsCount: prev.postsCount + 1 }));
+        showToast('Published to PetSOS Community!', 'success', '🎉 Post Published');
+      } catch {
+        showToast('Failed to publish post.', 'error', '❌ Publish Failed');
+      }
     }
 
     setIsSubmitting(false);
@@ -250,13 +274,13 @@ export const CommunityPage: React.FC = () => {
   return (
     <div className="community-page page" id="community-page">
       {/* Header with Search & Direct Messaging Trigger */}
-      <header className="community-header" style={{ flexDirection: 'column', gap: '0.85rem', alignItems: 'stretch' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header className="community-header">
+        <div className="community-header__top-row">
           <div>
             <h1 className="community-title">{t('community.title', 'Community & Safety')}</h1>
             <p className="community-subtitle">{t('community.subtitle', 'Stories, Amber Alerts & Local Pet Moments')}</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <LanguageSelector variant="compact" />
             <button
               type="button"
@@ -277,70 +301,79 @@ export const CommunityPage: React.FC = () => {
         <UserSearchHeader onSelectUser={(u) => setSelectedUserProfile(u)} />
       </header>
 
-      {/* Profile Bar (Clickable to view own profile) */}
-      <div onClick={() => setSelectedUserProfile(profile)} style={{ cursor: 'pointer' }}>
-        <SocialProfileBar
-          profile={profile}
-          totalPosts={posts.length}
-          onFilterAll={() => setActiveCategory('all')}
-          onOpenFriends={() => setShowFriendsModal(true)}
-        />
-      </div>
+      {/* Main Responsive Grid Layout */}
+      <div className="community-grid-layout">
+        {/* Main Feed Column */}
+        <div className="community-main-column">
+          {/* Stories Tray */}
+          <StoriesTraySection
+            stories={stories}
+            onOpenAddStory={() => handleOpenShare('story')}
+            onSelectStory={(idx) => setSelectedStoryIndex(idx)}
+          />
 
-      {/* Stories Tray */}
-      <StoriesTraySection
-        stories={stories}
-        onOpenAddStory={() => handleOpenShare('story')}
-        onSelectStory={(idx) => setSelectedStoryIndex(idx)}
-      />
+          {/* Category Filter Section */}
+          <CategoryFilterSection
+            activeCategory={activeCategory}
+            onSelectCategory={(cat) => setActiveCategory(cat)}
+          />
 
-      {/* Algorithmic "Suggested for You" Neighbors Tray */}
-      <SuggestedNeighborsTray onSelectUser={(u) => setSelectedUserProfile(u)} />
+          {/* Live Community Feed */}
+          <section className="feed-container">
+            {filteredPosts.length === 0 ? (
+              <div className="feed-empty animate-fade-in">
+                <Sparkles size={40} color="var(--color-primary)" />
+                <h3>No posts yet</h3>
+                <p>Be the first to share a cute moment, health tip, or playdate invitation!</p>
+                <button className="btn btn-primary" style={{ marginTop: '0.75rem' }} onClick={() => handleOpenShare('feed')}>
+                  + Create Your First Post
+                </button>
+              </div>
+            ) : (
+              filteredPosts.map((post) => (
+                <div key={post._id} style={{ position: 'relative' }}>
+                  <PostCardItem
+                    post={post}
+                    commentInput={commentInput[post._id] || ''}
+                    isExpandedComments={!!expandedComments[post._id]}
+                    isTranslated={!!translatedPosts[post._id]}
+                    onToggleLike={() => handleToggleLike(post._id)}
+                    onToggleFollow={() => handleToggleFollow((post as any).authorId || 'user-talia', post.petName)}
+                    onDeletePost={() => handleDeletePost(post._id)}
+                    onAddComment={() => handleAddComment(post._id)}
+                    onCommentInputChange={(_id: string, text: string) => setCommentInput((prev) => ({ ...prev, [post._id]: text }))}
+                    onToggleExpandComments={() => setExpandedComments((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
+                    onToggleTranslate={() => setTranslatedPosts((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
+                  />
+                </div>
+              ))
+            )}
+          </section>
+        </div>
 
-      {/* Category Filter Section */}
-      <CategoryFilterSection
-        activeCategory={activeCategory}
-        onSelectCategory={(cat) => setActiveCategory(cat)}
-      />
-
-      {/* Shelters & Adoption */}
-      <SheltersSection
-        activeCategory={activeCategory}
-        onGoToAdoption={() => setActiveCategory('adoption')}
-        onGoToAll={() => setActiveCategory('all')}
-      />
-
-      {/* Live Community Feed */}
-      <section className="feed-container">
-        {filteredPosts.length === 0 ? (
-          <div className="feed-empty animate-fade-in">
-            <Sparkles size={40} color="var(--color-primary)" />
-            <h3>No posts yet</h3>
-            <p>Be the first to share a cute moment, health tip, or playdate invitation!</p>
-            <button className="btn btn-primary" style={{ marginTop: '0.75rem' }} onClick={() => handleOpenShare('feed')}>
-              + Create Your First Post
-            </button>
+        {/* Desktop Sidebar Column */}
+        <aside className="community-sidebar-column">
+          {/* Profile Bar */}
+          <div onClick={() => setSelectedUserProfile(profile)} style={{ cursor: 'pointer', marginBottom: '1.25rem' }}>
+            <SocialProfileBar
+              profile={profile}
+              totalPosts={posts.length}
+              onFilterAll={() => setActiveCategory('all')}
+              onOpenFriends={() => setShowFriendsModal(true)}
+            />
           </div>
-        ) : (
-          filteredPosts.map((post) => (
-            <div key={post._id} style={{ position: 'relative' }}>
-              <PostCardItem
-                post={post}
-                commentInput={commentInput[post._id] || ''}
-                isExpandedComments={!!expandedComments[post._id]}
-                isTranslated={!!translatedPosts[post._id]}
-                onToggleLike={() => handleToggleLike(post._id)}
-                onToggleFollow={() => handleToggleFollow((post as any).authorId || 'user-talia', post.petName)}
-                onDeletePost={() => handleDeletePost(post._id)}
-                onAddComment={() => handleAddComment(post._id)}
-                onCommentInputChange={(_id: string, text: string) => setCommentInput((prev) => ({ ...prev, [post._id]: text }))}
-                onToggleExpandComments={() => setExpandedComments((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
-                onToggleTranslate={() => setTranslatedPosts((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
-              />
-            </div>
-          ))
-        )}
-      </section>
+
+          {/* Algorithmic "Suggested for You" Neighbors Tray */}
+          <SuggestedNeighborsTray onSelectUser={(u) => setSelectedUserProfile(u)} />
+
+          {/* Shelters & Adoption */}
+          <SheltersSection
+            activeCategory={activeCategory}
+            onGoToAdoption={() => setActiveCategory('adoption')}
+            onGoToAll={() => setActiveCategory('all')}
+          />
+        </aside>
+      </div>
 
       {/* Full Instagram-Style User Profile Modal */}
       {selectedUserProfile && (

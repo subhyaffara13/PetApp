@@ -24,9 +24,13 @@ export class OptionalJwtAuthGuard implements CanActivate {
 
     const token = authHeader.split(' ')[1];
     try {
-      request.user = this.jwtService.verify(token, {
+      const payload: any = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
+      request.user = {
+        ...payload,
+        id: payload.sub || payload.id,
+      };
       return true;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
