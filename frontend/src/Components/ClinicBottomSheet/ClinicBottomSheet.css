@@ -287,3 +287,60 @@
   border-color: var(--border-hover, #4b5563) !important;
   color: var(--text, #f3f1ec) !important;
 }
+
+/* THEME ADAPTIVE FILTER PILLS */
+.sheet-filter-pills-bar {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.45rem 1rem;
+  overflow-x: auto;
+  background: var(--bg-elevated, #1a1d22);
+  border-bottom: 1px solid var(--border, #2a2e35);
+  scrollbar-width: none;
+}
+
+.sheet-filter-pills-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-filter-pill {
+  background: var(--bg-card, #1f2329);
+  color: var(--text-dim, #9aa0a8);
+  border: 1px solid var(--border, #2a2e35);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast, 150ms);
+}
+
+.sheet-filter-pill:hover {
+  color: var(--text, #f3f1ec);
+  border-color: var(--color-primary, #38bdf8);
+}
+
+.sheet-filter-pill--active-all {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+.sheet-filter-pill--active-open {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+.sheet-filter-pill--active-verified {
+  background: #8b5cf6 !important;
+  color: #ffffff !important;
+  border-color: #8b5cf6 !important;
+}
+
+.sheet-filter-pill--active-capacity {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}

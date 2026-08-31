@@ -189,71 +189,31 @@ export const ClinicBottomSheet = ({
         </div>
 
         {/* Interactive Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.4rem', padding: '0.4rem 1rem', overflowX: 'auto', background: '#0f172a', borderBottom: '1px solid #334155' }}>
+        <div className="sheet-filter-pills-bar">
           <button
             type="button"
-            style={{
-              background: clinicFilter === 'all' ? '#2563eb' : '#1e293b',
-              color: '#fff',
-              border: 'none',
-              padding: '0.3rem 0.65rem',
-              borderRadius: 6,
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={`sheet-filter-pill ${clinicFilter === 'all' ? 'sheet-filter-pill--active-all' : ''}`}
             onClick={() => setClinicFilter('all')}
           >
             {t('emergency.filter_all', 'All')} ({sortedClinics.length})
           </button>
           <button
             type="button"
-            style={{
-              background: clinicFilter === 'open' ? '#10b981' : '#1e293b',
-              color: '#fff',
-              border: 'none',
-              padding: '0.3rem 0.65rem',
-              borderRadius: 6,
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={`sheet-filter-pill ${clinicFilter === 'open' ? 'sheet-filter-pill--active-open' : ''}`}
             onClick={() => setClinicFilter('open')}
           >
             {t('emergency.filter_open', '🟢 Open Now')}
           </button>
           <button
             type="button"
-            style={{
-              background: clinicFilter === 'verified' ? '#8b5cf6' : '#1e293b',
-              color: '#fff',
-              border: 'none',
-              padding: '0.3rem 0.65rem',
-              borderRadius: 6,
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={`sheet-filter-pill ${clinicFilter === 'verified' ? 'sheet-filter-pill--active-verified' : ''}`}
             onClick={() => setClinicFilter('verified')}
           >
             {t('emergency.filter_247', '⭐ 24/7 ER Only')}
           </button>
           <button
             type="button"
-            style={{
-              background: clinicFilter === 'capacity' ? '#f59e0b' : '#1e293b',
-              color: '#fff',
-              border: 'none',
-              padding: '0.3rem 0.65rem',
-              borderRadius: 6,
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
+            className={`sheet-filter-pill ${clinicFilter === 'capacity' ? 'sheet-filter-pill--active-capacity' : ''}`}
             onClick={() => setClinicFilter('capacity')}
           >
             {t('emergency.filter_immediate', '🚨 Immediate Intake')}
@@ -297,7 +257,7 @@ export const ClinicBottomSheet = ({
                 </div>
 
                 {!clinic.isVerified && (
-                  <p className="warn">Standard clinic hours — call ahead for non-emergency visits</p>
+                  <p className="warn">{t('emergency.warn_standard', 'Standard clinic hours — call ahead for non-emergency visits')}</p>
                 )}
 
                 {/* Primary SOS Action Bar */}
@@ -321,7 +281,7 @@ export const ClinicBottomSheet = ({
                   </a>
                   {clinic.website && (
                     <a className="btn-action btn-web" href={clinic.website} target="_blank" rel="noopener noreferrer">
-                      <Globe size={13} /> Site
+                      <Globe size={13} /> {t('action.website', 'Site')}
                     </a>
                   )}
                 </div>

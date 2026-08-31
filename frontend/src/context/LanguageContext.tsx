@@ -44,8 +44,11 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'action.restore': 'Restore Pet',
     'action.call': 'Call Clinic',
     'action.directions': 'Directions',
+    'action.website': 'Site',
     'action.dispatch': 'Dispatch SOS Dossier',
     'common.select_language': 'Select Language',
+    'location.gps_active': 'Exact GPS active',
+    'location.near_you': 'Near you',
 
     'emergency.title': 'Emergency Vets Near You',
     'emergency.subtitle': 'Real-time open clinic finder, live triage queue & SOS dispatch',
@@ -66,6 +69,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'emergency.btn_alert_coming': "🚨 Alert Clinic I'm Coming",
     'emergency.btn_call': 'Call',
     'emergency.btn_directions': 'Directions',
+    'emergency.warn_standard': 'Standard clinic hours — call ahead for non-emergency visits',
 
     'community.title': 'Community & Safety',
     'community.subtitle': 'Stories, Amber Alerts & Local Pet Moments',

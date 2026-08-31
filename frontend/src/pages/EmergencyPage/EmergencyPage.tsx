@@ -18,7 +18,7 @@ const CITY_NAME_STORAGE_KEY = 'petsos_user_saved_city_name_v1';
 
 export const EmergencyPage = () => {
   const { theme, toggleTheme } = useTheme();
-  const { setLang } = useTranslation();
+  const { currentLang, setLang } = useTranslation();
 
   const { location: geoLoc, error: geoError } = useGeolocation();
   const [userLocation, setUserLocation] = useState<UserLocation>(() => {
@@ -74,11 +74,16 @@ export const EmergencyPage = () => {
     }
   }, [geoLoc, geoError, setLang]);
 
-  // Fetch backend emergency clinics if available
+  // Fetch backend emergency clinics if available with localized language & coordinates
   const fetchClinics = useCallback(async (loc: UserLocation) => {
     try {
       const response = await axios.get<any[]>(`${API_URL}/emergency/nearby`, {
-        params: { lat: loc.lat, lon: loc.lon },
+        params: {
+          lat: loc.lat,
+          lon: loc.lon,
+          lang: currentLang,
+          country: cityName,
+        },
         timeout: 4000,
       });
 
@@ -102,7 +107,7 @@ export const EmergencyPage = () => {
     } catch {
       // Preserve rich INITIAL_PROVIDERS
     }
-  }, []);
+  }, [currentLang, cityName]);
 
   useEffect(() => {
     fetchClinics(userLocation);

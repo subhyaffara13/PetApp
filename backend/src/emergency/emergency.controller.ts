@@ -6,6 +6,8 @@ export class NearbyQueryDto {
   lat: string;
   lon: string;
   query?: string;
+  lang?: string;
+  country?: string;
 }
 
 @Controller('emergency')
@@ -15,8 +17,8 @@ export class EmergencyController {
 
   @Get('nearby')
   async getNearbyClinics(@Query() query: NearbyQueryDto) {
-    const { lat, lon, query: customQuery } = query;
-    return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896, customQuery);
+    const { lat, lon, query: customQuery, lang, country } = query;
+    return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896, customQuery, lang, country);
   }
 
   @Get('clinics')

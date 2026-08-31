@@ -210,6 +210,89 @@ const HAIFA_FALLBACK_CLINICS: EmergencyClinicResult[] = [
   },
 ];
 
+function getLocalizedVetKeywords(
+  lang?: string,
+  country?: string,
+  lat?: number,
+  lon?: number,
+): { keywords: string[]; langCode: string } {
+  const normLang = (lang || '').toLowerCase().slice(0, 2);
+  const normCountry = (country || '').toLowerCase();
+
+  let detectedLang = normLang;
+  if (!detectedLang || detectedLang === 'un') {
+    if (
+      normCountry.includes('israel') ||
+      (lat && lat > 29.4 && lat < 33.4 && lon && lon > 34.2 && lon < 35.9)
+    ) {
+      detectedLang = 'he';
+    } else if (
+      normCountry.includes('germany') ||
+      normCountry.includes('austria') ||
+      normCountry.includes('switzerland')
+    ) {
+      detectedLang = 'de';
+    } else if (
+      normCountry.includes('france') ||
+      normCountry.includes('belgium')
+    ) {
+      detectedLang = 'fr';
+    } else if (
+      normCountry.includes('spain') ||
+      normCountry.includes('mexico') ||
+      normCountry.includes('argentina') ||
+      normCountry.includes('colombia')
+    ) {
+      detectedLang = 'es';
+    } else if (normCountry.includes('italy')) {
+      detectedLang = 'it';
+    } else if (
+      normCountry.includes('russia') ||
+      normCountry.includes('ukraine') ||
+      normCountry.includes('belarus')
+    ) {
+      detectedLang = 'ru';
+    } else if (normCountry.includes('japan')) {
+      detectedLang = 'ja';
+    } else if (
+      normCountry.includes('uae') ||
+      normCountry.includes('egypt') ||
+      normCountry.includes('saudi') ||
+      normCountry.includes('jordan') ||
+      normCountry.includes('morocco')
+    ) {
+      detectedLang = 'ar';
+    } else if (
+      normCountry.includes('brazil') ||
+      normCountry.includes('portugal')
+    ) {
+      detectedLang = 'pt';
+    } else {
+      detectedLang = 'en';
+    }
+  }
+
+  const keywordMap: Record<string, string[]> = {
+    he: ['וטרינר', 'מרפאה וטרינרית', 'בית חולים וטרינרי', 'חירום וטרינרי'],
+    ar: ['طبيب بيطري', 'عيادة بيطرية', 'مستشفى بيطري', 'طوارئ بيطرية'],
+    de: ['Tierarzt', 'Tierklinik', 'Tierarztpraxis', 'Tiernotdienst'],
+    fr: ['vétérinaire', 'clinique vétérinaire', 'urgence vétérinaire', 'hôpital vétérinaire'],
+    es: ['veterinario', 'clínica veterinaria', 'hospital veterinario', 'urgencias veterinarias'],
+    it: ['veterinario', 'clinica veterinaria', 'pronto soccorso veterinario'],
+    pt: ['veterinário', 'clínica veterinária', 'hospital veterinário'],
+    ru: ['ветеринар', 'ветклиника', 'ветеринарная клиника', 'ветеринарная помощь'],
+    ja: ['獣医', '動物病院', '夜間救急動物病院'],
+    zh: ['宠物医院', '兽医', '动物医院'],
+    en: ['veterinary clinic', 'animal hospital', 'emergency vet', '24/7 pet clinic'],
+  };
+
+  const selectedKeywords = keywordMap[detectedLang] || keywordMap.en;
+  return {
+    keywords: selectedKeywords,
+    langCode: detectedLang,
+  };
+}
+
 @Injectable()
 export class EmergencyService {
   private readonly logger = new Logger(EmergencyService.name);
@@ -299,20 +382,27 @@ export class EmergencyService {
     return updated;
   }
 
-  async findNearby(lat: number, lon: number, customQuery?: string): Promise<EmergencyClinicResult[]> {
+  async findNearby(
+    lat: number,
+    lon: number,
+    customQuery?: string,
+    lang?: string,
+    country?: string,
+  ): Promise<EmergencyClinicResult[]> {
     const placesMap = new Map<string, EmergencyClinicResult>();
+    const { keywords, langCode } = getLocalizedVetKeywords(lang, country, lat, lon);
 
-    // 1. If Google Places API key is present, query nearby & textsearch
+    // 1. If Google Places API key is present, query nearby & textsearch with localized language
     if (this.G_PLACES_API_KEY) {
       try {
         const queries: any[] = [
           { type: 'veterinary_care', radius: 30000 },
-          { keyword: 'וטרינר OR מרפאה וטרינרית OR veterinary', radius: 30000 },
+          { keyword: keywords.join(' OR '), radius: 30000 },
         ];
 
         if (customQuery && customQuery.trim()) {
           queries.push({
-            keyword: `${customQuery} vet OR ${customQuery} וטרינר`,
+            keyword: `${customQuery} vet OR ${customQuery} ${keywords[0] || 'veterinary'}`,
             radius: 40000,
           });
         }
@@ -322,6 +412,7 @@ export class EmergencyService {
           const params = {
             location: `${lat},${lon}`,
             key: this.G_PLACES_API_KEY,
+            language: langCode,
             ...query,
           };
 
@@ -353,7 +444,7 @@ export class EmergencyService {
 
     // 2. Query Worldwide OpenStreetMap (OSM Overpass) for live international veterinary data
     try {
-      const overpassQuery = `[out:json][timeout:5];(node["amenity"="veterinary"](around:35000,${lat},${lon});way["amenity"="veterinary"](around:35000,${lat},${lon}););out center 25;`;
+      const overpassQuery = `[out:json][timeout:5];(node["amenity"="veterinary"](around:35000,${lat},${lon});way["amenity"="veterinary"](around:35000,${lat},${lon});node["healthcare"="veterinary"](around:35000,${lat},${lon}););out center 35;`;
       const osmRes = await firstValueFrom(
         this.httpService.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`, {
           timeout: 4000,
@@ -367,7 +458,16 @@ export class EmergencyService {
           if (!clinicLat || !clinicLon) continue;
 
           const tags = el.tags || {};
-          const name = tags.name || tags['name:en'] || tags['name:he'] || 'Community Veterinary Clinic';
+          const name =
+            tags[`name:${langCode}`] ||
+            tags.name ||
+            tags['name:en'] ||
+            tags['name:he'] ||
+            tags['name:ar'] ||
+            tags['name:es'] ||
+            tags['name:fr'] ||
+            tags['name:de'] ||
+            'Community Veterinary Clinic';
           const street = tags['addr:street'] ? `${tags['addr:street']} ${tags['addr:housenumber'] || ''}` : '';
           const city = tags['addr:city'] || '';
           const fullAddress = [street, city].filter(Boolean).join(', ') || 'Local Directory Listing';
