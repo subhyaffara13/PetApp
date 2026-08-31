@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { useState, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -21,11 +21,53 @@ import { MarketplacePage } from './pages/MarketplacePage/MarketplacePage';
 import { CommunityPage } from './pages/CommunityPage/CommunityPage';
 import './App.css';
 
+// Lazy-loaded unified professional portals
+const ClinicPortalPage = lazy(() => import('./portals/ClinicPortal/App'));
+const StorePortalPage = lazy(() => import('./portals/StorePortal/App'));
+const AdminPortalPage = lazy(() => import('./portals/AdminPortal/App'));
+
 const AppContent = () => {
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | null>(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportCategory, setSupportCategory] = useState('bug');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isPortal =
+    location.pathname.startsWith('/clinic') ||
+    location.pathname.startsWith('/store') ||
+    location.pathname.startsWith('/admin');
+
+  if (isPortal) {
+    return (
+      <div className="portal-root-layout">
+        <Suspense
+          fallback={
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100vh',
+                background: '#0f172a',
+                color: '#38bdf8',
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontWeight: 700,
+              }}
+            >
+              Loading PetSOS Station Portal...
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/clinic/*" element={<ClinicPortalPage />} />
+            <Route path="/store/*" element={<StorePortalPage />} />
+            <Route path="/admin/*" element={<AdminPortalPage />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="app-layout">
