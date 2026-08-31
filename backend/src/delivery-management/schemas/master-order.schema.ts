@@ -14,7 +14,7 @@ export const OrderItemSchema = new Schema<IOrderItem>(
 
 export const DeliveryDispatchSchema = new Schema<IDeliveryDispatch>(
   {
-    provider: { type: String, enum: ['wolt_drive', 'uber_direct', 'none'], default: 'none' },
+    provider: { type: String, enum: ['wolt_drive', 'none'], default: 'none' },
     externalTaskId: { type: String },
     trackingUrl: { type: String },
     courierName: { type: String },

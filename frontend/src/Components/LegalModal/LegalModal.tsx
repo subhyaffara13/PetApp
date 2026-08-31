@@ -37,7 +37,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ initialTab = 'privacy', 
                 <li><strong>Camera & Photo Uploads:</strong> Photos processed through Gemini Vision are used solely for triage symptom detection and medical document parsing.</li>
               </ul>
               <h4>2. Third-Party Dispatches & Payment</h4>
-              <p>For urgent medication deliveries, pickup and dropoff coordinates are transmitted to authorized DaaS providers (e.g., Wolt Drive, Uber Direct) under strict fulfillment contracts.</p>
+              <p>For urgent medication deliveries, pickup and dropoff coordinates are transmitted to authorized DaaS providers (e.g., Wolt Drive) under strict fulfillment contracts.</p>
             </div>
           ) : (
             <div className="legal-text-body">

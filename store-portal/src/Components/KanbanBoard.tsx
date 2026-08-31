@@ -40,7 +40,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                       #{subOrder._id.slice(-5).toUpperCase()}
                     </strong>
                   </div>
-                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt Pickup ID</span>
                 </div>
                 <div className="order-address-box">📍 <strong>{deliveryAddress.street}, {deliveryAddress.city}</strong></div>
                 <div className="order-items-box">
@@ -80,7 +80,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                       #{subOrder._id.slice(-5).toUpperCase()}
                     </strong>
                   </div>
-                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                  <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt Pickup ID</span>
                 </div>
                 <div className="packing-checklist-box">
                   {subOrder.items.map((it: any, idx: number) => {
@@ -119,7 +119,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ orders, onAction }) =>
                   <div className="order-card-header">
                     <span className="order-short-id">#{subOrder._id.slice(-5).toUpperCase()}</span>
                     <span className="daas-provider-tag" style={{ background: isPickup ? 'rgba(16, 185, 129, 0.2)' : undefined, color: isPickup ? '#10b981' : undefined }}>
-                      {isPickup ? '🛍️ איסוף עצמי (Self Pickup)' : subOrder.dispatchInfo?.provider === 'wolt_drive' ? '🔷 Wolt Drive' : '⬛ Uber Direct'}
+                      {isPickup ? '🛍️ איסוף עצמי (Self Pickup)' : '🔷 Wolt Drive'}
                     </span>
                   </div>
 

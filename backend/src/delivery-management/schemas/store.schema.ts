@@ -39,7 +39,7 @@ export const StoreSchema = new Schema<IStore>(
     },
     daasProvider: {
       type: String,
-      enum: ['wolt_drive', 'uber_direct', 'none'],
+      enum: ['wolt_drive', 'none'],
       default: 'wolt_drive',
     },
     daasStoreId: { type: String },

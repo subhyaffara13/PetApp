@@ -126,7 +126,7 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
         <div className="merchant-header-left">
           <div className="merchant-store-info">
             <span className="merchant-store-badge">🏪 {storeName}</span>
-            <span className="merchant-store-sub">DaaS On-Demand Fulfillment (Wolt Drive / Uber Direct)</span>
+            <span className="merchant-store-sub">DaaS On-Demand Fulfillment (Wolt Drive)</span>
           </div>
 
           <div className="merchant-pills-row">
@@ -193,7 +193,7 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                           #{subOrder._id.slice(-5).toUpperCase()}
                         </strong>
                       </div>
-                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt Pickup ID</span>
                     </div>
 
                     <div className="order-address-box">
@@ -272,7 +272,7 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                         #{subOrder._id.slice(-5).toUpperCase()}
                       </strong>
                     </div>
-                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt / Uber ID</span>
+                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Wolt Pickup ID</span>
                   </div>
 
                   <div className="packing-checklist-box">
@@ -326,7 +326,7 @@ export const MerchantOrdersTab: React.FC<MerchantOrdersTabProps> = ({
                   <div className="order-card-header">
                     <span className="order-short-id">#{subOrder._id.slice(-5).toUpperCase()}</span>
                     <span className="daas-provider-tag">
-                      {subOrder.dispatchInfo?.provider === 'wolt_drive' ? '🔷 Wolt Drive' : '⬛ Uber Direct'}
+                      🔷 Wolt Drive
                     </span>
                   </div>
 

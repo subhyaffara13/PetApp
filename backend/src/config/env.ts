@@ -38,11 +38,6 @@ const envSchema = z.object({
   WOLT_DRIVE_API_KEY: z.string().default('wolt_mock_dev_key'),
   WOLT_WEBHOOK_SECRET: z.string().default('wolt_mock_webhook_secret_dev'),
 
-  // --- Uber Direct DaaS ---------------------------------------
-  UBER_DIRECT_CLIENT_ID: z.string().default('uber_mock_client_id'),
-  UBER_DIRECT_CLIENT_SECRET: z.string().default('uber_mock_secret'),
-  UBER_WEBHOOK_SECRET: z.string().default('uber_mock_webhook_secret_dev'),
-
   // --- AI & Maps ----------------------------------------------
   GEMINI_API_KEY: z.string().optional(),
   GOOGLE_PLACES_API_KEY: z.string().optional(),
@@ -94,8 +89,7 @@ export function validateEnvironment(): ValidatedEnv {
 
     // Integration readiness audit (warn but don't block)
     const integrations: Array<{ key: keyof ValidatedEnv; name: string; url: string }> = [
-      { key: 'WOLT_DRIVE_API_KEY', name: 'Wolt Drive DaaS', url: 'https://developers.wolt.com/docs/drive' },
-      { key: 'UBER_DIRECT_CLIENT_ID', name: 'Uber Direct DaaS', url: 'https://developer.uber.com/docs/deliveries' },
+      { key: 'WOLT_DRIVE_API_KEY', name: 'Wolt Drive DaaS', url: 'https://explore.wolt.com/he/il/drive' },
       { key: 'GEMINI_API_KEY', name: 'Google Gemini AI', url: 'https://aistudio.google.com/app/apikey' },
     ];
     for (const integration of integrations) {

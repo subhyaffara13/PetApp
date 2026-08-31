@@ -79,7 +79,7 @@ export class AdminService {
       { name: 'MongoDB / Mongoose DB', category: 'database', status: dbStatus, uptimePercent: ready ? 99.99 : 0, latencyMs: ready ? 4 : 0, lastChecked: now },
       { name: 'Socket.IO Gateway', category: 'core', status: 'healthy', uptimePercent: 99.92, latencyMs: 9, lastChecked: now },
       { name: 'Stripe Payment Gateway', category: 'integration', status: process.env.STRIPE_SECRET_KEY ? 'healthy' : 'degraded', uptimePercent: 99.90, latencyMs: 85, lastChecked: now },
-      { name: 'Wolt / Uber DaaS API', category: 'integration', status: (process.env.WOLT_DRIVE_API_KEY || process.env.UBER_DIRECT_CLIENT_ID) ? 'healthy' : 'degraded', uptimePercent: 99.85, latencyMs: 110, lastChecked: now },
+      { name: 'Wolt Drive DaaS API', category: 'integration', status: process.env.WOLT_DRIVE_API_KEY ? 'healthy' : 'degraded', uptimePercent: 99.85, latencyMs: 110, lastChecked: now },
     ];
   }
 

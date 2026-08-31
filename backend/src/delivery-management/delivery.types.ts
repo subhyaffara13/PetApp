@@ -1,7 +1,7 @@
 import { Document, Types } from 'mongoose';
 
 export type DeliveryMode = 'daas_on_demand' | 'merchant_fleet' | 'standard_postal';
-export type DaaSProvider = 'wolt_drive' | 'uber_direct' | 'none';
+export type DaaSProvider = 'wolt_drive' | 'none';
 
 export type StoreOrderStatus =
   | 'created'
