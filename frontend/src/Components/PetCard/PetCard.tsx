@@ -44,13 +44,25 @@ export const PetCard = ({
         <div className="pet-card__info">
           <div className="pet-card__name-row">
             <h3 className="pet-card__name">{pet.name}</h3>
+            {pet.petId && (
+              <span className="pet-card__id-tag" title="Unique Pet Passport ID">
+                #{pet.petId}
+              </span>
+            )}
             {pet.isArchived && (
               <span className="pet-card__archived-badge">
                 {t('profile.archived_badge', 'ARCHIVED')}
               </span>
             )}
           </div>
-          <p className="pet-card__breed">{pet.breed}</p>
+          <p className="pet-card__breed">
+            {pet.breed}
+            {pet.coParents && pet.coParents.length > 0 && (
+              <span className="pet-card__coparent-badge">
+                🤝 {pet.coParents.length} Co-Parent{pet.coParents.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </p>
         </div>
         <div className="pet-card__actions">
           {onToggleArchive && (

@@ -7,6 +7,8 @@ import { PetShop, PetShopSchema } from '../schemas/pet-shop.schema';
 import { Product, ProductSchema } from '../schemas/product.schema';
 import { Order, OrderSchema } from '../schemas/order.schema';
 import { AuthModule } from '../auth/auth.module';
+import { ReceiptsModule } from '../receipts/receipts.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -17,8 +19,11 @@ import { AuthModule } from '../auth/auth.module';
       { name: Order.name, schema: OrderSchema },
     ]),
     AuthModule,
+    ReceiptsModule,
+    EmailModule,
   ],
   controllers: [MarketplaceController],
   providers: [MarketplaceService],
+  exports: [MarketplaceService],
 })
 export class MarketplaceModule {}

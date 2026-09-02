@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Clinic, UserLocation } from '../../schemas';
-import { haversine, getDirectionsUrl } from '../../utils/geo';
-import { ChevronUp, ChevronDown, Phone, Navigation, Globe, Send, Search, X } from 'lucide-react';
+import { haversine } from '../../utils/geo';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { EmergencyDispatchModal } from '../EmergencyDispatchModal/EmergencyDispatchModal';
+import { UniversalBookingModal, type BookingProviderContext } from '../UniversalBookingModal/UniversalBookingModal';
+import { ClinicItemCard } from './Components/ClinicItemCard';
+import { ClinicFilterTabs } from './Components/ClinicFilterTabs';
 import { useTranslation } from '../../context/LanguageContext';
 import './ClinicBottomSheet.css';
 
@@ -22,9 +25,6 @@ export const ClinicBottomSheet = ({
   onClinicCardClick,
 }: ClinicBottomSheetProps) => {
   const { t } = useTranslation();
-  const cardsContainerRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-
   const [sheetHeight, setSheetHeight] = useState<number>(30);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const startDragY = useRef<number>(0);
@@ -32,9 +32,9 @@ export const ClinicBottomSheet = ({
   const [clinicFilter, setClinicFilter] = useState<'all' | 'open' | 'verified' | 'capacity' | 'mobile'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dispatchClinic, setDispatchClinic] = useState<Clinic | null>(null);
+  const [bookingProvider, setBookingProvider] = useState<BookingProviderContext | null>(null);
 
-  // Compute distances & sort: mobile vets & verified 24/7 first, then distance
-  const sortedClinics: Array<Clinic & { computedDist: number; isVerified: boolean }> = clinics
+  const sortedClinics = clinics
     .map((c) => {
       const dist =
         typeof c.distance === 'number'
@@ -43,7 +43,7 @@ export const ClinicBottomSheet = ({
       const isVerified =
         c.tier === 'verified' ||
         Boolean(c.openingHours && c.openingHours.toLowerCase().includes('24'));
-      return { ...c, isClaimed: c.isClaimed, computedDist: dist, isVerified };
+      return { ...c, computedDist: dist, isVerified };
     })
     .sort((a, b) => {
       if (a.isMobileVet && !b.isMobileVet) return -1;
@@ -59,15 +59,11 @@ export const ClinicBottomSheet = ({
     if (clinicFilter === 'capacity' && c.capacityStatus !== 'accepting') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = c.name.toLowerCase().includes(q);
-      const matchAddr = (c.address || '').toLowerCase().includes(q);
-      const matchPhone = (c.phoneNum || '').includes(q);
-      return matchName || matchAddr || matchPhone;
+      return c.name.toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q) || (c.phoneNum || '').includes(q);
     }
     return true;
   });
 
-  // When selectedClinicId changes, expand to preview and scroll
   useEffect(() => {
     if (!selectedClinicId) return;
     setSheetHeight((prev) => (prev < 25 ? 35 : prev));
@@ -75,9 +71,7 @@ export const ClinicBottomSheet = ({
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       cardEl.classList.add('flash');
-      const timer = setTimeout(() => {
-        cardEl.classList.remove('flash');
-      }, 1000);
+      const timer = setTimeout(() => cardEl.classList.remove('flash'), 1000);
       return () => clearTimeout(timer);
     }
   }, [selectedClinicId]);
@@ -93,227 +87,65 @@ export const ClinicBottomSheet = ({
     if (!isDragging) return;
     const deltaY = startDragY.current - e.clientY;
     const deltaVh = (deltaY / window.innerHeight) * 100;
-    const newHeight = Math.max(6, Math.min(62, startHeight.current + deltaVh));
-    setSheetHeight(newHeight);
+    setSheetHeight(Math.max(6, Math.min(62, startHeight.current + deltaVh)));
   }, [isDragging]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
-
-    setSheetHeight((h) => {
-      if (h < 18) return 6;
-      if (h < 48) return 32;
-      return 62;
-    });
+    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   }, [isDragging]);
 
-  const toggleSnap = () => {
-    setSheetHeight((current) => {
-      if (current <= 10) return 32;
-      if (current <= 40) return 62;
-      return 6;
-    });
-  };
-
   return (
-    <>
-      <div
-        ref={sheetRef}
-        id="sheet"
-        className={`clinic-bottom-sheet ${isDragging ? 'is-dragging' : ''}`}
-        style={{ height: `${sheetHeight}vh` }}
-      >
-        {/* Dynamic Draggable Handle & Header */}
-        <div
-          className="handle-wrap"
-          id="sheet-handle"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        >
-          <div className="handle" />
-          <div className="sheet-top-bar" onClick={toggleSnap}>
-            <span className="sheet-label">
-              {sortedClinics.length} {t('emergency.vets_nearby_prefix', 'clinics nearby')} · {sheetHeight <= 10 ? 'Swipe up' : t('emergency.sheet_drag_hint', 'Drag to adjust')}
-            </span>
-            <button
-              type="button"
-              className="sheet-toggle-icon-btn"
-              aria-label="Toggle sheet height"
-            >
-              {sheetHeight >= 50 ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Clinic / Vet / Neighborhood Search Bar */}
-        <div style={{ padding: '0.4rem 0.85rem 0.2rem', background: 'var(--color-bg-secondary, #0f172a)' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              background: 'var(--color-bg-elevated, rgba(255,255,255,0.06))',
-              border: '1px solid var(--color-border, #334155)',
-              borderRadius: 8,
-              padding: '0.35rem 0.65rem',
-            }}
-          >
-            <Search size={14} color="var(--color-primary, #38bdf8)" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by clinic name, doctor, street (e.g. Bat Galim, Moriah, שורשים)..."
-              style={{
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--color-text-primary, #f8fafc)',
-                fontSize: '0.78rem',
-                width: '100%',
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Interactive Filter Pills */}
-        <div className="sheet-filter-pills-bar">
-          <button
-            type="button"
-            className={`sheet-filter-pill ${clinicFilter === 'all' ? 'sheet-filter-pill--active-all' : ''}`}
-            onClick={() => setClinicFilter('all')}
-          >
-            {t('emergency.filter_all', 'All')} ({sortedClinics.length})
-          </button>
-          <button
-            type="button"
-            className={`sheet-filter-pill ${clinicFilter === 'mobile' ? 'sheet-filter-pill--active-verified' : ''}`}
-            onClick={() => setClinicFilter('mobile')}
-            style={clinicFilter === 'mobile' ? { background: 'rgba(236,72,153,0.2)', color: '#f472b6', borderColor: '#ec4899' } : {}}
-          >
-            🚐 On-The-Move Vets
-          </button>
-          <button
-            type="button"
-            className={`sheet-filter-pill ${clinicFilter === 'open' ? 'sheet-filter-pill--active-open' : ''}`}
-            onClick={() => setClinicFilter('open')}
-          >
-            {t('emergency.filter_open', '🟢 Open Now')}
-          </button>
-          <button
-            type="button"
-            className={`sheet-filter-pill ${clinicFilter === 'verified' ? 'sheet-filter-pill--active-verified' : ''}`}
-            onClick={() => setClinicFilter('verified')}
-          >
-            {t('emergency.filter_247', '⭐ 24/7 ER Only')}
-          </button>
-          <button
-            type="button"
-            className={`sheet-filter-pill ${clinicFilter === 'capacity' ? 'sheet-filter-pill--active-capacity' : ''}`}
-            onClick={() => setClinicFilter('capacity')}
-          >
-            {t('emergency.filter_immediate', '🚨 Immediate Intake')}
-          </button>
-        </div>
-
-        {/* Cards list */}
-        <div
-          id="cards"
-          className={`sheet-cards-list ${sheetHeight <= 10 ? 'sheet-cards-hidden' : ''}`}
-          ref={cardsContainerRef}
-        >
-          {displayClinics.map((clinic) => {
-            const dirUrl = getDirectionsUrl(clinic.location.lat, clinic.location.lng);
-
-            return (
-              <div
-                key={clinic.id}
-                className={`card ${clinic.isMobileVet ? 'card-verified' : clinic.isVerified ? 'card-verified' : 'card-standard'}`}
-                id={`card-${clinic.id}`}
-                onClick={() => onClinicCardClick?.(clinic)}
-                style={clinic.isMobileVet ? { borderColor: 'rgba(236,72,153,0.4)', background: 'linear-gradient(135deg, rgba(236,72,153,0.06) 0%, rgba(15,23,42,0.6) 100%)' } : {}}
-              >
-                <div className="card-top">
-                  <div>
-                    {clinic.isMobileVet || clinic.practiceType === 'mobile_vet' ? (
-                      <span className="tag" style={{ background: 'rgba(236,72,153,0.2)', color: '#f472b6', border: '1px solid rgba(236,72,153,0.4)', fontWeight: 800 }}>
-                        🚐 ON-THE-MOVE VET (LIVE GPS)
-                      </span>
-                    ) : clinic.isVerified ? (
-                      <span className="tag tag-emergency">{t('emergency.tag_verified_er', 'VERIFIED 24/7 ER')}</span>
-                    ) : clinic.isOpenNow ? (
-                      <span className="tag tag-regular">{t('emergency.tag_community_open', 'COMMUNITY VET · OPEN NOW')}</span>
-                    ) : (
-                      <span className="tag tag-closed">{t('emergency.tag_closed', 'CLOSED NOW')}</span>
-                    )}
-                    <h3>{clinic.name}</h3>
-                    <p className={`hours ${clinic.isVerified || clinic.isMobileVet ? '' : 'hours-unverified'}`}>
-                      {clinic.openingHours || (clinic.isOpenNow ? t('emergency.filter_open', 'Open Now') : t('emergency.tag_closed', 'Closed'))}
-                    </p>
-                  </div>
-                  <div className="dist mono">
-                    {clinic.computedDist.toFixed(1)}
-                    <span>km</span>
-                  </div>
-                </div>
-
-                {!clinic.isVerified && (
-                  <p className="warn">{t('emergency.warn_standard', 'Standard clinic hours — call ahead for non-emergency visits')}</p>
-                )}
-
-                {/* Primary SOS Action Bar */}
-                <div className="card-primary-sos-row" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="btn-alert-clinic"
-                    onClick={() => setDispatchClinic(clinic)}
-                  >
-                    <Send size={13} /> {t('emergency.btn_alert_coming', "🚨 Alert Clinic I'm Coming")}
-                  </button>
-                </div>
-
-                <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                  {clinic.phoneNum && clinic.phoneNum.trim().length > 0 && (
-                    <a className={`btn-action ${clinic.isVerified ? 'btn-call-emergency' : 'btn-call-standard'}`} href={`tel:${clinic.phoneNum}`}>
-                      <Phone size={13} /> {t('emergency.btn_call', 'Call')}
-                    </a>
-                  )}
-                  <a className="btn-action btn-dir" href={dirUrl} target="_blank" rel="noopener noreferrer">
-                    <Navigation size={13} /> {t('emergency.btn_directions', 'Directions')}
-                  </a>
-                  {clinic.website && (
-                    <a className="btn-action btn-web" href={clinic.website} target="_blank" rel="noopener noreferrer">
-                      <Globe size={13} /> {t('action.website', 'Site')}
-                    </a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <div
+      className={`clinic-bottom-sheet ${sheetHeight > 35 ? 'clinic-bottom-sheet--expanded' : ''}`}
+      style={{ height: `${sheetHeight}vh` }}
+    >
+      <div className="clinic-bottom-sheet__handle-wrapper" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+        <div className="clinic-bottom-sheet__handle" />
+        <span className="drag-hint-text">
+          {sheetHeight > 35 ? <ChevronDown size={14} /> : <ChevronUp size={14} />} {t('emergency.sheet_drag_hint', 'Drag to adjust')}
+        </span>
       </div>
 
-      {/* Emergency Pre-arrival Dispatch Modal */}
-      {dispatchClinic && (
-        <EmergencyDispatchModal
-          clinic={dispatchClinic}
-          onClose={() => setDispatchClinic(null)}
-        />
-      )}
-    </>
+      <ClinicFilterTabs
+        clinicFilter={clinicFilter}
+        setClinicFilter={setClinicFilter}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        t={t}
+      />
+
+      <div className="clinic-bottom-sheet__cards">
+        {displayClinics.map((clinic) => (
+          <ClinicItemCard
+            key={clinic.id}
+            clinic={clinic}
+            userLocation={userLocation}
+            isSelected={selectedClinicId === clinic.id}
+            onCardClick={onClinicCardClick}
+            onDispatchClick={(c) => setDispatchClinic(c)}
+            onBookVisitClick={(c) => setBookingProvider({ id: c.id, name: c.name, type: 'clinic', phone: c.phoneNum, badgeType: 'clinic_admin' })}
+            t={t}
+          />
+        ))}
+        {displayClinics.length === 0 && (
+          <div className="sheet-empty-state">No emergency clinics match current filter/search.</div>
+        )}
+      </div>
+
+      <EmergencyDispatchModal
+        isOpen={!!dispatchClinic}
+        onClose={() => setDispatchClinic(null)}
+        clinic={dispatchClinic}
+        userLocation={userLocation}
+      />
+
+      <UniversalBookingModal
+        isOpen={!!bookingProvider}
+        onClose={() => setBookingProvider(null)}
+        provider={bookingProvider}
+      />
+    </div>
   );
 };

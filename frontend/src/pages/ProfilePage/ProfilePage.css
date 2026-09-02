@@ -23,6 +23,63 @@
   margin-top: 2px;
 }
 
+.coparent-inbox-trigger-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.coparent-inbox-trigger-btn:hover {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  transform: scale(1.05);
+}
+
+.coparent-badge-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #0284c7;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0f172a;
+  animation: pulse 1.5s infinite;
+}
+
+.receipts-trigger-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.receipts-trigger-btn:hover {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  transform: scale(1.05);
+}
+
 .owner-profile-icon-btn {
   width: 40px;
   height: 40px;
@@ -75,4 +132,151 @@
 
 .btn-logout-action:hover svg {
   color: #ffffff !important;
+}
+
+/* Pending Co-Parent Invitation Banner */
+.coparent-invitation-banner {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.coparent-invitation-banner:hover {
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.banner-icon-pulse {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.banner-left strong {
+  font-size: 13px;
+  color: #f1f5f9;
+}
+
+.banner-left p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Receipts List Modal */
+.receipts-list-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.receipts-list-modal-card {
+  width: 100%;
+  max-width: 500px;
+  background: #181c24;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 85vh;
+}
+
+.receipts-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.receipts-list-scroll {
+  padding: 14px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.receipt-row-item {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.receipt-row-item:hover {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.receipt-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.receipt-row-number {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.receipt-row-provider {
+  font-size: 12px;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.receipt-row-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.receipt-row-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.receipt-row-total strong {
+  font-size: 15px;
+  color: #34d399;
+}
+
+.receipt-view-btn {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 700;
 }

@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import { PetShop, PetShopDocument } from '../schemas/pet-shop.schema';
 import { Product, ProductDocument } from '../schemas/product.schema';
 import { Order, OrderDocument } from '../schemas/order.schema';
+import { ReceiptsService } from '../receipts/receipts.service';
 
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -122,6 +123,7 @@ export class MarketplaceService implements OnModuleInit {
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly receiptsService: ReceiptsService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
@@ -456,15 +458,45 @@ export class MarketplaceService implements OnModuleInit {
       createdAt: new Date().toISOString(),
     };
 
+    let savedOrder: any;
     try {
       const order = new this.orderModel(newOrder);
-      const saved = await order.save();
-      return saved;
+      savedOrder = await order.save();
     } catch (err) {
       this.logger.warn('MongoDB order save failed, saved to memory');
       this.inMemoryOrders.unshift(newOrder);
-      return newOrder;
+      savedOrder = newOrder;
     }
+
+    // Automatically generate itemized receipt and send email
+    try {
+      await this.receiptsService.createReceipt({
+        userId: dto.customerId || 'guest-customer',
+        customerName: dto.customerName || 'Valued Customer',
+        customerEmail: dto.customerEmail || 'customer@petsos.app',
+        orderId: String(savedOrder._id),
+        type: 'marketplace',
+        providerName: shop.name,
+        providerAddress: shop.address,
+        items: itemsWithDetails.map((it: any) => ({
+          name: it.product.name,
+          quantity: it.quantity,
+          unitPrice: it.product.price,
+          lineTotal: it.product.price * it.quantity,
+        })),
+        subtotal: actualSubtotal,
+        deliveryFee: dto.deliveryMode === 'wolt' ? 22 : 0,
+        taxAmount: Math.round(actualSubtotal * 0.17 * 100) / 100,
+        total,
+        currency: 'ILS',
+        paymentMethod: { type: 'stripe', transactionId: savedOrder.stripePaymentIntentId },
+        paymentStatus: 'paid',
+      });
+    } catch (receiptErr) {
+      this.logger.warn(`Receipt creation error on marketplace order: ${receiptErr}`);
+    }
+
+    return savedOrder;
   }
 
   async getOrders(customerId?: string): Promise<any[]> {

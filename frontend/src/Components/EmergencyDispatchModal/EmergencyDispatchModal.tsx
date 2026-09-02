@@ -3,17 +3,21 @@ import axios from 'axios';
 import type { Clinic, PetProfile } from '../../schemas';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
-import { Send, Clock, CheckCircle, X } from 'lucide-react';
+import { Send, CheckCircle, X } from 'lucide-react';
+import { DispatchTriageFields } from './Components/DispatchTriageFields';
+import { API_URL } from '../../config/api';
 import './EmergencyDispatchModal.css';
 
-import { API_URL } from '../../config/api';
-
 interface EmergencyDispatchModalProps {
-  clinic: Clinic;
+  clinic: Clinic | null;
+  isOpen?: boolean;
   onClose: () => void;
+  userLocation?: { lat: number; lon: number };
 }
 
-export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchModalProps) => {
+export const EmergencyDispatchModal = ({ clinic, isOpen = true, onClose }: EmergencyDispatchModalProps) => {
+  if (!clinic || !isOpen) return null;
+
   const { user, accessToken } = useAuth();
   const { t } = useTranslation();
   const [pets, setPets] = useState<PetProfile[]>([]);
@@ -22,17 +26,13 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
   const [symptoms, setSymptoms] = useState<string>('');
   const [etaMinutes, setEtaMinutes] = useState<number>(15);
   const [ownerName, setOwnerName] = useState<string>(user?.name || '');
-  const [ownerPhone, setOwnerPhone] = useState<string>(
-    () => localStorage.getItem('petsos_user_phone') || ''
-  );
+  const [ownerPhone, setOwnerPhone] = useState<string>(() => localStorage.getItem('petsos_user_phone') || '054-123-4567');
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [sendError, setSendError] = useState('');
 
   useEffect(() => {
-    if (user?.name && !ownerName) {
-      setOwnerName(user.name);
-    }
+    if (user?.name && !ownerName) setOwnerName(user.name);
   }, [user, ownerName]);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
           setSelectedPetId(res.data[0]._id || res.data[0].id);
         }
       } catch (err) {
-        console.warn('Could not fetch active pets for emergency dispatch:', err);
+        console.warn('Could not fetch active pets:', err);
       }
     };
     fetchPets();
@@ -65,9 +65,9 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
       breed: activePet ? activePet.breed : 'Mixed',
       ownerName,
       ownerPhone,
-      clinicId: clinic.id || 'haifa-moriah-er',
+      clinicId: clinic.id || 'haifa-er',
       urgency,
-      symptoms: symptoms || 'Accidental ingestion / severe trauma on way to ER',
+      symptoms: symptoms || 'Emergency intake request',
       etaMinutes,
       allergies: activePet ? activePet.allergies : [],
       conditions: activePet ? activePet.knownConditions : [],
@@ -76,7 +76,6 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
 
     try {
       await axios.post(`${API_URL}/clinic/dispatch`, payload);
-      setSendError('');
       setIsSent(true);
     } catch {
       setSendError('Failed to transmit. Please try again.');
@@ -96,140 +95,40 @@ export const EmergencyDispatchModal = ({ clinic, onClose }: EmergencyDispatchMod
               <p>{clinic.name}</p>
             </div>
           </div>
-          <button className="dispatch-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <button className="dispatch-close-btn" onClick={onClose}><X size={18} /></button>
         </div>
 
         {isSent ? (
-          <div className="dispatch-success-view">
-            <CheckCircle size={48} className="success-icon" />
-            <h4>Emergency Dossier Transmitted!</h4>
-            <p>
-              <strong>{clinic.name}</strong> has received {activePet?.name}'s medical profile and is preparing triage.
-            </p>
-            <div className="success-eta-box">
-              <Clock size={16} /> Estimated Arrival: <strong>~{etaMinutes} minutes</strong>
-            </div>
-            <button className="btn-done-dispatch" onClick={onClose}>
-              Return to Map & Directions
-            </button>
+          <div className="dispatch-success-view animate-fade-in">
+            <CheckCircle size={48} color="#10b981" />
+            <h4>Dossier Dispatched to ER Desk!</h4>
+            <p>The veterinary staff has been notified of your ETA ({etaMinutes} min) and is preparing intake.</p>
+            <button className="btn btn-primary" onClick={onClose}>Close & Drive Safely</button>
           </div>
         ) : (
           <form onSubmit={handleSendDispatch} className="dispatch-form">
-            <div className="dispatch-field">
-              <label>Select Pet in Distress</label>
-              <select
-                className="dispatch-select"
-                value={selectedPetId}
-                onChange={(e) => setSelectedPetId(e.target.value)}
-              >
-                {pets.map((p) => (
-                  <option key={p._id || (p as any).id} value={p._id || (p as any).id}>
-                    🐾 {p.name} ({p.breed})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activePet && (
-              <div className="pet-pre-summary">
-                <span className="pre-label">Auto-transmitting Medical Records:</span>
-                <div className="pre-tags">
-                  <span className="pre-tag">Allergies: {activePet.allergies?.length ? activePet.allergies.join(', ') : 'None'}</span>
-                  <span className="pre-tag">Conditions: {activePet.knownConditions?.length ? activePet.knownConditions.join(', ') : 'None'}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="dispatch-field">
-              <label>Urgency Level</label>
-              <div className="urgency-selector">
-                <button
-                  type="button"
-                  className={`urgency-opt urgency-opt--critical ${urgency === 'critical' ? 'urgency-opt--selected' : ''}`}
-                  onClick={() => setUrgency('critical')}
-                >
-                  🔴 Critical / Shock
-                </button>
-                <button
-                  type="button"
-                  className={`urgency-opt urgency-opt--urgent ${urgency === 'urgent' ? 'urgency-opt--selected' : ''}`}
-                  onClick={() => setUrgency('urgent')}
-                >
-                  🟡 Urgent Bleeding/Trauma
-                </button>
-                <button
-                  type="button"
-                  className={`urgency-opt urgency-opt--standard ${urgency === 'standard' ? 'urgency-opt--selected' : ''}`}
-                  onClick={() => setUrgency('standard')}
-                >
-                  🔵 Moderate Distress
-                </button>
-              </div>
-            </div>
-
-            <div className="dispatch-field">
-              <label>Symptoms / What Happened?</label>
-              <textarea
-                className="dispatch-textarea"
-                rows={2}
-                required
-                placeholder="e.g. Swallowed dark chocolate 20 mins ago, panting and vomiting..."
-                value={symptoms}
-                onChange={(e) => setSymptoms(e.target.value)}
-              />
-            </div>
-
-            <div className="dispatch-row">
-              <div className="dispatch-field">
-                <label>Your Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Full Name"
-                  className="dispatch-input"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                />
-              </div>
-              <div className="dispatch-field">
-                <label>Contact Phone</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+972-..."
-                  className="dispatch-input"
-                  value={ownerPhone}
-                  onChange={(e) => {
-                    setOwnerPhone(e.target.value);
-                    try { localStorage.setItem('petsos_user_phone', e.target.value); } catch {}
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="dispatch-field">
-              <label>Estimated Arrival Time (Minutes)</label>
-              <input
-                type="number"
-                min={1}
-                max={120}
-                className="dispatch-input"
-                value={etaMinutes}
-                onChange={(e) => setEtaMinutes(Number(e.target.value))}
-              />
-            </div>
-
-            <div className="dispatch-footer">
-              <button type="button" className="btn-cancel-dispatch" onClick={onClose}>
-                {t('action.cancel', 'Cancel')}
-              </button>
-              <button type="submit" className="btn-transmit-sos" disabled={isSending}>
-                <Send size={15} /> {isSending ? 'Transmitting...' : t('action.dispatch', "Transmit Dossier to Clinic")}
+            {sendError && <div className="dispatch-error-banner">{sendError}</div>}
+            <DispatchTriageFields
+              pets={pets}
+              selectedPetId={selectedPetId}
+              setSelectedPetId={setSelectedPetId}
+              urgency={urgency}
+              setUrgency={setUrgency}
+              etaMinutes={etaMinutes}
+              setEtaMinutes={setEtaMinutes}
+              symptoms={symptoms}
+              setSymptoms={setSymptoms}
+              ownerName={ownerName}
+              setOwnerName={setOwnerName}
+              ownerPhone={ownerPhone}
+              setOwnerPhone={setOwnerPhone}
+            />
+            <div className="dispatch-modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-danger btn-send-dispatch" disabled={isSending}>
+                {isSending ? 'Transmitting Dossier...' : <><Send size={16} /> Transmit Emergency Dossier</>}
               </button>
             </div>
-            {sendError && <p className="dispatch-error" style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0.5rem 0 0', textAlign: 'center' }}>{sendError}</p>}
           </form>
         )}
       </div>

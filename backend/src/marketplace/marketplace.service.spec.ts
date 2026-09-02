@@ -15,6 +15,7 @@ import { MarketplaceService } from './marketplace.service';
 import { PetShop } from '../schemas/pet-shop.schema';
 import { Product } from '../schemas/product.schema';
 import { Order } from '../schemas/order.schema';
+import { ReceiptsService } from '../receipts/receipts.service';
 
 describe('MarketplaceService', () => {
   let service: MarketplaceService;
@@ -98,6 +99,10 @@ describe('MarketplaceService', () => {
     get: jest.fn().mockReturnValue(of({ data: { results: [] } })),
   };
 
+  const mockReceiptsService = {
+    createReceipt: jest.fn().mockResolvedValue({ receiptNumber: 'REC-2026-1001', total: 100 }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -107,6 +112,7 @@ describe('MarketplaceService', () => {
         { provide: getModelToken(Order.name), useValue: mockOrderModel },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
+        { provide: ReceiptsService, useValue: mockReceiptsService },
       ],
     }).compile();
 

@@ -16,10 +16,8 @@ const getStripePromise = (): Promise<Stripe | null> => {
   cachedStripePromise = axios
     .get<{ stripePublishableKey?: string }>(`${API_URL}/marketplace/config`)
     .then((res) => {
-      const key =
-        res.data?.stripePublishableKey ||
-        'pk_test_51TkD1WQ2yoEXOvhx83mDkX2gOFw5rjOelgKCcSlRd7z2zuS1ESWe7D3ncHjW4HNgvUm7raN5Eve6y00iFCS1xMc';
-      return loadStripe(key);
+      const key = res.data?.stripePublishableKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+      return key ? loadStripe(key) : null;
     })
     .catch(() => null);
   return cachedStripePromise;

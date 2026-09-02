@@ -23,8 +23,37 @@ export class MedicalEvent {
 
 export const MedicalEventSchema = SchemaFactory.createForClass(MedicalEvent);
 
+@Schema({ _id: false })
+export class CoParentMember {
+  @Prop({ required: true })
+  userId: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop()
+  email?: string;
+
+  @Prop({ default: 'co_parent', enum: ['co_parent', 'family_member', 'caretaker'] })
+  role: string;
+
+  @Prop({ default: Date.now })
+  addedAt: Date;
+}
+
+export const CoParentMemberSchema = SchemaFactory.createForClass(CoParentMember);
+
 @Schema({ timestamps: true })
 export class PetProfile {
+  @Prop({ required: true, index: true })
+  petId: string; // Unique Pet Passport ID (e.g. "PET-8942-A1")
+
+  @Prop({ required: true, index: true })
+  ownerId: string; // Primary Owner User ID
+
+  @Prop()
+  ownerName?: string;
+
   @Prop({ required: true })
   name: string;
 
@@ -49,6 +78,15 @@ export class PetProfile {
   @Prop()
   photoUrl?: string;
 
+  @Prop()
+  microchipNumber?: string;
+
+  @Prop()
+  nfcTagId?: string;
+
+  @Prop({ type: [CoParentMemberSchema], default: [] })
+  coParents: CoParentMember[];
+
   @Prop({ type: [String], default: [] })
   knownConditions: string[];
 
@@ -66,3 +104,6 @@ export class PetProfile {
 }
 
 export const PetProfileSchema = SchemaFactory.createForClass(PetProfile);
+PetProfileSchema.index({ ownerId: 1, createdAt: -1 });
+PetProfileSchema.index({ petId: 1 }, { unique: true, sparse: true });
+PetProfileSchema.index({ 'coParents.userId': 1 });

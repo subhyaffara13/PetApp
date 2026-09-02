@@ -10,4 +10,220 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
+  margin-top: 8px;
+}
+
+/* Unique Pet Passport Identity Card */
+.pet-passport-identity-card {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.passport-id-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.passport-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  flex-shrink: 0;
+}
+
+.passport-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.passport-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.passport-number-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.passport-tag-value {
+  font-size: 16px;
+  font-weight: 900;
+  color: #38bdf8;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.btn-copy-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-copy-tag:hover {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+.passport-microchip-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 8px;
+}
+
+.passport-microchip-sub strong {
+  color: #f1f5f9;
+}
+
+/* Family Household & Co-Parents Card */
+.pet-coparents-card {
+  background: #181c24;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coparents-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coparents-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coparents-title-group h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.btn-add-coparent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-add-coparent:hover {
+  background: rgba(168, 85, 247, 0.25);
+}
+
+.coparents-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.coparents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coparent-item-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.coparent-avatar-initial {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #a855f7;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.coparent-item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.coparent-item-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.coparent-item-role {
+  font-size: 10px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.btn-remove-coparent {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.btn-remove-coparent:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.coparents-empty-notice {
+  font-size: 12px;
+  color: #64748b;
+  padding: 10px 0;
 }

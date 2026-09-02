@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Check, AlertCircle } from 'lucide-react';
 import type { PetProfile } from '../../schemas';
 import { validateProfanity } from '../../functions/profanityFilter';
-import { ContextualSelect } from '../ContextualSelect/ContextualSelect';
-import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../data/petBreeds';
+import { getBreedsForSpecies } from '../../data/petBreeds';
+import { OnboardingBasicsStep } from './Components/OnboardingBasicsStep';
+import { OnboardingDetailsStep } from './Components/OnboardingDetailsStep';
+import { OnboardingHealthStep } from './Components/OnboardingHealthStep';
 import './OnboardingFlow.css';
 
 interface OnboardingFlowProps {
@@ -38,11 +40,10 @@ export const OnboardingFlow = ({ onComplete, onCancel }: OnboardingFlowProps) =>
 
   const handleSpeciesSelect = (newSpecies: PetProfile['species']) => {
     const breeds = getBreedsForSpecies(newSpecies);
-    const defaultBreed = breeds[0] || 'Mixed Breed';
     setForm((prev) => ({
       ...prev,
       species: newSpecies,
-      breed: defaultBreed,
+      breed: breeds[0] || 'Mixed Breed',
     }));
     setIsCustomBreed(false);
     setValidationError(null);
@@ -60,274 +61,108 @@ export const OnboardingFlow = ({ onComplete, onCancel }: OnboardingFlowProps) =>
 
   const handleNext = () => {
     if (step === 0) {
-      if (!form.name.trim()) {
-        setValidationError('Please enter a pet name.');
-        return;
-      }
-      const profanityCheck = validateProfanity(form.name);
-      if (!profanityCheck.isValid) {
-        setValidationError(profanityCheck.error || 'Inappropriate pet name detected.');
-        return;
-      }
-      if (form.species === 'other' && !form.customSpecies.trim()) {
-        setValidationError('Please specify the animal kind.');
-        return;
-      }
-      if (form.species === 'other') {
-        const speciesProfanity = validateProfanity(form.customSpecies);
-        if (!speciesProfanity.isValid) {
-          setValidationError(speciesProfanity.error || 'Inappropriate animal kind name.');
-          return;
-        }
-      }
+      if (!form.name.trim()) return setValidationError('Please enter a pet name.');
+      const profanity = validateProfanity(form.name);
+      if (!profanity.isValid) return setValidationError(profanity.error || 'Inappropriate pet name.');
+      if (form.species === 'other' && !form.customSpecies.trim()) return setValidationError('Please specify the animal species.');
     }
-
     if (step === 1) {
-      if (!form.breed.trim()) {
-        setValidationError('Please enter a breed or type.');
-        return;
-      }
-      const profanityCheck = validateProfanity(form.breed);
-      if (!profanityCheck.isValid) {
-        setValidationError(profanityCheck.error || 'Inappropriate breed name detected.');
-        return;
-      }
+      if (!form.breed.trim()) return setValidationError('Please enter a breed or type.');
+      const profanity = validateProfanity(form.breed);
+      if (!profanity.isValid) return setValidationError(profanity.error || 'Inappropriate breed.');
     }
-
     setValidationError(null);
     setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
   };
 
-  const handleBack = () => {
-    setValidationError(null);
-    setStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleComplete = () => {
-    const finalBreed =
-      form.species === 'other' && form.customSpecies.trim()
-        ? `${form.customSpecies.trim()} (${form.breed})`
-        : form.breed.trim();
-
+  const handleSubmit = () => {
     onComplete({
       name: form.name.trim(),
       species: form.species,
-      breed: finalBreed,
-      age: Number(form.age) || 1,
-      weight: Number(form.weight) || 5,
+      breed: form.species === 'other' && form.customSpecies.trim() ? `${form.customSpecies.trim()} (${form.breed.trim()})` : form.breed.trim(),
+      age: form.age,
+      weight: form.weight,
       gender: form.gender,
       knownConditions: selectedConditions,
       allergies: selectedAllergies,
-      medications: form.medications
-        ? form.medications.split(',').map((s) => s.trim()).filter(Boolean)
-        : [],
+      medications: form.medications.split(',').map((s) => s.trim()).filter(Boolean),
+      photoUrl: `https://images.unsplash.com/photo-${form.species === 'cat' ? '1514888286974-6c03e2ca1dba' : '1543466835-00a7907e9de1'}?w=200`,
     });
   };
 
-  const currentBreeds = getBreedsForSpecies(form.species);
-
   return (
-    <div className="onboarding-overlay animate-fade-in" id="onboarding-modal">
-      <div className="onboarding-modal glass-card">
-        {/* Progress Bar */}
-        <div className="onboarding__progress">
-          {STEPS.map((s, idx) => (
-            <div
-              key={s}
-              className={`onboarding__step ${
-                idx === step
-                  ? 'onboarding__step--active'
-                  : idx < step
-                  ? 'onboarding__step--done'
-                  : ''
-              }`}
-            >
-              <div className="onboarding__step-dot">
-                {idx < step ? <Check size={12} /> : idx + 1}
-              </div>
-              <span className="onboarding__step-label">{s}</span>
+    <div className="onboarding-overlay" onClick={onCancel}>
+      <div className="onboarding-card card" onClick={(e) => e.stopPropagation()}>
+        <div className="onboarding-progress">
+          {STEPS.map((label, idx) => (
+            <div key={label} className={`progress-step ${idx <= step ? 'active' : ''} ${idx < step ? 'completed' : ''}`}>
+              <div className="step-circle">{idx < step ? <Check size={14} /> : idx + 1}</div>
+              <span className="step-label">{label}</span>
             </div>
           ))}
         </div>
 
         {validationError && (
-          <div className="onboarding__error">
-            <AlertCircle size={14} />
+          <div className="onboarding-error-banner animate-shake">
+            <AlertCircle size={16} />
             <span>{validationError}</span>
           </div>
         )}
 
-        {/* Step Content */}
-        <div className="onboarding__content animate-fade-in" key={step}>
-          {step === 0 && (
-            <>
-              <h3>What's your pet's name?</h3>
-              <input
-                className="input"
-                placeholder="e.g. Buddy"
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-                autoFocus
-                id="onboarding-name"
-              />
+        {step === 0 && (
+          <OnboardingBasicsStep
+            name={form.name}
+            species={form.species}
+            customSpecies={form.customSpecies}
+            onUpdate={update}
+            onSpeciesSelect={handleSpeciesSelect}
+          />
+        )}
+        {step === 1 && (
+          <OnboardingDetailsStep
+            species={form.species}
+            breed={form.breed}
+            isCustomBreed={isCustomBreed}
+            age={form.age}
+            weight={form.weight}
+            gender={form.gender}
+            onUpdate={update}
+            onBreedChange={handleBreedChange}
+          />
+        )}
+        {step === 2 && (
+          <OnboardingHealthStep
+            species={form.species}
+            customSpecies={form.customSpecies}
+            selectedConditions={selectedConditions}
+            setSelectedConditions={setSelectedConditions}
+            selectedAllergies={selectedAllergies}
+            setSelectedAllergies={setSelectedAllergies}
+            medications={form.medications}
+            onUpdate={update}
+          />
+        )}
 
-              <h4>Species (Kind of Animal)</h4>
-              <div className="onboarding__species-grid">
-                {SPECIES_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`onboarding__species-btn ${
-                      form.species === opt.value ? 'onboarding__species-btn--active' : ''
-                    }`}
-                    onClick={() => handleSpeciesSelect(opt.value as PetProfile['species'])}
-                  >
-                    {opt.emoji} {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom Species Input when "Other" is picked */}
-              {form.species === 'other' && (
-                <div className="onboarding__custom-species animate-fade-in">
-                  <label className="onboarding__label">Specify Animal Kind</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Ferret, Chinchilla, Turtle, Horse"
-                    value={form.customSpecies}
-                    onChange={(e) => update('customSpecies', e.target.value)}
-                    id="onboarding-custom-species"
-                  />
-                </div>
-              )}
-
-              <h4>Gender</h4>
-              <div className="onboarding__gender-row">
-                <button
-                  type="button"
-                  className={`btn ${form.gender === 'male' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => update('gender', 'male')}
-                >
-                  ♂ Male
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${form.gender === 'female' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => update('gender', 'female')}
-                >
-                  ♀ Female
-                </button>
-              </div>
-            </>
+        <div className="onboarding-actions">
+          {step > 0 ? (
+            <button className="btn btn-secondary btn-sm" onClick={() => setStep((s) => s - 1)}>
+              <ChevronLeft size={16} /> Back
+            </button>
+          ) : (
+            <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
           )}
 
-          {step === 1 && (
-            <>
-              <h3>Tell us about {form.name}</h3>
-              <label className="onboarding__label">Breed / Variant ({form.species.toUpperCase()})</label>
-              <select
-                className="input"
-                value={isCustomBreed ? '__custom__' : form.breed}
-                onChange={(e) => handleBreedChange(e.target.value)}
-                id="onboarding-breed-select"
-                style={{ marginBottom: '0.6rem' }}
-              >
-                {currentBreeds.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-                <option value="__custom__">✏️ Other / Custom Breed (Type manually)...</option>
-              </select>
-
-              {isCustomBreed && (
-                <input
-                  className="input"
-                  placeholder="Type custom breed name..."
-                  value={form.breed}
-                  onChange={(e) => update('breed', e.target.value)}
-                  autoFocus
-                  id="onboarding-breed-custom"
-                  style={{ marginBottom: '0.6rem' }}
-                />
-              )}
-
-            <label className="onboarding__label">Age (years)</label>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              max={50}
-              value={form.age}
-              onChange={(e) => update('age', Number(e.target.value))}
-              id="onboarding-age"
-            />
-
-            <label className="onboarding__label">Weight (kg)</label>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              max={500}
-              step={0.1}
-              value={form.weight}
-              onChange={(e) => update('weight', Number(e.target.value))}
-              id="onboarding-weight"
-            />
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h3>Health Profile for {form.name}</h3>
-            <p className="onboarding__hint">
-              Select any conditions or allergies, or use AI suggestions for tailored options.
-            </p>
-
-            <ContextualSelect
-              species={form.species}
-              customSpecies={form.customSpecies}
-              selectedConditions={selectedConditions}
-              selectedAllergies={selectedAllergies}
-              onChangeConditions={setSelectedConditions}
-              onChangeAllergies={setSelectedAllergies}
-            />
-
-            <label className="onboarding__label" style={{ marginTop: 'var(--space-md)' }}>
-              Current Medications (comma separated)
-            </label>
-            <input
-              className="input"
-              placeholder="e.g. Apoquel 16mg daily, Flea drops"
-              value={form.medications}
-              onChange={(e) => update('medications', e.target.value)}
-              id="onboarding-medications"
-            />
-          </>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="onboarding__nav">
-        {step === 0 ? (
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
-          </button>
-        ) : (
-          <button type="button" className="btn btn-ghost" onClick={handleBack}>
-            <ChevronLeft size={16} /> Back
-          </button>
-        )}
-
-        {step < STEPS.length - 1 ? (
-          <button type="button" className="btn btn-primary" onClick={handleNext}>
-            Next <ChevronRight size={16} />
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={handleComplete}>
-            <Check size={16} /> Save Pet
-          </button>
-        )}
+          {step < STEPS.length - 1 ? (
+            <button className="btn btn-primary btn-sm" onClick={handleNext}>
+              Next <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button className="btn btn-primary btn-sm" onClick={handleSubmit}>
+              <Check size={16} /> Create Passport
+            </button>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 };

@@ -24,6 +24,7 @@ import './App.css';
 // Lazy-loaded unified professional portals
 const ClinicPortalPage = lazy(() => import('./portals/ClinicPortal/App'));
 const StorePortalPage = lazy(() => import('./portals/StorePortal/App'));
+const GroomerPortalPage = lazy(() => import('./portals/GroomerPortal/App'));
 const AdminPortalPage = lazy(() => import('./portals/AdminPortal/App'));
 
 const AppContent = () => {
@@ -36,6 +37,7 @@ const AppContent = () => {
   const isPortal =
     location.pathname.startsWith('/clinic') ||
     location.pathname.startsWith('/store') ||
+    location.pathname.startsWith('/groomer') ||
     location.pathname.startsWith('/admin');
 
   if (isPortal) {
@@ -62,6 +64,7 @@ const AppContent = () => {
           <Routes>
             <Route path="/clinic/*" element={<ClinicPortalPage />} />
             <Route path="/store/*" element={<StorePortalPage />} />
+            <Route path="/groomer/*" element={<GroomerPortalPage />} />
             <Route path="/admin/*" element={<AdminPortalPage />} />
           </Routes>
         </Suspense>

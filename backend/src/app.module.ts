@@ -16,6 +16,9 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { UploadModule } from './upload/upload.module';
 import { SheltersModule } from './shelters/shelters.module';
+import { ReceiptsModule } from './receipts/receipts.module';
+import { GroomingModule } from './grooming/grooming.module';
+import { ScheduleModule } from './schedule/schedule.module';
 
 let memoryDbUri: string | undefined = undefined;
 const logger = new Logger('MongoConnection');
@@ -75,6 +78,9 @@ const logger = new Logger('MongoConnection');
     AuthModule,
     UploadModule,
     SheltersModule,
+    ReceiptsModule,
+    GroomingModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   providers: [

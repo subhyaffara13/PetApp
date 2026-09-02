@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { PetProfile } from '../../schemas';
-import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../data/petBreeds';
+import { getBreedsForSpecies } from '../../data/petBreeds';
+import { PetEditIdentityFields } from './Components/PetEditIdentityFields';
+import { PetEditMedicalFields } from './Components/PetEditMedicalFields';
 import './PetEditForm.css';
 
 interface PetEditFormProps {
@@ -36,11 +38,10 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
 
   const handleSpeciesSelect = (newSpecies: PetProfile['species']) => {
     const availableBreeds = getBreedsForSpecies(newSpecies);
-    const defaultBreed = availableBreeds[0] || 'Mixed Breed';
     setForm((prev) => ({
       ...prev,
       species: newSpecies,
-      breed: defaultBreed,
+      breed: availableBreeds[0] || 'Mixed Breed',
     }));
     setIsCustomBreed(false);
   };
@@ -57,11 +58,8 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     const computedAgeYears =
-      ageUnit === 'months'
-        ? parseFloat((ageVal / 12).toFixed(2))
-        : Number(ageVal);
+      ageUnit === 'months' ? parseFloat((ageVal / 12).toFixed(2)) : Number(ageVal);
 
     const updated: PetProfile = {
       ...pet,
@@ -72,24 +70,13 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
       dateOfBirth: dateOfBirth || undefined,
       weight: form.weight,
       gender: form.gender,
-      knownConditions: form.knownConditions
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      allergies: form.allergies
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      medications: form.medications
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+      knownConditions: form.knownConditions.split(',').map((s) => s.trim()).filter(Boolean),
+      allergies: form.allergies.split(',').map((s) => s.trim()).filter(Boolean),
+      medications: form.medications.split(',').map((s) => s.trim()).filter(Boolean),
     };
 
     onSave(updated);
   };
-
-  const currentBreeds = getBreedsForSpecies(form.species);
 
   return (
     <form className="pet-edit-form glass-card" onSubmit={handleSubmit} id="pet-edit-form">
@@ -100,194 +87,34 @@ export const PetEditForm = ({ pet, onSave, onCancel }: PetEditFormProps) => {
         </button>
       </div>
 
-      <div className="pet-edit-form__body">
-        {/* Name */}
-        <label className="pet-edit-form__label">Name</label>
-        <input
-          className="input"
-          value={form.name}
-          onChange={(e) => update('name', e.target.value)}
-          placeholder="Pet name"
-          required
-          id="edit-pet-name"
-        />
+      <PetEditIdentityFields
+        name={form.name}
+        species={form.species}
+        breed={form.breed}
+        isCustomBreed={isCustomBreed}
+        ageUnit={ageUnit}
+        setAgeUnit={setAgeUnit}
+        ageVal={ageVal}
+        setAgeVal={setAgeVal}
+        dateOfBirth={dateOfBirth}
+        setDateOfBirth={setDateOfBirth}
+        weight={form.weight}
+        gender={form.gender}
+        onUpdate={update}
+        onSpeciesSelect={handleSpeciesSelect}
+        onBreedChange={handleBreedChange}
+      />
 
-        {/* 1. Species (Picked First) */}
-        <label className="pet-edit-form__label">1. Species (Kind of Animal)</label>
-        <div className="pet-edit-form__species-grid">
-          {SPECIES_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`pet-edit-form__species-btn ${
-                form.species === opt.value ? 'pet-edit-form__species-btn--active' : ''
-              }`}
-              onClick={() => handleSpeciesSelect(opt.value as PetProfile['species'])}
-            >
-              {opt.emoji} {opt.label}
-            </button>
-          ))}
-        </div>
+      <PetEditMedicalFields
+        knownConditions={form.knownConditions}
+        allergies={form.allergies}
+        medications={form.medications}
+        onUpdate={update}
+      />
 
-        {/* 2. Breed Dropdown (Auto-updates with relevant animal's breeds) */}
-        <label className="pet-edit-form__label">2. Breed / Variant</label>
-        <select
-          className="input"
-          value={isCustomBreed ? '__custom__' : form.breed}
-          onChange={(e) => handleBreedChange(e.target.value)}
-          id="edit-pet-breed-select"
-        >
-          {currentBreeds.map((b) => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-          <option value="__custom__">✏️ Other / Custom Breed (Type manually)...</option>
-        </select>
-
-        {isCustomBreed && (
-          <input
-            className="input"
-            style={{ marginTop: '0.4rem' }}
-            value={form.breed}
-            onChange={(e) => update('breed', e.target.value)}
-            placeholder="Type custom breed name..."
-            autoFocus
-            id="edit-pet-breed-custom"
-          />
-        )}
-
-        {/* Date of Birth / Growth Age */}
-        <div className="pet-edit-form__field" style={{ marginBottom: '1rem' }}>
-          <label className="pet-edit-form__label">Date of Birth (FOR ACCURATE GROWTH AGE)</label>
-          <input
-            className="input"
-            type="date"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            id="edit-pet-dob"
-          />
-        </div>
-
-        {/* Age & Weight Row */}
-        <div className="pet-edit-form__row">
-          <div className="pet-edit-form__field">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label className="pet-edit-form__label">Age ({ageUnit === 'months' ? 'חודשים' : 'שנים'})</label>
-              <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.06)', borderRadius: 4, padding: 2 }}>
-                <button
-                  type="button"
-                  style={{
-                    border: 'none',
-                    background: ageUnit === 'months' ? 'var(--color-primary)' : 'transparent',
-                    color: ageUnit === 'months' ? '#fff' : 'var(--color-text-muted)',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    borderRadius: 3,
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setAgeUnit('months')}
-                >
-                  חודשים (Mo)
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    border: 'none',
-                    background: ageUnit === 'years' ? 'var(--color-primary)' : 'transparent',
-                    color: ageUnit === 'years' ? '#fff' : 'var(--color-text-muted)',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    borderRadius: 3,
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setAgeUnit('years')}
-                >
-                  שנים (Yrs)
-                </button>
-              </div>
-            </div>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={ageUnit === 'months' ? 36 : 50}
-              value={ageVal}
-              onChange={(e) => setAgeVal(Number(e.target.value))}
-              id="edit-pet-age"
-            />
-          </div>
-          <div className="pet-edit-form__field">
-            <label className="pet-edit-form__label">Weight (kg)</label>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              max={500}
-              step={0.1}
-              value={form.weight}
-              onChange={(e) => update('weight', Number(e.target.value))}
-              id="edit-pet-weight"
-            />
-          </div>
-        </div>
-
-        {/* Gender */}
-        <label className="pet-edit-form__label">Gender</label>
-        <div className="pet-edit-form__gender-row">
-          <button
-            type="button"
-            className={`btn ${form.gender === 'male' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => update('gender', 'male')}
-          >
-            ♂ Male
-          </button>
-          <button
-            type="button"
-            className={`btn ${form.gender === 'female' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => update('gender', 'female')}
-          >
-            ♀ Female
-          </button>
-        </div>
-
-        {/* Known Conditions */}
-        <label className="pet-edit-form__label">Known Conditions (comma separated)</label>
-        <input
-          className="input"
-          value={form.knownConditions}
-          onChange={(e) => update('knownConditions', e.target.value)}
-          placeholder="e.g. Hip dysplasia, Diabetes"
-          id="edit-pet-conditions"
-        />
-
-        {/* Allergies */}
-        <label className="pet-edit-form__label">Allergies (comma separated)</label>
-        <input
-          className="input"
-          value={form.allergies}
-          onChange={(e) => update('allergies', e.target.value)}
-          placeholder="e.g. Chicken, Pollen"
-          id="edit-pet-allergies"
-        />
-
-        {/* Medications */}
-        <label className="pet-edit-form__label">Medications (comma separated)</label>
-        <input
-          className="input"
-          value={form.medications}
-          onChange={(e) => update('medications', e.target.value)}
-          placeholder="e.g. Apoquel 16mg daily"
-          id="edit-pet-medications"
-        />
-      </div>
-
-      {/* Footer */}
-      <div className="pet-edit-form__footer">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary">
+      <div className="pet-edit-form__actions">
+        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn btn-primary btn-sm">
           <Check size={16} /> Save Changes
         </button>
       </div>
