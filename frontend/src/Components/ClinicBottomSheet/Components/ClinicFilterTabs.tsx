@@ -23,6 +23,10 @@ export const ClinicFilterTabs: React.FC<ClinicFilterTabsProps> = ({
           <Search size={14} className="sheet-search-icon" />
           <input
             type="text"
+            id="sheet-search-input"
+            name="sheet-search-input"
+            aria-label={t('emergency.search_placeholder', 'Search city or clinic name...')}
+            autoComplete="off"
             className="sheet-search-input"
             placeholder={t('emergency.search_placeholder', 'Search city or clinic name...')}
             value={searchQuery}
