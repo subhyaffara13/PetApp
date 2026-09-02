@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import type { PetProfile } from '../../schemas';
@@ -8,8 +8,8 @@ import { BookingProviderHeader } from './Components/BookingProviderHeader';
 import { BookingServiceSelector, type ServiceOption } from './Components/BookingServiceSelector';
 import { BookingDateTimeSlots } from './Components/BookingDateTimeSlots';
 import { BookingPetForm } from './Components/BookingPetForm';
+import { Modal, Button } from '../UI';
 import { API_URL } from '../../config/api';
-import './UniversalBookingModal.css';
 
 export interface BookingProviderContext {
   id: string;
@@ -104,70 +104,76 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
     }
   };
 
+  const modalTitle = (
+    <BookingProviderHeader
+      providerName={provider.name}
+      providerType={provider.type}
+      providerAvatar={provider.avatar}
+      rating={provider.rating}
+      badgeType={provider.badgeType}
+    />
+  );
+
   return (
-    <div className="booking-modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="booking-modal-card card animate-scale-up" onClick={(e) => e.stopPropagation()}>
-        <div className="booking-modal-header">
-          <BookingProviderHeader
-            providerName={provider.name}
-            providerType={provider.type}
-            providerAvatar={provider.avatar}
-            rating={provider.rating}
-            badgeType={provider.badgeType}
-          />
-          <button className="btn-close-modal" onClick={onClose}><X size={18} /></button>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="540px">
+      {isConfirmed ? (
+        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+          <CheckCircle2 size={54} color="#10b981" style={{ margin: '0 auto 1rem' }} />
+          <h3 style={{ margin: '0 0 0.5rem' }}>Appointment Confirmed!</h3>
+          <p style={{ color: 'var(--color-text-muted)', margin: '0 0 0.5rem' }}>
+            {selectedService?.name} with <strong>{provider.name}</strong> on <strong>{selectedDate}</strong> at <strong>{selectedSlot}</strong>.
+          </p>
+          <p style={{ fontSize: '0.85rem', color: '#38bdf8', marginTop: '0.5rem' }}>
+            ✓ Synced to your Profile Calendar & Shared Pet Co-Parents
+          </p>
+          <Button variant="primary" style={{ marginTop: '1.5rem' }} onClick={onClose} fullWidth>
+            Done
+          </Button>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <BookingServiceSelector
+            providerType={provider.type}
+            selectedService={selectedService}
+            onSelectService={setSelectedService}
+          />
 
-        {isConfirmed ? (
-          <div className="booking-confirmation-view animate-fade-in" style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-            <CheckCircle2 size={54} color="#10b981" style={{ margin: '0 auto 1rem' }} />
-            <h3>Appointment Confirmed!</h3>
-            <p style={{ color: 'var(--color-text-muted)' }}>
-              {selectedService?.name} with <strong>{provider.name}</strong> on <strong>{selectedDate}</strong> at <strong>{selectedSlot}</strong>.
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#38bdf8', marginTop: '0.5rem' }}>
-              ✓ Synced to your Profile Calendar & Shared Pet Co-Parents
-            </p>
-            <button className="btn btn-primary" style={{ marginTop: '1.5rem' }} onClick={onClose}>Done</button>
+          <BookingDateTimeSlots
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            selectedSlot={selectedSlot}
+            setSelectedSlot={setSelectedSlot}
+          />
+
+          <BookingPetForm
+            pets={pets}
+            selectedPetId={selectedPetId}
+            setSelectedPetId={setSelectedPetId}
+            guestPetName={guestPetName}
+            setGuestPetName={setGuestPetName}
+            ownerName={ownerName}
+            setOwnerName={setOwnerName}
+            ownerPhone={ownerPhone}
+            setOwnerPhone={setOwnerPhone}
+            notes={notes}
+            setNotes={setNotes}
+          />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isSubmitting}
+              disabled={!selectedService}
+            >
+              Confirm Booking {selectedService ? `(₪${selectedService.price})` : ''}
+            </Button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="booking-modal-form">
-            <BookingServiceSelector
-              providerType={provider.type}
-              selectedService={selectedService}
-              onSelectService={setSelectedService}
-            />
-
-            <BookingDateTimeSlots
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              selectedSlot={selectedSlot}
-              setSelectedSlot={setSelectedSlot}
-            />
-
-            <BookingPetForm
-              pets={pets}
-              selectedPetId={selectedPetId}
-              setSelectedPetId={setSelectedPetId}
-              guestPetName={guestPetName}
-              setGuestPetName={setGuestPetName}
-              ownerName={ownerName}
-              setOwnerName={setOwnerName}
-              ownerPhone={ownerPhone}
-              setOwnerPhone={setOwnerPhone}
-              notes={notes}
-              setNotes={setNotes}
-            />
-
-            <div className="booking-modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting || !selectedService}>
-                {isSubmitting ? 'Booking...' : `Confirm Booking ${selectedService ? `(₪${selectedService.price})` : ''}`}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+        </form>
+      )}
+    </Modal>
   );
 };

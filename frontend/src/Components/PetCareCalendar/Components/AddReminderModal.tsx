@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Plus, Bell } from 'lucide-react';
+import { Plus, Bell } from 'lucide-react';
 import type { PetProfile } from '../../../schemas';
+import { Modal, Input, Select, Textarea, Button } from '../../UI';
 
 interface AddReminderModalProps {
   isOpen: boolean;
@@ -32,8 +33,6 @@ export const AddReminderModal: React.FC<AddReminderModalProps> = ({
   const [recurrence, setRecurrence] = useState('monthly');
   const [notes, setNotes] = useState('');
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -52,94 +51,97 @@ export const AddReminderModal: React.FC<AddReminderModalProps> = ({
     onClose();
   };
 
+  const modalTitle = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <Bell size={20} color="#38bdf8" />
+      <span>Add Pet Care Reminder</span>
+    </div>
+  );
+
   return (
-    <div className="donation-modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="donation-modal-card card add-reminder-card" onClick={(e) => e.stopPropagation()}>
-        <div className="donation-modal-header">
-          <div className="donation-header-title">
-            <Bell size={20} color="#38bdf8" />
-            <h3>Add Pet Care Reminder</h3>
-          </div>
-          <button className="btn-close-modal" onClick={onClose}><X size={18} /></button>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} maxWidth="500px">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <Select
+          label="Pet"
+          value={petId}
+          onChange={(e) => setPetId(e.target.value)}
+        >
+          {pets.map((p) => (
+            <option key={p._id || p.petId} value={p._id || p.petId}>
+              🐾 {p.name} ({p.species})
+            </option>
+          ))}
+        </Select>
+
+        <Input
+          label="Reminder Title"
+          placeholder="e.g. Buy Royal Canin 14kg, NexGard Chewable..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          autoFocus
+        />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <Select
+            label="Category"
+            value={type}
+            onChange={(e) => setType(e.target.value as any)}
+          >
+            <option value="food">🍖 Food & Kibble Refill</option>
+            <option value="vaccine">💉 Vaccine Booster</option>
+            <option value="medication">💊 Medication / Flea & Tick</option>
+            <option value="grooming">✂️ Grooming & Bath</option>
+            <option value="walking">🐕 Dog Walking Schedule</option>
+            <option value="custom">🔔 Custom Care Task</option>
+          </Select>
+
+          <Select
+            label="Repeat / Recurrence"
+            value={recurrence}
+            onChange={(e) => setRecurrence(e.target.value)}
+          >
+            <option value="once">Once (No repeat)</option>
+            <option value="monthly">Monthly (Every 30 days)</option>
+            <option value="yearly">Yearly (Annual booster)</option>
+            <option value="weekly">Weekly</option>
+            <option value="daily">Daily</option>
+          </Select>
         </div>
 
-        <form onSubmit={handleSubmit} className="add-reminder-form">
-          <div className="form-group">
-            <label>Pet</label>
-            <select className="form-input" value={petId} onChange={(e) => setPetId(e.target.value)}>
-              {pets.map((p) => (
-                <option key={p._id || p.petId} value={p._id || p.petId}>
-                  🐾 {p.name} ({p.species})
-                </option>
-              ))}
-            </select>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem' }}>
+          <Input
+            label="Due Date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            required
+          />
+          <Input
+            label="Due Time"
+            placeholder="09:00 AM"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+          />
+        </div>
 
-          <div className="form-group">
-            <label>Reminder Title *</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="e.g. Buy Royal Canin 14kg, NexGard Chewable..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
+        <Textarea
+          label="Notes (Optional)"
+          rows={2}
+          placeholder="Special dose, store brand, or instructions..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Category</label>
-              <select className="form-input" value={type} onChange={(e) => setType(e.target.value as any)}>
-                <option value="food">🍖 Food & Kibble Refill</option>
-                <option value="vaccine">💉 Vaccine Booster</option>
-                <option value="medication">💊 Medication / Flea & Tick</option>
-                <option value="grooming">✂️ Grooming & Bath</option>
-                <option value="walking">🐕 Dog Walking Schedule</option>
-                <option value="custom">🔔 Custom Care Task</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Repeat / Recurrence</label>
-              <select className="form-input" value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
-                <option value="once">Once (No repeat)</option>
-                <option value="monthly">Monthly (Every 30 days)</option>
-                <option value="yearly">Yearly (Annual booster)</option>
-                <option value="weekly">Weekly</option>
-                <option value="daily">Daily</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Due Date</label>
-              <input type="date" className="form-input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label>Due Time</label>
-              <input type="text" className="form-input" placeholder="09:00 AM" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Notes (Optional)</label>
-            <textarea
-              rows={2}
-              className="form-input"
-              placeholder="Special dose, store brand, or instructions..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <div className="donation-modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary"><Plus size={16} /> Save Reminder</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" leftIcon={<Plus size={16} />}>
+            Save Reminder
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 };

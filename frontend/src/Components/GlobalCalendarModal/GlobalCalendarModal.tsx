@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import type { PetProfile } from '../../schemas';
 import { PetCareCalendar } from '../PetCareCalendar/PetCareCalendar';
+import { Modal } from '../UI';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../config/api';
-import './GlobalCalendarModal.css';
 
 interface GlobalCalendarModalProps {
   isOpen: boolean;
@@ -27,29 +27,27 @@ export const GlobalCalendarModal: React.FC<GlobalCalendarModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="global-calendar-modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="global-calendar-modal-card card animate-scale-up" onClick={(e) => e.stopPropagation()}>
-        <div className="global-calendar-modal-header">
-          <div className="global-header-title">
-            <CalendarIcon size={22} color="#38bdf8" />
-            <div>
-              <h3>All Pets Care Schedule & Appointments</h3>
-              <p>Unified family agenda across all your registered and co-parented pets</p>
-            </div>
-          </div>
-          <button className="btn-close-modal" onClick={onClose}><X size={20} /></button>
-        </div>
-
-        <div className="global-calendar-modal-body">
-          <PetCareCalendar
-            pets={pets}
-            userId={user?.id}
-          />
-        </div>
+  const modalTitle = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+      <CalendarIcon size={20} color="#38bdf8" />
+      <div>
+        <span style={{ fontSize: '1.1rem', fontWeight: 700, display: 'block' }}>All Pets Care Schedule</span>
+        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 400 }}>Family agenda synced across co-parents</span>
       </div>
     </div>
+  );
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={modalTitle}
+      maxWidth="880px"
+    >
+      <PetCareCalendar
+        pets={pets}
+        userId={user?.id}
+      />
+    </Modal>
   );
 };
