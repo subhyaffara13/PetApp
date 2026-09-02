@@ -57,17 +57,6 @@ export const ProfilePageHeader: React.FC<ProfilePageHeaderProps> = ({
             className="calendar-trigger-btn"
             onClick={onOpenCalendar}
             title="All Pets Care Calendar & Tasks"
-            style={{
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: '0.6rem',
-              padding: '0.45rem',
-              color: '#38bdf8',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
           >
             <CalendarIcon size={18} />
           </button>

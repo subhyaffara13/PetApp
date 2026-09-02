@@ -100,17 +100,17 @@ export const PetDetailView = ({
           onRemoveCoParent={handleRemoveCoParent}
         />
 
-        <div className="pet-subtab-navigation" style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
+        <div className="pet-subtab-navigation">
           <button
             type="button"
-            className={`btn btn-sm ${activeSubTab === 'passport' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`pet-subtab-btn ${activeSubTab === 'passport' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('passport')}
           >
             🏥 Health History & Records
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeSubTab === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`pet-subtab-btn ${activeSubTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('calendar')}
           >
             📅 Care Schedule & Reminders

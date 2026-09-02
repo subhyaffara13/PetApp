@@ -80,6 +80,26 @@
   transform: scale(1.05);
 }
 
+.calendar-trigger-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #38bdf8;
+  transition: all var(--transition-base);
+}
+
+.calendar-trigger-btn:hover {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  transform: scale(1.05);
+}
+
 .owner-profile-icon-btn {
   width: 40px;
   height: 40px;
