@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { X, Heart, ShieldCheck } from 'lucide-react';
+import { Heart, ShieldCheck } from 'lucide-react';
 import { useToast } from '../../../../context/ToastContext';
 import { API_URL } from '../../../../config/api';
+import { Modal, Button, Input } from '../../../../Components/UI';
 import type { ShelterResult } from './ShelterDirectoryCard';
 
 interface ShelterDonationModalProps {
@@ -46,64 +47,70 @@ export const ShelterDonationModal: React.FC<ShelterDonationModalProps> = ({
     }
   };
 
-  return (
-    <div className="donation-modal-overlay animate-fade-in" onClick={onClose}>
-      <div className="donation-modal-card card" onClick={(e) => e.stopPropagation()}>
-        <div className="donation-modal-header">
-          <div className="donation-header-title">
-            <Heart size={20} color="#ec4899" fill="#ec4899" />
-            <h3>Donate to {shelter.name}</h3>
-          </div>
-          <button className="btn-close-modal" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <p className="donation-subtitle">
-          100% of emergency aid goes directly toward pet veterinary care, sterile medical supplies, and food.
-        </p>
-
-        <div className="donation-amount-pills">
-          {[20, 50, 100, 250].map((amt) => (
-            <button
-              key={amt}
-              type="button"
-              className={`donation-pill ${donationAmount === amt && !customDonation ? 'active' : ''}`}
-              onClick={() => { setDonationAmount(amt); setCustomDonation(''); }}
-            >
-              ₪{amt}
-            </button>
-          ))}
-        </div>
-
-        <div className="custom-donation-row">
-          <label>Or custom amount (₪):</label>
-          <input
-            type="number"
-            className="form-input"
-            placeholder="Custom ₪"
-            value={customDonation}
-            onChange={(e) => setCustomDonation(e.target.value)}
-          />
-        </div>
-
-        <div className="donation-security-banner">
-          <ShieldCheck size={16} color="#10b981" />
-          <span>Secured via Stripe Payment Gateway & Verified NGO Partner</span>
-        </div>
-
-        <div className="donation-modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button
-            type="button"
-            className="btn btn-primary btn-confirm-donate"
-            disabled={isDonating}
-            onClick={handleProcessDonation}
-          >
-            {isDonating ? 'Processing...' : `Donate ₪${customDonation || donationAmount} Now`}
-          </button>
-        </div>
-      </div>
+  const modalTitle = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <Heart size={20} color="#ec4899" fill="#ec4899" />
+      <span>Donate to {shelter.name}</span>
     </div>
+  );
+
+  return (
+    <Modal isOpen={!!shelter} onClose={onClose} title={modalTitle} maxWidth="480px">
+      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 1rem' }}>
+        100% of emergency aid goes directly toward pet veterinary care, sterile medical supplies, and food.
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        {[20, 50, 100, 250].map((amt) => (
+          <button
+            key={amt}
+            type="button"
+            className={`donation-pill ${donationAmount === amt && !customDonation ? 'active' : ''}`}
+            onClick={() => { setDonationAmount(amt); setCustomDonation(''); }}
+            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.75rem', fontWeight: 700 }}
+          >
+            ₪{amt}
+          </button>
+        ))}
+      </div>
+
+      <Input
+        label="Or Custom Amount (₪)"
+        type="number"
+        placeholder="e.g. 75"
+        value={customDonation}
+        onChange={(e) => setCustomDonation(e.target.value)}
+      />
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.75rem',
+        background: 'rgba(16,185,129,0.1)',
+        border: '1px solid rgba(16,185,129,0.2)',
+        borderRadius: '0.75rem',
+        color: '#10b981',
+        fontSize: '0.75rem',
+        margin: '1rem 0'
+      }}>
+        <ShieldCheck size={16} />
+        <span>Secured via Stripe Payment Gateway & 0% Platform Commission</span>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          isLoading={isDonating}
+          onClick={handleProcessDonation}
+          leftIcon={<Heart size={16} fill="currentColor" />}
+        >
+          Donate ₪{customDonation || donationAmount}
+        </Button>
+      </div>
+    </Modal>
   );
 };

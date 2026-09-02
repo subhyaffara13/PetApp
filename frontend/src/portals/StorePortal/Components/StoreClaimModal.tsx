@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Store as StoreIcon } from 'lucide-react';
+import { Modal, Button } from '../../../Components/UI';
 
 interface Store {
   _id: string;
@@ -44,58 +46,59 @@ export const StoreClaimModal: React.FC<StoreClaimModalProps> = ({
     }
   };
 
-  return (
-    <div className="claim-modal-overlay" onClick={onClose}>
-      <div className="claim-modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="claim-modal-header">
-          <h3>🏪 Select & Claim Your Store Listing</h3>
-          <button type="button" className="btn-close-modal" onClick={onClose}>✕</button>
-        </div>
-        <p className="claim-modal-subtitle">
-          Only verified, claimed pet store listings can accept digital and DaaS emergency delivery orders.
-        </p>
-
-        {claimError && (
-          <p className="claim-modal-error" style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0 0 0.75rem' }}>{claimError}</p>
-        )}
-
-        <div className="claim-stores-list">
-          {stores.map((s) => {
-            const isCurrent = s._id === currentStoreId;
-            return (
-              <div key={s._id} className={`claim-store-item ${isCurrent ? 'claim-store-item--active' : ''}`}>
-                <div className="claim-store-details">
-                  <h4>{s.name}</h4>
-                  <p>{s.address?.street}, {s.address?.city}</p>
-                  <span className={`claim-status-tag ${s.isClaimed ? 'tag-claimed' : 'tag-unclaimed'}`}>
-                    {s.isClaimed ? '✓ Claimed & Accepting Orders' : '⚠️ Unclaimed Listing (Orders Paused)'}
-                  </span>
-                </div>
-                <div>
-                  {s.isClaimed ? (
-                    <button
-                      type="button"
-                      className={`btn-claim-action ${isCurrent ? 'btn-claim-action--active' : ''}`}
-                      onClick={() => onSelectStore(s)}
-                    >
-                      {isCurrent ? '✓ Active Console' : 'Switch Store'}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn-claim-action btn-claim-now"
-                      disabled={claimingId === s._id}
-                      onClick={() => handleClaim(s)}
-                    >
-                      {claimingId === s._id ? 'Verifying...' : 'Claim & Open Store'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+  const modalTitle = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <StoreIcon size={20} color="#f59e0b" />
+      <span>Select & Claim Your Store Listing</span>
     </div>
+  );
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={modalTitle} maxWidth="640px">
+      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 1rem' }}>
+        Only verified, claimed pet store listings can accept digital and DaaS emergency delivery orders.
+      </p>
+
+      {claimError && (
+        <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0 0 0.75rem' }}>{claimError}</p>
+      )}
+
+      <div className="claim-stores-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {stores.map((s) => {
+          const isCurrent = s._id === currentStoreId;
+          return (
+            <div key={s._id} className={`claim-store-item ${isCurrent ? 'claim-store-item--active' : ''}`}>
+              <div className="claim-store-details">
+                <h4 style={{ margin: '0 0 0.2rem', fontSize: '1rem', color: '#f8fafc' }}>{s.name}</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{s.address?.street}, {s.address?.city}</p>
+                <span className={`claim-status-tag ${s.isClaimed ? 'tag-claimed' : 'tag-unclaimed'}`} style={{ marginTop: '0.4rem', display: 'inline-block' }}>
+                  {s.isClaimed ? '✓ Claimed & Accepting Orders' : '⚠️ Unclaimed Listing (Orders Paused)'}
+                </span>
+              </div>
+              <div>
+                {s.isClaimed ? (
+                  <Button
+                    variant={isCurrent ? 'glass' : 'primary'}
+                    size="sm"
+                    onClick={() => onSelectStore(s)}
+                  >
+                    {isCurrent ? '✓ Active Console' : 'Switch Store'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    isLoading={claimingId === s._id}
+                    onClick={() => handleClaim(s)}
+                  >
+                    Claim & Open Store
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Modal>
   );
 };
