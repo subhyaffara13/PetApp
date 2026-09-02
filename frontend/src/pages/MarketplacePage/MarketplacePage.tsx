@@ -9,6 +9,7 @@ import { PastOrdersDrawer } from '../../Components/PastOrdersDrawer/PastOrdersDr
 import { MarketplaceHeaderActions } from './Components/MarketplaceHeaderActions';
 import { MarketplaceBottomSheet } from './Components/MarketplaceBottomSheet';
 import { useToast } from '../../context/ToastContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { useGeolocation } from '../../Hooks/useGeolocation';
 import type { PetShop, CartItem, Product, UserLocation } from '../../schemas';
@@ -18,6 +19,7 @@ import './MarketplacePage.css';
 const DEFAULT_LOCATION: UserLocation = { lat: 32.794, lon: 34.9896 };
 
 export const MarketplacePage = () => {
+  const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const { currentLang, t } = useTranslation();
   const { location: geoLoc } = useGeolocation();
@@ -27,8 +29,6 @@ export const MarketplacePage = () => {
   const [accuracyMode, setAccuracyMode] = useState<LocationAccuracyMode>('approximate_default');
   const [shops, setShops] = useState<PetShop[]>([]);
   const [selectedShop, setSelectedShop] = useState<PetShop | null>(null);
-  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
-  const [activeTag, setActiveTag] = useState('All');
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -40,7 +40,9 @@ export const MarketplacePage = () => {
     try {
       const saved = localStorage.getItem('petsos_wishlist_v1');
       return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
 
   const manualLocationSet = useRef(false);
@@ -53,22 +55,29 @@ export const MarketplacePage = () => {
   }, [geoLoc]);
 
   useEffect(() => {
-    try { localStorage.setItem('petsos_wishlist_v1', JSON.stringify(wishlist)); } catch {}
+    try {
+      localStorage.setItem('petsos_wishlist_v1', JSON.stringify(wishlist));
+    } catch {}
   }, [wishlist]);
 
-  const fetchShops = useCallback(async (loc: UserLocation) => {
-    try {
-      const res = await axios.get<PetShop[]>(`${API_URL}/marketplace/shops`, {
-        params: { lat: loc.lat, lon: loc.lon, lang: currentLang, country: cityName },
-        timeout: 5000,
-      });
-      if (res.data && Array.isArray(res.data)) setShops(res.data);
-    } catch (err) {
-      console.error('Failed to fetch shops:', err);
-    }
-  }, [currentLang, cityName]);
+  const fetchShops = useCallback(
+    async (loc: UserLocation) => {
+      try {
+        const res = await axios.get<PetShop[]>(`${API_URL}/marketplace/shops`, {
+          params: { lat: loc.lat, lon: loc.lon, lang: currentLang, country: cityName },
+          timeout: 5000,
+        });
+        if (res.data && Array.isArray(res.data)) setShops(res.data);
+      } catch (err) {
+        console.error('Failed to fetch shops:', err);
+      }
+    },
+    [currentLang, cityName]
+  );
 
-  useEffect(() => { fetchShops(userLocation); }, [userLocation, fetchShops]);
+  useEffect(() => {
+    fetchShops(userLocation);
+  }, [userLocation, fetchShops]);
 
   const mapItems: MapItem[] = shops.map((s) => ({
     id: s._id || s.id || s.name,
@@ -83,12 +92,17 @@ export const MarketplacePage = () => {
   }));
 
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const deliveryCount = shops.filter((s) => s.deliveryAvailable).length;
 
   return (
     <div className="marketplace-page page" id="marketplace-page">
       <MarketplaceHeaderActions
+        shopsCount={shops.length}
+        deliveryCount={deliveryCount}
         totalCartCount={totalCartCount}
         wishlistCount={wishlist.length}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onOpenCart={() => setCartOpen(true)}
         onOpenWishlist={() => setWishlistOpen(true)}
         onOpenPastOrders={() => setPastOrdersOpen(true)}
@@ -109,14 +123,16 @@ export const MarketplacePage = () => {
         />
       </div>
 
-      <div className="marketplace-map-container">
+      <div className="marketplace-page__map-wrapper">
         <MapComponent
           userLocation={userLocation}
           items={mapItems}
           selectedItem={mapItems.find((m) => m.id === (selectedShop?._id || selectedShop?.id)) || null}
           onItemSelect={(item) => {
             const found = shops.find((s) => (s._id || s.id) === item.id);
-            if (found) { setSelectedShop(found); setIsSheetExpanded(true); }
+            if (found) {
+              setSelectedShop(found);
+            }
           }}
           mode="marketplace"
         />
@@ -126,11 +142,7 @@ export const MarketplacePage = () => {
         shops={shops}
         userLocation={userLocation}
         selectedShop={selectedShop}
-        isSheetExpanded={isSheetExpanded}
-        activeTag={activeTag}
-        onToggleExpand={() => setIsSheetExpanded((prev) => !prev)}
-        onSelectTag={setActiveTag}
-        onSelectShop={setSelectedShop}
+        onSelectShop={(shop) => setSelectedShop(shop)}
         onOpenCatalog={setActiveCatalogShop}
         t={t}
       />
@@ -144,7 +156,11 @@ export const MarketplacePage = () => {
           onAddToCart={(product: Product) => {
             setCartItems((prev) => {
               const existing = prev.find((i) => i.product._id === product._id);
-              if (existing) return prev.map((i) => (i.product._id === product._id ? { ...i, quantity: i.quantity + 1 } : i));
+              if (existing) {
+                return prev.map((i) =>
+                  i.product._id === product._id ? { ...i, quantity: i.quantity + 1 } : i
+                );
+              }
               return [...prev, { product, quantity: 1 }];
             });
             showToast(`Added ${product.name} to cart!`, 'success');
@@ -155,10 +171,14 @@ export const MarketplacePage = () => {
               _id: item._id || String(Date.now()),
               name: item.name,
               price: item.price,
-              category: item.category,
+              category: item.category || 'General',
               shopId: item.shopId,
             };
-            setWishlist((prev) => (prev.some((w) => w._id === wItem._id) ? prev.filter((w) => w._id !== wItem._id) : [...prev, wItem]));
+            setWishlist((prev) =>
+              prev.some((w) => w._id === wItem._id)
+                ? prev.filter((w) => w._id !== wItem._id)
+                : [...prev, wItem]
+            );
           }}
         />
       )}
@@ -186,7 +206,15 @@ export const MarketplacePage = () => {
           wishlist={wishlist}
           onRemove={(id: string) => setWishlist((prev) => prev.filter((w) => w._id !== id))}
           onMoveToCart={(item: WishlistItem) => {
-            const product: Product = { _id: item._id, name: item.name, price: item.price, category: item.category || 'General', inStock: true, shopId: item.shopId || 'shop-1', description: '' };
+            const product: Product = {
+              _id: item._id,
+              name: item.name,
+              price: item.price,
+              category: item.category || 'General',
+              inStock: true,
+              shopId: item.shopId || 'shop-1',
+              description: '',
+            };
             setCartItems((prev) => [...prev, { product, quantity: 1 }]);
             showToast(`Added ${item.name} to cart!`, 'success');
           }}
