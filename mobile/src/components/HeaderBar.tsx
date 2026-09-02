@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme/theme';
 import { useAuth, PortalMode } from '../context/AuthContext';
+import { CalendarModal } from './CalendarModal';
 
 interface HeaderBarProps {
   onTriggerSos?: () => void;
@@ -10,6 +11,7 @@ interface HeaderBarProps {
 export const HeaderBar: React.FC<HeaderBarProps> = ({ onTriggerSos }) => {
   const { user, portalMode, setPortalMode } = useAuth();
   const [showPortalModal, setShowPortalModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   const getPortalBadge = () => {
     switch (portalMode) {
@@ -41,6 +43,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onTriggerSos }) => {
 
       <View style={styles.rightRow}>
         <TouchableOpacity
+          style={styles.calendarTriggerBtn}
+          onPress={() => setShowCalendarModal(true)}
+          accessibilityLabel="Open Care Schedule"
+        >
+          <Text style={{ fontSize: 16 }}>📅</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.portalBadgeButton, { backgroundColor: badge.bg, borderColor: badge.color }]}
           onPress={() => setShowPortalModal(true)}
         >
@@ -48,6 +58,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onTriggerSos }) => {
           <Text style={styles.switchArrow}>▾</Text>
         </TouchableOpacity>
       </View>
+
+      <CalendarModal
+        visible={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        userId={user?.id || 'all'}
+      />
 
       {/* Portal Switcher Modal */}
       <Modal visible={showPortalModal} transparent animationType="fade">
@@ -183,6 +199,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     gap: 4,
+  },
+  calendarTriggerBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(56,189,248,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56,189,248,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   portalBadgeText: {
     fontSize: 11,

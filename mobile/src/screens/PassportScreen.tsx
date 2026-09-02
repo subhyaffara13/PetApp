@@ -8,21 +8,24 @@ import {
   Modal,
   TextInput,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme/theme';
-import { PetProfileApi } from '../services/api';
+import { Colors, Spacing } from '../theme/theme';
+import { PetProfileApi, ScheduleApi, CoParentApi } from '../services/api';
+import { AddReminderModal } from '../components/AddReminderModal';
 
 interface Pet {
   id: string;
+  _id?: string;
+  petId?: string;
   name: string;
   species: string;
   breed: string;
   age: number;
   weight: number;
   microchipId: string;
-  rabiesTag: string;
+  rabiesTag?: string;
   allergies: string[];
+  coParents?: Array<{ userId: string; name?: string; role: string }>;
   vaccines: Array<{ name: string; date: string; nextDue: string; status: 'valid' | 'due' }>;
   medicalHistory: Array<{ date: string; title: string; clinic: string; cost: number }>;
 }
@@ -30,40 +33,20 @@ interface Pet {
 const INITIAL_PETS: Pet[] = [
   {
     id: 'pet_1',
+    _id: 'pet_1',
+    petId: 'PET-7492-A1',
     name: 'Max',
     species: 'Dog',
     breed: 'Golden Retriever',
     age: 3,
     weight: 28.5,
     microchipId: '900215000492817',
-    rabiesTag: 'ISR-2026-8819',
-    allergies: ['Chicken Protein', 'Penicillin'],
+    allergies: ['Chicken Protein'],
     vaccines: [
-      { name: 'Rabies (כלבת)', date: '2026-03-12', nextDue: '2027-03-12', status: 'valid' },
-      { name: 'DHPP Core 6-in-1 (משושה)', date: '2026-02-10', nextDue: '2027-02-10', status: 'valid' },
-      { name: 'Bordetella (שעלת המכלאות)', date: '2025-09-01', nextDue: '2026-09-01', status: 'due' },
+      { name: 'Rabies Booster', date: '2026-03-12', nextDue: '2027-03-12', status: 'valid' },
     ],
     medicalHistory: [
       { date: '2026-07-15', title: 'Routine Checkup & Deworming', clinic: 'Haifa Animal Hospital', cost: 240 },
-      { date: '2026-03-12', title: 'Annual Rabies Vaccination', clinic: 'Carmel Pet Care', cost: 160 },
-    ],
-  },
-  {
-    id: 'pet_2',
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'British Shorthair',
-    age: 2,
-    weight: 4.2,
-    microchipId: '900215000881923',
-    rabiesTag: 'ISR-2026-9921',
-    allergies: ['Dust Mites'],
-    vaccines: [
-      { name: 'FVRCP Tri-Cat (מרובעת)', date: '2026-01-20', nextDue: '2027-01-20', status: 'valid' },
-      { name: 'Rabies (כלבת)', date: '2026-01-20', nextDue: '2027-01-20', status: 'valid' },
-    ],
-    medicalHistory: [
-      { date: '2026-01-20', title: 'Spay & Microchip Verification', clinic: 'Haifa Animal Hospital', cost: 650 },
     ],
   },
 ];
@@ -71,73 +54,65 @@ const INITIAL_PETS: Pet[] = [
 export const PassportScreen = () => {
   const [pets, setPets] = useState<Pet[]>(INITIAL_PETS);
   const [selectedPetId, setSelectedPetId] = useState<string>(INITIAL_PETS[0].id);
+  const [activeSubTab, setActiveSubTab] = useState<'passport' | 'calendar'>('passport');
+  const [petAppointments, setPetAppointments] = useState<any[]>([]);
+  const [petReminders, setPetReminders] = useState<any[]>([]);
+  const [showAddReminder, setShowAddReminder] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState('');
 
-  // Add Pet Modal
-  const [showAddPet, setShowAddPet] = useState(false);
-  const [newPetName, setNewPetName] = useState('');
-  const [newSpecies, setNewSpecies] = useState('Dog');
-  const [newBreed, setNewBreed] = useState('');
-  const [newMicrochip, setNewMicrochip] = useState('');
+  const activePet = pets.find((p) => p.id === selectedPetId || p._id === selectedPetId) || pets[0];
 
-  // Scan Receipt Modal
-  const [showScanModal, setShowScanModal] = useState(false);
-  const [receiptText, setReceiptText] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
+  const fetchPetsAndSchedule = async () => {
+    try {
+      const serverPets = await PetProfileApi.getPets();
+      if (serverPets?.length > 0) {
+        const mapped = serverPets.map((p: any) => ({
+          ...p,
+          id: p._id || p.id,
+        }));
+        setPets(mapped);
+      }
+    } catch {}
 
-  const activePet = pets.find((p) => p.id === selectedPetId) || pets[0];
-
-  const handleAddPet = () => {
-    if (!newPetName.trim()) return;
-    const newPet: Pet = {
-      id: `pet_${Date.now()}`,
-      name: newPetName.trim(),
-      species: newSpecies,
-      breed: newBreed.trim() || 'Mixed',
-      age: 1,
-      weight: 10,
-      microchipId: newMicrochip.trim() || `900215000${Math.floor(100000 + Math.random() * 900000)}`,
-      rabiesTag: `ISR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      allergies: [],
-      vaccines: [
-        { name: 'Rabies (כלבת)', date: '2026-05-01', nextDue: '2027-05-01', status: 'valid' },
-      ],
-      medicalHistory: [],
-    };
-    setPets([...pets, newPet]);
-    setSelectedPetId(newPet.id);
-    setShowAddPet(false);
-    setNewPetName('');
-    setNewBreed('');
-    setNewMicrochip('');
-    Alert.alert('🐾 Pet Added!', `${newPet.name}'s digital passport has been created.`);
+    if (activePet?._id || activePet?.id) {
+      const pId = activePet._id || activePet.id;
+      try {
+        const [appts, rems] = await Promise.all([
+          ScheduleApi.getPetAppointments(pId),
+          ScheduleApi.getPetReminders(pId),
+        ]);
+        setPetAppointments(appts || []);
+        setPetReminders(rems || []);
+      } catch {}
+    }
   };
 
-  const handleSimulateScanReceipt = () => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      const parsedRecord = {
-        date: new Date().toISOString().split('T')[0],
-        title: 'Emergency Trauma Triage & Antibiotics (Receipt Scan)',
-        clinic: 'Haifa 24/7 ER Clinic',
-        cost: 380,
-      };
-      const updatedPets = pets.map((p) => {
-        if (p.id === activePet.id) {
-          return {
-            ...p,
-            medicalHistory: [parsedRecord, ...p.medicalHistory],
-          };
-        }
-        return p;
-      });
-      setPets(updatedPets);
-      setShowScanModal(false);
-      Alert.alert(
-        '🧾 Receipt Scanned & EMR Updated!',
-        `Logged ₪380 treatment at Haifa 24/7 ER Clinic into ${activePet.name}'s passport.`
-      );
-    }, 1500);
+  useEffect(() => {
+    fetchPetsAndSchedule();
+  }, [selectedPetId]);
+
+  const handleCopyTag = (tag: string) => {
+    Alert.alert('📋 Tag Copied', `Pet Passport Tag ${tag} copied for lookups.`);
+  };
+
+  const handleToggleReminder = async (id: string) => {
+    try {
+      await ScheduleApi.toggleReminder(id);
+      fetchPetsAndSchedule();
+    } catch {}
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteSearch.trim()) return;
+    try {
+      await CoParentApi.sendInvite(activePet._id || activePet.id, inviteSearch.trim());
+      Alert.alert('✅ Invitation Sent', `Sent household co-parent invite to ${inviteSearch}. Expires in 24h.`);
+      setShowInviteModal(false);
+      setInviteSearch('');
+    } catch {
+      Alert.alert('Error', 'Could not send invitation.');
+    }
   };
 
   return (
@@ -146,35 +121,32 @@ export const PassportScreen = () => {
       <View style={styles.petTabsRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs }}>
           {pets.map((pet) => {
-            const isSelected = pet.id === activePet.id;
+            const isSelected = (pet.id || pet._id) === (activePet.id || activePet._id);
             return (
               <TouchableOpacity
-                key={pet.id}
+                key={pet.id || pet._id}
                 style={[styles.petTabPill, isSelected && styles.petTabPillActive]}
-                onPress={() => setSelectedPetId(pet.id)}
+                onPress={() => setSelectedPetId(pet.id || pet._id || '')}
               >
-                <Text style={styles.petTabEmoji}>{pet.species === 'Cat' ? '🐈' : '🐕'}</Text>
+                <Text style={styles.petTabEmoji}>{pet.species?.toLowerCase() === 'cat' ? '🐈' : '🐕'}</Text>
                 <Text style={[styles.petTabText, isSelected && styles.petTabTextActive]}>{pet.name}</Text>
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity style={styles.addPetPill} onPress={() => setShowAddPet(true)}>
-            <Text style={styles.addPetText}>+ Add Pet</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
 
-      {/* Main Passport Card */}
+      {/* Main Passport Identity Card */}
       <View style={styles.passportCard}>
         <View style={styles.passportHeader}>
           <View style={styles.petAvatar}>
-            <Text style={{ fontSize: 32 }}>{activePet.species === 'Cat' ? '🐈' : '🐕'}</Text>
+            <Text style={{ fontSize: 32 }}>{activePet.species?.toLowerCase() === 'cat' ? '🐈' : '🐕'}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={styles.petName}>{activePet.name}</Text>
               <View style={styles.passportBadge}>
-                <Text style={styles.passportBadgeText}>PASSPORT VERIFIED</Text>
+                <Text style={styles.passportBadgeText}>VERIFIED PASSPORT</Text>
               </View>
             </View>
             <Text style={styles.petBreed}>
@@ -183,151 +155,153 @@ export const PassportScreen = () => {
           </View>
         </View>
 
-        {/* Microchip & IDs */}
+        {/* Unique Pet ID & Microchip */}
         <View style={styles.idBox}>
           <View style={styles.idRow}>
-            <Text style={styles.idLabel}>MICROCHIP ID</Text>
-            <Text style={styles.idValue}>{activePet.microchipId}</Text>
-          </View>
-          <View style={styles.idDivider} />
-          <View style={styles.idRow}>
-            <Text style={styles.idLabel}>RABIES TAG</Text>
-            <Text style={styles.idValue}>{activePet.rabiesTag}</Text>
-          </View>
-        </View>
-
-        {/* Allergies Warning */}
-        {activePet.allergies.length > 0 && (
-          <View style={styles.allergyBox}>
-            <Text style={styles.allergyTitle}>⚠️ CRITICAL MEDICAL ALLERGIES:</Text>
-            <Text style={styles.allergyText}>{activePet.allergies.join(' · ')}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Scan Receipt / EMR Button */}
-      <TouchableOpacity style={styles.btnScanReceipt} onPress={() => setShowScanModal(true)}>
-        <Text style={styles.btnScanText}>🧾 Scan Clinic Receipt / Add EMR Record</Text>
-      </TouchableOpacity>
-
-      {/* Vaccine Timeline */}
-      <View style={styles.sectionBox}>
-        <Text style={styles.sectionTitle}>💉 Vaccine & Preventive Care</Text>
-        {activePet.vaccines.map((v, idx) => (
-          <View key={idx} style={styles.vaccineRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vaccineName}>{v.name}</Text>
-              <Text style={styles.vaccineSub}>Administered: {v.date} · Next Due: {v.nextDue}</Text>
-            </View>
-            <View style={[styles.vaxStatusBadge, v.status === 'valid' ? styles.vaxValid : styles.vaxDue]}>
-              <Text style={styles.vaxStatusText}>{v.status === 'valid' ? 'VALID' : 'RENEWAL DUE'}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* Medical History Log */}
-      <View style={styles.sectionBox}>
-        <Text style={styles.sectionTitle}>📋 Medical Treatment Log</Text>
-        {activePet.medicalHistory.length === 0 ? (
-          <Text style={styles.emptyHistory}>No medical records yet. Tap Scan Receipt above to add.</Text>
-        ) : (
-          activePet.medicalHistory.map((item, idx) => (
-            <View key={idx} style={styles.historyRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.historyTitle}>{item.title}</Text>
-                <Text style={styles.historySub}>🏥 {item.clinic} · {item.date}</Text>
-              </View>
-              <Text style={styles.historyCost}>₪{item.cost}</Text>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Add Pet Modal */}
-      <Modal visible={showAddPet} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalHeading}>🐾 Register New Pet Passport</Text>
-            <Text style={styles.inputLabel}>Pet Name</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newPetName}
-              onChangeText={setNewPetName}
-              placeholder="e.g. Milo"
-              placeholderTextColor={Colors.textMuted}
-            />
-
-            <Text style={styles.inputLabel}>Species</Text>
-            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginBottom: 8 }}>
-              {['Dog', 'Cat', 'Bird', 'Rabbit'].map((sp) => (
-                <TouchableOpacity
-                  key={sp}
-                  style={[styles.speciesPill, newSpecies === sp && styles.speciesPillActive]}
-                  onPress={() => setNewSpecies(sp)}
-                >
-                  <Text style={[styles.speciesText, newSpecies === sp && { color: Colors.primaryLight }]}>{sp}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.inputLabel}>Breed</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newBreed}
-              onChangeText={setNewBreed}
-              placeholder="e.g. Beagle / Mixed"
-              placeholderTextColor={Colors.textMuted}
-            />
-
-            <Text style={styles.inputLabel}>Microchip ID (Optional)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newMicrochip}
-              onChangeText={setNewMicrochip}
-              placeholder="15-digit ISO microchip"
-              placeholderTextColor={Colors.textMuted}
-            />
-
-            <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md }}>
-              <TouchableOpacity style={styles.btnCancel} onPress={() => setShowAddPet(false)}>
-                <Text style={{ color: Colors.textMuted, fontWeight: '700' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnConfirm} onPress={handleAddPet}>
-                <Text style={{ color: '#fff', fontWeight: '800' }}>Save Passport</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Scan Receipt Modal */}
-      <Modal visible={showScanModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalHeading}>🧾 Scan Clinic Receipt / Invoice</Text>
-            <Text style={styles.modalSub}>
-              Take a photo or paste OCR text from your veterinary receipt to automatically log vaccines and treatments.
-            </Text>
-
-            <View style={styles.cameraBox}>
-              <Text style={{ fontSize: 36 }}>📸</Text>
-              <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 4 }}>
-                Simulate Camera Capture / OCR
+            <View>
+              <Text style={styles.idLabel}>UNIQUE PASSPORT TAG</Text>
+              <Text style={[styles.idValue, { color: '#38bdf8', fontWeight: '900' }]}>
+                {activePet.petId || 'PET-7492-A1'}
               </Text>
             </View>
-
             <TouchableOpacity
-              style={[styles.btnScanConfirm, isScanning && { opacity: 0.7 }]}
-              onPress={handleSimulateScanReceipt}
-              disabled={isScanning}
+              style={styles.copyBtn}
+              onPress={() => handleCopyTag(activePet.petId || 'PET-7492-A1')}
             >
-              {isScanning ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnScanConfirmText}>⚡ Parse Receipt & Allocate to {activePet.name}</Text>}
+              <Text style={styles.copyBtnText}>Copy Tag</Text>
             </TouchableOpacity>
+          </View>
 
-            <TouchableOpacity style={styles.btnCancel} onPress={() => setShowScanModal(false)}>
-              <Text style={{ color: Colors.textMuted, fontWeight: '700', textAlign: 'center' }}>Cancel</Text>
+          <View style={styles.idDivider} />
+
+          <View style={styles.idRow}>
+            <View>
+              <Text style={styles.idLabel}>MICROCHIP ID</Text>
+              <Text style={styles.idValue}>{activePet.microchipId || '900215000492817'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Co-Parents Row */}
+        <View style={styles.coParentSection}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.coParentHeading}>👨‍👩‍👧 Household Co-Parents</Text>
+            <TouchableOpacity onPress={() => setShowInviteModal(true)}>
+              <Text style={styles.inviteLink}>+ Add Co-Parent</Text>
             </TouchableOpacity>
+          </View>
+          <Text style={styles.coParentSub}>
+            Authorized family members who can access and manage this passport
+          </Text>
+        </View>
+      </View>
+
+      {/* Subtab Segmented Bar */}
+      <View style={styles.subtabContainer}>
+        <TouchableOpacity
+          style={[styles.subtabBtn, activeSubTab === 'passport' && styles.subtabActive]}
+          onPress={() => setActiveSubTab('passport')}
+        >
+          <Text style={[styles.subtabText, activeSubTab === 'passport' && styles.subtabTextActive]}>
+            🏥 Medical History
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.subtabBtn, activeSubTab === 'calendar' && styles.subtabActive]}
+          onPress={() => setActiveSubTab('calendar')}
+        >
+          <Text style={[styles.subtabText, activeSubTab === 'calendar' && styles.subtabTextActive]}>
+            📅 Care Schedule & Reminders
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* View Content */}
+      {activeSubTab === 'calendar' ? (
+        <View style={styles.calendarSection}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={styles.sectionTitle}>Upcoming Care for {activePet.name}</Text>
+            <TouchableOpacity style={styles.addReminderBtn} onPress={() => setShowAddReminder(true)}>
+              <Text style={styles.addReminderText}>+ Add Task</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Visits */}
+          {petAppointments.map((a) => (
+            <View key={a._id} style={styles.scheduleCard}>
+              <Text style={{ fontSize: 18 }}>🗓️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scheduleTitle}>{a.serviceName}</Text>
+                <Text style={styles.scheduleMeta}>With {a.providerName} ({a.providerType})</Text>
+                <Text style={styles.scheduleDate}>{a.appointmentDate} at {a.timeSlot}</Text>
+              </View>
+            </View>
+          ))}
+
+          {/* Reminders */}
+          {petReminders.map((r) => (
+            <TouchableOpacity key={r._id} style={styles.scheduleCard} onPress={() => handleToggleReminder(r._id)}>
+              <Text style={{ fontSize: 18 }}>{r.isCompleted ? '✅' : '🔔'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.scheduleTitle, r.isCompleted && styles.strike]}>{r.title}</Text>
+                <Text style={styles.scheduleMeta}>Due: {r.dueDate} {r.dueTime ? `@ ${r.dueTime}` : ''} ({r.recurrence})</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {petAppointments.length === 0 && petReminders.length === 0 && (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No upcoming visits or tasks for {activePet.name}.</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={styles.recordsSection}>
+          <Text style={styles.sectionTitle}>Clinical Records</Text>
+          {(activePet.medicalHistory || []).map((rec, i) => (
+            <View key={i} style={styles.historyCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.historyTitle}>{rec.title}</Text>
+                <Text style={styles.historyClinic}>🏥 {rec.clinic}</Text>
+                <Text style={styles.historyDate}>{rec.date}</Text>
+              </View>
+              <Text style={styles.historyCost}>₪{rec.cost}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <AddReminderModal
+        visible={showAddReminder}
+        onClose={() => setShowAddReminder(false)}
+        pets={pets.map((p) => ({ _id: p._id || p.id, name: p.name, species: p.species }))}
+        onSuccess={fetchPetsAndSchedule}
+      />
+
+      {/* Co-Parent Invite Modal */}
+      <Modal visible={showInviteModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.inviteCard}>
+            <Text style={styles.inviteTitle}>Invite Co-Parent for {activePet.name}</Text>
+            <Text style={styles.inviteSub}>
+              Enter user email or phone to grant access to {activePet.name}'s digital passport.
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="User email or phone..."
+              placeholderTextColor={Colors.textMuted}
+              value={inviteSearch}
+              onChangeText={setInviteSearch}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowInviteModal(false)}>
+                <Text style={{ color: Colors.textMuted }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sendBtn} onPress={handleSendInvite}>
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Send Request</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -337,180 +311,58 @@ export const PassportScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.md, paddingBottom: 32 },
-  petTabsRow: { marginBottom: Spacing.md },
-  petTabPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 6,
-  },
-  petTabPillActive: {
-    backgroundColor: Colors.primaryGlow,
-    borderColor: Colors.primaryLight,
-  },
-  petTabEmoji: { fontSize: 15 },
-  petTabText: { fontSize: 12, color: Colors.textMuted, fontWeight: '600' },
-  petTabTextActive: { color: Colors.primaryLight, fontWeight: '800' },
-  addPetPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: Colors.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addPetText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '700' },
-  passportCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    marginBottom: Spacing.md,
-  },
-  passportHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  petAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  petName: { fontSize: 19, fontWeight: '900', color: Colors.text },
-  passportBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  passportBadgeText: { color: Colors.successLight, fontSize: 9, fontWeight: '900' },
-  petBreed: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  idBox: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surfaceCard,
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: Spacing.sm,
-  },
-  idRow: { flex: 1, alignItems: 'center' },
-  idDivider: { width: 1, backgroundColor: Colors.border, marginHorizontal: 8 },
-  idLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: '700' },
-  idValue: { fontSize: 11, color: Colors.text, fontWeight: '800', fontFamily: 'monospace', marginTop: 2 },
-  allergyBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderRadius: 10,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-  },
-  allergyTitle: { fontSize: 10, fontWeight: '900', color: Colors.dangerLight },
-  allergyText: { fontSize: 11, color: '#fff', fontWeight: '700', marginTop: 2 },
-  btnScanReceipt: {
-    backgroundColor: Colors.surfaceCard,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primaryLight,
-    marginBottom: Spacing.md,
-  },
-  btnScanText: { color: Colors.primaryLight, fontSize: 12, fontWeight: '800' },
-  sectionBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: Colors.text, marginBottom: Spacing.sm },
-  vaccineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  vaccineName: { fontSize: 13, fontWeight: '700', color: Colors.text },
-  vaccineSub: { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
-  vaxStatusBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
-  vaxValid: { backgroundColor: 'rgba(16, 185, 129, 0.15)' },
-  vaxDue: { backgroundColor: 'rgba(245, 158, 11, 0.15)' },
-  vaxStatusText: { fontSize: 9, fontWeight: '900', color: Colors.textSecondary },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  historyTitle: { fontSize: 12, fontWeight: '700', color: Colors.text },
-  historySub: { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
-  historyCost: { fontSize: 13, fontWeight: '800', color: Colors.primaryLight },
-  emptyHistory: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', paddingVertical: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderColor: Colors.borderLight,
-  },
-  modalHeading: { fontSize: 17, fontWeight: '900', color: Colors.text, marginBottom: 6 },
-  modalSub: { fontSize: 12, color: Colors.textMuted, marginBottom: Spacing.md },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, marginBottom: 4 },
-  textInput: {
-    backgroundColor: Colors.surfaceCard,
-    borderRadius: 8,
-    padding: 10,
-    color: Colors.text,
-    fontSize: 13,
-    marginBottom: Spacing.sm,
-  },
-  speciesPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: Colors.surfaceCard,
-  },
-  speciesPillActive: { backgroundColor: Colors.primaryGlow },
-  speciesText: { fontSize: 12, color: Colors.textMuted, fontWeight: '600' },
-  cameraBox: {
-    backgroundColor: Colors.surfaceCard,
-    height: 120,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.primaryLight,
-    marginBottom: Spacing.md,
-  },
-  btnScanConfirm: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  btnScanConfirmText: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  btnCancel: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  btnConfirm: { flex: 1, backgroundColor: Colors.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  content: { padding: 16, paddingBottom: 40 },
+  petTabsRow: { marginBottom: 14 },
+  petTabPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', marginRight: 8 },
+  petTabPillActive: { backgroundColor: '#0284c7' },
+  petTabEmoji: { fontSize: 16 },
+  petTabText: { color: Colors.textMuted, fontSize: 13, fontWeight: '700' },
+  petTabTextActive: { color: '#fff' },
+  passportCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 14 },
+  passportHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  petAvatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
+  petName: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  passportBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: 'rgba(56,189,248,0.15)', borderWidth: 1, borderColor: '#38bdf8' },
+  passportBadgeText: { color: '#38bdf8', fontSize: 9, fontWeight: '800' },
+  petBreed: { color: Colors.textSecondary, fontSize: 13, marginTop: 2 },
+  idBox: { backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', marginBottom: 12 },
+  idRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  idLabel: { fontSize: 10, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase' },
+  idValue: { fontSize: 13, color: Colors.text, fontWeight: '700', marginTop: 2 },
+  copyBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(56,189,248,0.15)', borderWidth: 1, borderColor: '#38bdf8' },
+  copyBtnText: { color: '#38bdf8', fontSize: 11, fontWeight: '700' },
+  idDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 8 },
+  coParentSection: { paddingTop: 6 },
+  coParentHeading: { fontSize: 13, fontWeight: '700', color: Colors.text },
+  inviteLink: { fontSize: 12, color: '#38bdf8', fontWeight: '700' },
+  coParentSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  subtabContainer: { flexDirection: 'row', backgroundColor: 'rgba(15,23,42,0.6)', padding: 4, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 14 },
+  subtabBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 20 },
+  subtabActive: { backgroundColor: '#0284c7' },
+  subtabText: { color: Colors.textMuted, fontSize: 12, fontWeight: '700' },
+  subtabTextActive: { color: '#fff' },
+  calendarSection: { gap: 8 },
+  recordsSection: { gap: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: Colors.text, textTransform: 'uppercase', marginBottom: 4 },
+  addReminderBtn: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(56,189,248,0.15)' },
+  addReminderText: { color: '#38bdf8', fontSize: 12, fontWeight: '700' },
+  scheduleCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, backgroundColor: 'rgba(30,41,59,0.5)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  scheduleTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  scheduleMeta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  scheduleDate: { fontSize: 11, color: '#38bdf8', marginTop: 2 },
+  strike: { textDecorationLine: 'line-through', opacity: 0.5 },
+  historyCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: 'rgba(30,41,59,0.5)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  historyTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  historyClinic: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  historyDate: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  historyCost: { fontSize: 14, fontWeight: '800', color: '#10b981' },
+  emptyCard: { padding: 20, alignItems: 'center', backgroundColor: 'rgba(15,23,42,0.4)', borderRadius: 14 },
+  emptyText: { color: Colors.textMuted, fontSize: 13 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 20 },
+  inviteCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  inviteTitle: { fontSize: 16, fontWeight: '800', color: Colors.text, marginBottom: 4 },
+  inviteSub: { fontSize: 12, color: Colors.textMuted, marginBottom: 12 },
+  input: { backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 14, paddingVertical: 10, color: Colors.text, fontSize: 14 },
+  cancelBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  sendBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, backgroundColor: '#0284c7' },
 });

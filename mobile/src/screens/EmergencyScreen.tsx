@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme/theme';
 import { EmergencyApi } from '../services/api';
+import { BookingModal } from '../components/BookingModal';
 
 interface ClinicItem {
   id: string;
@@ -36,6 +37,7 @@ export const EmergencyScreen = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'mobile' | 'er24' | 'open'>('all');
   const [isSosTriggered, setIsSosTriggered] = useState(false);
+  const [bookingProvider, setBookingProvider] = useState<{ id: string; name: string; type: 'veterinarian' | 'clinic' } | null>(null);
 
   // Dispatch Modal state
   const [selectedClinic, setSelectedClinic] = useState<ClinicItem | null>(null);
@@ -303,7 +305,14 @@ export const EmergencyScreen = () => {
                     style={styles.btnDispatchAlert}
                     onPress={() => setSelectedClinic(clinic)}
                   >
-                    <Text style={styles.btnDispatchText}>🚨 Alert Clinic I'm Coming</Text>
+                    <Text style={styles.btnDispatchText}>🚨 Alert Clinic</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.btnBookVisit}
+                    onPress={() => setBookingProvider({ id: clinic.id, name: clinic.name, type: 'clinic' })}
+                  >
+                    <Text style={styles.btnBookVisitText}>📅 Book Visit</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -325,6 +334,12 @@ export const EmergencyScreen = () => {
           })
         )}
       </ScrollView>
+
+      <BookingModal
+        visible={!!bookingProvider}
+        onClose={() => setBookingProvider(null)}
+        provider={bookingProvider}
+      />
 
       {/* Emergency Dispatch Dossier Modal */}
       <Modal visible={!!selectedClinic} transparent animationType="slide">
@@ -524,14 +539,25 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   btnDispatchAlert: {
-    flex: 2,
+    flex: 1.4,
     backgroundColor: Colors.danger,
     paddingVertical: 9,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDispatchText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  btnDispatchText: { color: '#fff', fontSize: 10.5, fontWeight: '800' },
+  btnBookVisit: {
+    flex: 1.3,
+    backgroundColor: 'rgba(56,189,248,0.15)',
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnBookVisitText: { color: '#38bdf8', fontSize: 10.5, fontWeight: '800' },
   btnCall: {
     flex: 1,
     backgroundColor: Colors.surfaceCard,

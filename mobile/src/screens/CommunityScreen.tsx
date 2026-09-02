@@ -10,11 +10,15 @@ import {
   Alert,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../theme/theme';
+import { BookingModal } from '../components/BookingModal';
 
 type Tab = 'feed' | 'lost_found' | 'sitters' | 'shelters';
 
 export const CommunityScreen = () => {
   const [tab, setTab] = useState<Tab>('feed');
+
+  // Booking Modal
+  const [bookingProvider, setBookingProvider] = useState<{ id: string; name: string; type: 'pet_sitter' | 'dog_walker' } | null>(null);
 
   // Shelter Donation Modal
   const [showDonateModal, setShowDonateModal] = useState(false);
@@ -151,7 +155,7 @@ export const CommunityScreen = () => {
               </Text>
               <TouchableOpacity
                 style={styles.btnBookSitter}
-                onPress={() => Alert.alert('Book Sitter', 'Booking request sent to Noam. Direct chat opened!')}
+                onPress={() => setBookingProvider({ id: 'sitter_1', name: 'Noam Shapira', type: 'dog_walker' })}
               >
                 <Text style={styles.btnBookSitterText}>📅 Book Drop-in Visit / Dog Walk</Text>
               </TouchableOpacity>
@@ -175,7 +179,7 @@ export const CommunityScreen = () => {
               </Text>
               <TouchableOpacity
                 style={styles.btnBookSitter}
-                onPress={() => Alert.alert('Book Sitter', 'Booking request sent to Tamar.')}
+                onPress={() => setBookingProvider({ id: 'sitter_2', name: 'Tamar Ben-David', type: 'pet_sitter' })}
               >
                 <Text style={styles.btnBookSitterText}>📅 Book Drop-in Visit / Sitting</Text>
               </TouchableOpacity>
@@ -266,6 +270,12 @@ export const CommunityScreen = () => {
           </View>
         </View>
       </Modal>
+
+      <BookingModal
+        visible={!!bookingProvider}
+        onClose={() => setBookingProvider(null)}
+        provider={bookingProvider}
+      />
     </View>
   );
 };

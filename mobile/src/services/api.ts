@@ -239,3 +239,111 @@ export const StorePortalApi = {
     })).data;
   },
 };
+
+// --- Schedule & Booking API ---
+export const ScheduleApi = {
+  bookAppointment: async (payload: {
+    petId?: string;
+    petPassportId?: string;
+    petName: string;
+    petSpecies?: string;
+    providerType: 'veterinarian' | 'groomer' | 'dog_walker' | 'pet_sitter' | 'clinic';
+    providerId: string;
+    providerName: string;
+    serviceName: string;
+    serviceCategory?: string;
+    price?: number;
+    appointmentDate: string;
+    timeSlot: string;
+    ownerName?: string;
+    ownerPhone?: string;
+    notes?: string;
+  }) => {
+    return (await apiClient.post('/schedule/appointments/book', payload)).data;
+  },
+  getUserAppointments: async (userId: string) => {
+    try {
+      return (await apiClient.get(`/schedule/appointments/user/${userId}`)).data;
+    } catch {
+      return [];
+    }
+  },
+  getPetAppointments: async (petId: string) => {
+    try {
+      return (await apiClient.get(`/schedule/appointments/pet/${petId}`)).data;
+    } catch {
+      return [];
+    }
+  },
+  cancelAppointment: async (id: string) => {
+    return (await apiClient.patch(`/schedule/appointments/${id}/cancel`)).data;
+  },
+  getUserReminders: async (userId: string) => {
+    try {
+      return (await apiClient.get(`/schedule/reminders/user/${userId}`)).data;
+    } catch {
+      return [];
+    }
+  },
+  getPetReminders: async (petId: string) => {
+    try {
+      return (await apiClient.get(`/schedule/reminders/pet/${petId}`)).data;
+    } catch {
+      return [];
+    }
+  },
+  createReminder: async (payload: {
+    petId: string;
+    petName: string;
+    title: string;
+    type: string;
+    dueDate: string;
+    dueTime?: string;
+    recurrence: string;
+    notes?: string;
+  }) => {
+    return (await apiClient.post('/schedule/reminders', payload)).data;
+  },
+  toggleReminder: async (id: string) => {
+    return (await apiClient.patch(`/schedule/reminders/${id}/toggle`)).data;
+  },
+  deleteReminder: async (id: string) => {
+    return (await apiClient.delete(`/schedule/reminders/${id}`)).data;
+  },
+};
+
+// --- Co-Parenting & Households API ---
+export const CoParentApi = {
+  searchUsers: async (q: string) => {
+    try {
+      return (await apiClient.get(`/pet-profile/co-parent/search?query=${encodeURIComponent(q)}`)).data;
+    } catch {
+      return [];
+    }
+  },
+  sendInvite: async (petId: string, recipientUserId: string, role = 'co_parent') => {
+    return (await apiClient.post(`/pet-profile/${petId}/co-parent/invite`, { recipientUserId, role })).data;
+  },
+  getInbox: async () => {
+    try {
+      return (await apiClient.get('/pet-profile/co-parent/requests/inbox')).data;
+    } catch {
+      return [];
+    }
+  },
+  respondInvite: async (requestId: string, action: 'accept' | 'decline') => {
+    return (await apiClient.patch(`/pet-profile/co-parent/requests/${requestId}/respond`, { action })).data;
+  },
+};
+
+// --- Digital Itemized Receipts API ---
+export const ReceiptsApi = {
+  getMyReceipts: async () => {
+    try {
+      return (await apiClient.get('/receipts/my-receipts')).data;
+    } catch {
+      return [];
+    }
+  },
+};
+
