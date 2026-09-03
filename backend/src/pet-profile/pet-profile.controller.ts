@@ -50,7 +50,11 @@ export class PetProfileController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || 'guest-anonymous';
-    return this.petProfileService.respondToCoParentRequest(requestId, userId, body.action);
+    return this.petProfileService.respondToCoParentRequest(
+      requestId,
+      userId,
+      body.action,
+    );
   }
 
   @Get()
@@ -66,12 +70,22 @@ export class PetProfileController {
   }
 
   @Post('ocr-document')
-  async parseDocument(@Body() dto: { fileData?: string; mimeType?: string; fileName?: string }) {
-    return this.petProfileService.parseMedicalDocument(dto.fileData, dto.mimeType, dto.fileName);
+  async parseDocument(
+    @Body() dto: { fileData?: string; mimeType?: string; fileName?: string },
+  ) {
+    return this.petProfileService.parseMedicalDocument(
+      dto.fileData,
+      dto.mimeType,
+      dto.fileName,
+    );
   }
 
   @Post(':id/medical-event')
-  async addMedicalEvent(@Param('id') id: string, @Body() event: any, @Req() req: any) {
+  async addMedicalEvent(
+    @Param('id') id: string,
+    @Body() event: any,
+    @Req() req: any,
+  ) {
     const userId = req.user?.id;
     return this.petProfileService.addMedicalEvent(id, event, userId);
   }
@@ -87,7 +101,12 @@ export class PetProfileController {
       name: req.user?.name || 'Pet Parent',
       email: req.user?.email || 'parent@petsos.app',
     };
-    return this.petProfileService.sendCoParentInvite(petId, fromUser, body.toUserId, body.role);
+    return this.petProfileService.sendCoParentInvite(
+      petId,
+      fromUser,
+      body.toUserId,
+      body.role,
+    );
   }
 
   @Delete(':id/co-parent/:coParentUserId')
@@ -97,7 +116,11 @@ export class PetProfileController {
     @Req() req: any,
   ) {
     const currentUserId = req.user?.id || 'guest-anonymous';
-    return this.petProfileService.removeCoParent(petId, currentUserId, coParentUserId);
+    return this.petProfileService.removeCoParent(
+      petId,
+      currentUserId,
+      coParentUserId,
+    );
   }
 
   @Patch(':id/archive')
@@ -118,7 +141,11 @@ export class PetProfileController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() updateDto: CreatePetProfileDto, @Req() req: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: CreatePetProfileDto,
+    @Req() req: any,
+  ) {
     const userId = req.user?.id;
     return this.petProfileService.update(id, updateDto, userId);
   }

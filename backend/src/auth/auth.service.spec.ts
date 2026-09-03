@@ -1,7 +1,9 @@
 jest.mock('@nestjs/jwt', () => ({
   JwtService: jest.fn().mockImplementation(() => ({
     sign: jest.fn().mockReturnValue('mock-jwt-token'),
-    verify: jest.fn().mockReturnValue({ sub: 'user-123', email: 'test@example.com' }),
+    verify: jest
+      .fn()
+      .mockReturnValue({ sub: 'user-123', email: 'test@example.com' }),
   })),
 }));
 
@@ -37,7 +39,9 @@ describe('AuthService & Password Security', () => {
   };
 
   const mockEmailService = {
-    sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true, message: 'Sent' }),
+    sendPasswordResetEmail: jest
+      .fn()
+      .mockResolvedValue({ success: true, message: 'Sent' }),
   };
 
   beforeEach(async () => {

@@ -1,4 +1,11 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  Query,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 
@@ -12,15 +19,20 @@ export class UploadController {
    * Returns { url, publicId }
    */
   @Post()
-  @UseInterceptors(FileInterceptor('file', {
-    limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
-    fileFilter: (_, file, cb) => {
-      if (!file.mimetype.startsWith('image/')) {
-        return cb(new BadRequestException('Only image files are accepted.'), false);
-      }
-      cb(null, true);
-    },
-  }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
+      fileFilter: (_, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(
+            new BadRequestException('Only image files are accepted.'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Query('folder') folder = 'general',

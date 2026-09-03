@@ -32,7 +32,10 @@ export class CoParentRequest {
   @Prop({ required: true })
   toUserEmail: string;
 
-  @Prop({ default: 'co_parent', enum: ['co_parent', 'family_member', 'caretaker'] })
+  @Prop({
+    default: 'co_parent',
+    enum: ['co_parent', 'family_member', 'caretaker'],
+  })
   role: string;
 
   @Prop({
@@ -46,6 +49,7 @@ export class CoParentRequest {
   expiresAt: Date; // 24 hours from creation
 }
 
-export const CoParentRequestSchema = SchemaFactory.createForClass(CoParentRequest);
+export const CoParentRequestSchema =
+  SchemaFactory.createForClass(CoParentRequest);
 CoParentRequestSchema.index({ toUserId: 1, status: 1, expiresAt: 1 });
 CoParentRequestSchema.index({ fromUserId: 1, createdAt: -1 });

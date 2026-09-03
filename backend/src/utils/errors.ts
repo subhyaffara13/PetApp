@@ -1,4 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
@@ -9,7 +16,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    
+
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -21,9 +28,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : 'Internal server error occurred';
 
     if (status >= 500) {
-      this.logger.error(`${request.method} ${request.url} → ${status}`, exception instanceof Error ? exception.stack : String(exception));
+      this.logger.error(
+        `${request.method} ${request.url} → ${status}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     } else {
-      this.logger.warn(`${request.method} ${request.url} → ${status}: ${typeof message === 'object' ? JSON.stringify(message) : message}`);
+      this.logger.warn(
+        `${request.method} ${request.url} → ${status}: ${typeof message === 'object' ? JSON.stringify(message) : message}`,
+      );
     }
 
     response.status(status).json({
@@ -31,7 +43,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: typeof message === 'object' ? (message as any).message || message : message,
+      message:
+        typeof message === 'object'
+          ? (message as any).message || message
+          : message,
     });
   }
 }
@@ -43,7 +58,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
  */
 export function safeWrap<T, Args extends any[]>(
   fn: (...args: Args) => T,
-  fallback: T | (() => T)
+  fallback: T | (() => T),
 ): (...args: Args) => T {
   return (...args: Args): T => {
     try {
@@ -51,13 +66,17 @@ export function safeWrap<T, Args extends any[]>(
       if (result instanceof Promise) {
         return (result as Promise<any>).catch((err) => {
           console.error('[Backend SafeWrap Async Error]:', err);
-          return typeof fallback === 'function' ? (fallback as Function)() : fallback;
+          return typeof fallback === 'function'
+            ? (fallback as Function)()
+            : fallback;
         }) as any;
       }
       return result;
     } catch (err) {
       console.error('[Backend SafeWrap Sync Error]:', err);
-      return typeof fallback === 'function' ? (fallback as Function)() : fallback;
+      return typeof fallback === 'function'
+        ? (fallback as Function)()
+        : fallback;
     }
   };
 }

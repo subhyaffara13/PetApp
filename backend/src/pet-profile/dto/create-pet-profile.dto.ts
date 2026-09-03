@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  IsIn,
+} from 'class-validator';
 
 export class CreatePetProfileDto {
   @IsString()
@@ -43,7 +50,7 @@ export class CreatePetProfileDto {
   @IsString({ each: true })
   @IsOptional()
   medications?: string[];
-  
+
   @IsArray()
   @IsOptional()
   medicalHistory?: any[];

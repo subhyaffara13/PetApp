@@ -2,8 +2,14 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Clinic, ClinicDocument } from '../schemas/clinic.schema';
-import { MedicalRecord, MedicalRecordDocument } from '../schemas/medical-record.schema';
-import { EmergencyDispatch, EmergencyDispatchDocument } from '../schemas/emergency-dispatch.schema';
+import {
+  MedicalRecord,
+  MedicalRecordDocument,
+} from '../schemas/medical-record.schema';
+import {
+  EmergencyDispatch,
+  EmergencyDispatchDocument,
+} from '../schemas/emergency-dispatch.schema';
 import { ClinicGateway } from './clinic.gateway';
 
 const INITIAL_CLINICS = [
@@ -32,7 +38,7 @@ const INITIAL_CLINICS = [
   {
     _id: 'haifa-clinic-3',
     name: 'Technion Area Pet Emergency Clinic',
-    address: 'Trumpeldor Ave 62, Neve Sha\'anan, Haifa',
+    address: "Trumpeldor Ave 62, Neve Sha'anan, Haifa",
     location: { lat: 32.7825, lng: 35.014 },
     phone: '04-822-9988',
     openingHours: '24/7 Emergency Care',
@@ -52,16 +58,32 @@ const INITIAL_RECORDS = [
     veterinarianName: 'Dr. Noam Ben-Ari, DVM',
     visitDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     visitType: 'emergency',
-    chiefComplaint: 'Acute gastrointestinal distress after accidental dark chocolate ingestion (approx 35g).',
-    diagnosis: 'Mild Theobromine toxicity, stable vitals, no cardiac arrhythmia.',
-    treatmentAdministered: 'Induced emesis with apomorphine, administered activated charcoal suspension (1g/kg PO), IV fluid therapy 0.9% NaCl @ 4ml/kg/hr for 4 hours.',
+    chiefComplaint:
+      'Acute gastrointestinal distress after accidental dark chocolate ingestion (approx 35g).',
+    diagnosis:
+      'Mild Theobromine toxicity, stable vitals, no cardiac arrhythmia.',
+    treatmentAdministered:
+      'Induced emesis with apomorphine, administered activated charcoal suspension (1g/kg PO), IV fluid therapy 0.9% NaCl @ 4ml/kg/hr for 4 hours.',
     prescriptions: [
-      { medicationName: 'Sucralfate', dosage: '1g', frequency: 'Twice daily', duration: '5 days', notes: 'Give 1 hour before feeding' },
-      { medicationName: 'Pro-Kolin Advanced', dosage: '3ml', frequency: 'Every 8 hours', duration: '3 days', notes: 'Probiotic paste' }
+      {
+        medicationName: 'Sucralfate',
+        dosage: '1g',
+        frequency: 'Twice daily',
+        duration: '5 days',
+        notes: 'Give 1 hour before feeding',
+      },
+      {
+        medicationName: 'Pro-Kolin Advanced',
+        dosage: '3ml',
+        frequency: 'Every 8 hours',
+        duration: '3 days',
+        notes: 'Probiotic paste',
+      },
     ],
     vaccinations: [],
-    dischargeInstructions: 'Feed bland boiled chicken and white rice for 48 hours. Monitor for vomiting, lethargy, or twitching. Return if symptoms recur.',
-    attachments: []
+    dischargeInstructions:
+      'Feed bland boiled chicken and white rice for 48 hours. Monitor for vomiting, lethargy, or twitching. Return if symptoms recur.',
+    attachments: [],
   },
   {
     _id: 'rec-2',
@@ -73,16 +95,37 @@ const INITIAL_RECORDS = [
     visitDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
     visitType: 'vaccination',
     chiefComplaint: 'Annual core vaccination and wellness check.',
-    diagnosis: 'Healthy adult Golden Retriever, clear lungs, good dentition (grade 1 calculus).',
-    treatmentAdministered: 'Full physical examination, ear cleaning, core booster injection.',
+    diagnosis:
+      'Healthy adult Golden Retriever, clear lungs, good dentition (grade 1 calculus).',
+    treatmentAdministered:
+      'Full physical examination, ear cleaning, core booster injection.',
     prescriptions: [],
     vaccinations: [
-      { vaccineName: 'Rabies Booster (Rabisin)', batchNumber: 'RB-98442', administeredDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), nextDueDate: new Date(Date.now() + 320 * 24 * 60 * 60 * 1000).toISOString() },
-      { vaccineName: 'DHPP Core (Nobivac)', batchNumber: 'NV-11029', administeredDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), nextDueDate: new Date(Date.now() + 320 * 24 * 60 * 60 * 1000).toISOString() }
+      {
+        vaccineName: 'Rabies Booster (Rabisin)',
+        batchNumber: 'RB-98442',
+        administeredDate: new Date(
+          Date.now() - 45 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        nextDueDate: new Date(
+          Date.now() + 320 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+      },
+      {
+        vaccineName: 'DHPP Core (Nobivac)',
+        batchNumber: 'NV-11029',
+        administeredDate: new Date(
+          Date.now() - 45 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        nextDueDate: new Date(
+          Date.now() + 320 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+      },
     ],
-    dischargeInstructions: 'Next routine checkup due in 12 months. Continue monthly NexGard flea/tick prevention.',
-    attachments: []
-  }
+    dischargeInstructions:
+      'Next routine checkup due in 12 months. Continue monthly NexGard flea/tick prevention.',
+    attachments: [],
+  },
 ];
 
 const INITIAL_DISPATCHES = [
@@ -96,14 +139,15 @@ const INITIAL_DISPATCHES = [
     ownerPhone: '+972-52-894-1234',
     clinicId: 'haifa-clinic-1',
     urgency: 'urgent',
-    symptoms: 'Sudden paw laceration on broken glass at Hof HaCarmel dog beach, active moderate bleeding, limping heavily.',
+    symptoms:
+      'Sudden paw laceration on broken glass at Hof HaCarmel dog beach, active moderate bleeding, limping heavily.',
     etaMinutes: 8,
     allergies: ['Penicillin'],
     conditions: ['Mild hip dysplasia'],
     medications: ['Glucosamine supplement'],
     status: 'en_route',
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 @Injectable()
@@ -115,8 +159,10 @@ export class ClinicService {
 
   constructor(
     @InjectModel(Clinic.name) private clinicModel: Model<ClinicDocument>,
-    @InjectModel(MedicalRecord.name) private recordModel: Model<MedicalRecordDocument>,
-    @InjectModel(EmergencyDispatch.name) private dispatchModel: Model<EmergencyDispatchDocument>,
+    @InjectModel(MedicalRecord.name)
+    private recordModel: Model<MedicalRecordDocument>,
+    @InjectModel(EmergencyDispatch.name)
+    private dispatchModel: Model<EmergencyDispatchDocument>,
     private readonly clinicGateway: ClinicGateway,
   ) {}
 
@@ -125,7 +171,9 @@ export class ClinicService {
       const clinics = await this.clinicModel.find({ isActive: true }).exec();
       if (clinics.length > 0) return clinics;
     } catch (err) {
-      this.logger.warn('MongoDB query failed, returning Haifa fallback clinics');
+      this.logger.warn(
+        'MongoDB query failed, returning Haifa fallback clinics',
+      );
     }
     return this.inMemoryClinics;
   }
@@ -182,14 +230,19 @@ export class ClinicService {
       clinicName: updatedClinic.name,
     });
 
-    this.logger.log(`Clinic "${updatedClinic.name}" capacity updated to: ${status}`);
+    this.logger.log(
+      `Clinic "${updatedClinic.name}" capacity updated to: ${status}`,
+    );
     return updatedClinic;
   }
 
   // --- Medical Records ---
   async getRecordsForPet(petId: string): Promise<any[]> {
     try {
-      const records = await this.recordModel.find({ petId }).sort({ visitDate: -1 }).exec();
+      const records = await this.recordModel
+        .find({ petId })
+        .sort({ visitDate: -1 })
+        .exec();
       if (records && records.length > 0) return records;
     } catch (err) {
       // Fallback
@@ -199,7 +252,10 @@ export class ClinicService {
 
   async getAllRecords(): Promise<any[]> {
     try {
-      const records = await this.recordModel.find().sort({ visitDate: -1 }).exec();
+      const records = await this.recordModel
+        .find()
+        .sort({ visitDate: -1 })
+        .exec();
       if (records && records.length > 0) return records;
     } catch (err) {
       // Fallback
@@ -251,12 +307,17 @@ export class ClinicService {
 
   async getDispatchesForClinic(clinicId: string): Promise<any[]> {
     try {
-      const list = await this.dispatchModel.find({ clinicId }).sort({ createdAt: -1 }).exec();
+      const list = await this.dispatchModel
+        .find({ clinicId })
+        .sort({ createdAt: -1 })
+        .exec();
       if (list && list.length > 0) return list;
     } catch (err) {
       // Fallback
     }
-    return this.inMemoryDispatches.filter((d) => !clinicId || d.clinicId === clinicId);
+    return this.inMemoryDispatches.filter(
+      (d) => !clinicId || d.clinicId === clinicId,
+    );
   }
 
   async updateDispatchStatus(dispatchId: string, status: string): Promise<any> {

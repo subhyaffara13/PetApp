@@ -47,7 +47,11 @@ export class AdoptablePet {
   @Prop({ default: true })
   goodWithKids: boolean;
 
-  @Prop({ required: true, enum: ['available', 'pending', 'adopted'], default: 'available' })
+  @Prop({
+    required: true,
+    enum: ['available', 'pending', 'adopted'],
+    default: 'available',
+  })
   status: string;
 }
 

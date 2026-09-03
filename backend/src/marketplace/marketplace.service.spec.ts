@@ -1,7 +1,10 @@
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     paymentIntents: {
-      create: jest.fn().mockResolvedValue({ id: 'pi_mock_123', client_secret: 'sec_mock_123' }),
+      create: jest.fn().mockResolvedValue({
+        id: 'pi_mock_123',
+        client_secret: 'sec_mock_123',
+      }),
     },
   }));
 });
@@ -38,7 +41,11 @@ describe('MarketplaceService', () => {
         _id: 'shop-haifa-1',
         name: 'PetBuy Haifa',
         isRegistered: true,
-        toObject: () => ({ _id: 'shop-haifa-1', name: 'PetBuy Haifa', isRegistered: true }),
+        toObject: () => ({
+          _id: 'shop-haifa-1',
+          name: 'PetBuy Haifa',
+          isRegistered: true,
+        }),
       }),
     }),
     create: jest.fn(),
@@ -57,7 +64,9 @@ describe('MarketplaceService', () => {
       ]),
     }),
     findByIdAndUpdate: jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue({ _id: 'prod-1', name: 'Updated Product' }),
+      exec: jest
+        .fn()
+        .mockResolvedValue({ _id: 'prod-1', name: 'Updated Product' }),
     }),
     findByIdAndDelete: jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue({ _id: 'prod-1' }),
@@ -73,19 +82,29 @@ describe('MarketplaceService', () => {
   mockOrderModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
       limit: jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue([
-          { _id: 'order-123', total: 296.23, status: 'confirmed' },
-        ]),
+        exec: jest
+          .fn()
+          .mockResolvedValue([
+            { _id: 'order-123', total: 296.23, status: 'confirmed' },
+          ]),
       }),
     }),
   });
 
   mockOrderModel.findById = jest.fn().mockReturnValue({
-    exec: jest.fn().mockResolvedValue({ _id: 'order-123', total: 296.23, status: 'confirmed' }),
+    exec: jest.fn().mockResolvedValue({
+      _id: 'order-123',
+      total: 296.23,
+      status: 'confirmed',
+    }),
   });
 
   mockOrderModel.findByIdAndUpdate = jest.fn().mockReturnValue({
-    exec: jest.fn().mockResolvedValue({ _id: 'order-123', status: 'confirmed', paymentStatus: 'captured' }),
+    exec: jest.fn().mockResolvedValue({
+      _id: 'order-123',
+      status: 'confirmed',
+      paymentStatus: 'captured',
+    }),
   });
 
   const mockConfigService = {
@@ -100,7 +119,9 @@ describe('MarketplaceService', () => {
   };
 
   const mockReceiptsService = {
-    createReceipt: jest.fn().mockResolvedValue({ receiptNumber: 'REC-2026-1001', total: 100 }),
+    createReceipt: jest
+      .fn()
+      .mockResolvedValue({ receiptNumber: 'REC-2026-1001', total: 100 }),
   };
 
   beforeEach(async () => {
@@ -149,7 +170,10 @@ describe('MarketplaceService', () => {
   });
 
   it('should confirm payment for an order', async () => {
-    const confirmed = await service.confirmOrderPayment('order-123', 'pi_test_123');
+    const confirmed = await service.confirmOrderPayment(
+      'order-123',
+      'pi_test_123',
+    );
     expect(confirmed.paymentStatus).toBe('captured');
     expect(confirmed.status).toBe('confirmed');
   });

@@ -47,7 +47,9 @@ const logger = new Logger('MongoConnection');
               const { MongoMemoryServer } = require('mongodb-memory-server');
               const mongod = await MongoMemoryServer.create();
               memoryDbUri = mongod.getUri();
-              logger.log(`[MongoMemoryServer] Embedded database running at: ${memoryDbUri}`);
+              logger.log(
+                `[MongoMemoryServer] Embedded database running at: ${memoryDbUri}`,
+              );
             } catch (err) {
               logger.warn('MongoMemoryServer fallback to localhost', err);
               memoryDbUri = 'mongodb://127.0.0.1:27017/petsos';

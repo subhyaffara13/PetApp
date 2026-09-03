@@ -28,7 +28,10 @@ export class AdminController {
   }
 
   @Post('users/:id/action')
-  updateUserStatus(@Param('id') id: string, @Body() body: { action: 'block' | 'unblock' | 'archive' }) {
+  updateUserStatus(
+    @Param('id') id: string,
+    @Body() body: { action: 'block' | 'unblock' | 'archive' },
+  ) {
     return this.adminService.updateUserStatus(id, body.action);
   }
 
@@ -38,7 +41,10 @@ export class AdminController {
   }
 
   @Post('claims/:id/verify')
-  verifyClaim(@Param('id') id: string, @Body() body: { status: 'approved' | 'rejected' }) {
+  verifyClaim(
+    @Param('id') id: string,
+    @Body() body: { status: 'approved' | 'rejected' },
+  ) {
     return this.adminService.verifyClaim(id, body.status);
   }
 
@@ -48,7 +54,10 @@ export class AdminController {
   }
 
   @Post('reports/:id/action')
-  handleReportAction(@Param('id') id: string, @Body() body: { action: 'dismiss' | 'action_taken' | 'block_user' }) {
+  handleReportAction(
+    @Param('id') id: string,
+    @Body() body: { action: 'dismiss' | 'action_taken' | 'block_user' },
+  ) {
     return this.adminService.handleReportAction(id, body.action);
   }
 

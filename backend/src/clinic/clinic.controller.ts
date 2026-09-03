@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body, Headers, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Headers,
+  Query,
+} from '@nestjs/common';
 import { ClinicService } from './clinic.service';
 
 class UpdateCapacityDto {

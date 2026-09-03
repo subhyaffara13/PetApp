@@ -32,7 +32,8 @@ export class GroomingServiceItem {
   isAvailable: boolean;
 }
 
-export const GroomingServiceItemSchema = SchemaFactory.createForClass(GroomingServiceItem);
+export const GroomingServiceItemSchema =
+  SchemaFactory.createForClass(GroomingServiceItem);
 
 @Schema({ timestamps: true })
 export class GroomingAppointment {
@@ -95,6 +96,7 @@ export class GroomingAppointment {
   paymentStatus: string;
 }
 
-export const GroomingAppointmentSchema = SchemaFactory.createForClass(GroomingAppointment);
+export const GroomingAppointmentSchema =
+  SchemaFactory.createForClass(GroomingAppointment);
 GroomingAppointmentSchema.index({ groomerId: 1, appointmentDate: 1 });
 GroomingAppointmentSchema.index({ userId: 1, createdAt: -1 });

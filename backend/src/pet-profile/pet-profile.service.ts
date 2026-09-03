@@ -8,7 +8,10 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
-import { CoParentRequest, CoParentRequestDocument } from '../schemas/co-parent-request.schema';
+import {
+  CoParentRequest,
+  CoParentRequestDocument,
+} from '../schemas/co-parent-request.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { EmailService } from '../email/email.service';
 
@@ -35,7 +38,8 @@ export class PetProfileService {
   private inMemoryCoParentRequests: any[] = [];
 
   constructor(
-    @InjectModel(PetProfile.name) private petProfileModel: Model<PetProfileDocument>,
+    @InjectModel(PetProfile.name)
+    private petProfileModel: Model<PetProfileDocument>,
     @InjectModel(CoParentRequest.name)
     private coParentRequestModel: Model<CoParentRequestDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -61,11 +65,15 @@ export class PetProfileService {
 
       if (pets) return pets;
     } catch (err) {
-      this.logger.warn('MongoDB query failed, serving from in-memory pet store');
+      this.logger.warn(
+        'MongoDB query failed, serving from in-memory pet store',
+      );
     }
 
     return this.inMemoryStore.filter(
-      (p) => p.ownerId === userId || p.coParents?.some((cp: any) => cp.userId === userId),
+      (p) =>
+        p.ownerId === userId ||
+        p.coParents?.some((cp: any) => cp.userId === userId),
     );
   }
 
@@ -91,7 +99,9 @@ export class PetProfileService {
       pet.ownerId !== userId &&
       !pet.coParents?.some((cp: any) => cp.userId === userId)
     ) {
-      throw new ForbiddenException('You do not have permission to access this pet passport.');
+      throw new ForbiddenException(
+        'You do not have permission to access this pet passport.',
+      );
     }
 
     return pet;
@@ -107,7 +117,9 @@ export class PetProfileService {
       pet = this.inMemoryStore.find((p) => p.petId === formatted);
     }
     if (!pet) {
-      throw new NotFoundException(`Pet with Passport Tag ${formatted} not found.`);
+      throw new NotFoundException(
+        `Pet with Passport Tag ${formatted} not found.`,
+      );
     }
     return pet;
   }
@@ -115,7 +127,11 @@ export class PetProfileService {
   /**
    * Creates a new pet profile assigned strictly to the creating user
    */
-  async create(data: any, userId = 'guest-anonymous', userName = 'Pet Parent'): Promise<any> {
+  async create(
+    data: any,
+    userId = 'guest-anonymous',
+    userName = 'Pet Parent',
+  ): Promise<any> {
     const petId = data.petId || generateUniquePetId();
     const ownerId = data.ownerId || userId;
 
@@ -173,7 +189,9 @@ export class PetProfileService {
       if (updated) return updated;
     } catch (err) {}
 
-    const idx = this.inMemoryStore.findIndex((p) => p._id === id || p.petId === id);
+    const idx = this.inMemoryStore.findIndex(
+      (p) => p._id === id || p.petId === id,
+    );
     if (idx === -1) throw new NotFoundException(`Pet profile ${id} not found`);
     this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], ...data };
     return this.inMemoryStore[idx];
@@ -187,13 +205,19 @@ export class PetProfileService {
     try {
       await this.petProfileModel.findByIdAndDelete(id).exec();
     } catch (err) {}
-    this.inMemoryStore = this.inMemoryStore.filter((p) => p._id !== id && p.petId !== id);
+    this.inMemoryStore = this.inMemoryStore.filter(
+      (p) => p._id !== id && p.petId !== id,
+    );
   }
 
   /**
    * Toggles the archived status of a pet profile
    */
-  async toggleArchive(id: string, isArchived: boolean, userId?: string): Promise<any> {
+  async toggleArchive(
+    id: string,
+    isArchived: boolean,
+    userId?: string,
+  ): Promise<any> {
     // Verify the pet exists and the user has access
     await this.findOne(id, userId);
 
@@ -203,16 +227,23 @@ export class PetProfileService {
         .exec();
       if (updated) {
         // Sync in-memory store
-        const idx = this.inMemoryStore.findIndex((p) => p._id?.toString() === id || p.petId === id);
-        if (idx !== -1) this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], isArchived };
+        const idx = this.inMemoryStore.findIndex(
+          (p) => p._id?.toString() === id || p.petId === id,
+        );
+        if (idx !== -1)
+          this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], isArchived };
         return updated;
       }
     } catch (err) {
-      this.logger.warn('MongoDB archive toggle failed, falling back to in-memory');
+      this.logger.warn(
+        'MongoDB archive toggle failed, falling back to in-memory',
+      );
     }
 
     // Fallback: in-memory store
-    const idx = this.inMemoryStore.findIndex((p) => p._id === id || p.petId === id);
+    const idx = this.inMemoryStore.findIndex(
+      (p) => p._id === id || p.petId === id,
+    );
     if (idx === -1) throw new NotFoundException(`Pet profile ${id} not found`);
     this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], isArchived };
     return this.inMemoryStore[idx];
@@ -254,7 +285,9 @@ export class PetProfileService {
     role = 'co_parent',
   ): Promise<CoParentRequest> {
     if (fromUser.id === toUserId) {
-      throw new BadRequestException('You cannot invite yourself as a co-parent.');
+      throw new BadRequestException(
+        'You cannot invite yourself as a co-parent.',
+      );
     }
 
     const pet = await this.findOne(petId, fromUser.id);
@@ -288,7 +321,9 @@ export class PetProfileService {
 
     // 3. Check if already co-parent or has pending invite
     if (pet.coParents?.some((cp: any) => cp.userId === toUserId)) {
-      throw new BadRequestException(`${targetUser.name} is already a co-parent for ${pet.name}.`);
+      throw new BadRequestException(
+        `${targetUser.name} is already a co-parent for ${pet.name}.`,
+      );
     }
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Exactly 24 Hours
@@ -339,7 +374,9 @@ export class PetProfileService {
   /**
    * Retrieves pending incoming co-parent invitations for the user, checking for 24h expiration
    */
-  async getIncomingCoParentRequests(userId: string): Promise<CoParentRequest[]> {
+  async getIncomingCoParentRequests(
+    userId: string,
+  ): Promise<CoParentRequest[]> {
     const now = new Date();
 
     try {
@@ -355,7 +392,10 @@ export class PetProfileService {
         .exec();
     } catch {
       return this.inMemoryCoParentRequests.filter(
-        (r) => r.toUserId === userId && r.status === 'pending' && new Date(r.expiresAt) >= now,
+        (r) =>
+          r.toUserId === userId &&
+          r.status === 'pending' &&
+          new Date(r.expiresAt) >= now,
       );
     }
   }
@@ -382,15 +422,22 @@ export class PetProfileService {
     }
 
     if (reqDoc.toUserId !== userId) {
-      throw new ForbiddenException('You are not authorized to respond to this invitation.');
+      throw new ForbiddenException(
+        'You are not authorized to respond to this invitation.',
+      );
     }
 
-    if (new Date() > new Date(reqDoc.expiresAt) || reqDoc.status === 'expired') {
+    if (
+      new Date() > new Date(reqDoc.expiresAt) ||
+      reqDoc.status === 'expired'
+    ) {
       reqDoc.status = 'expired';
       try {
         await reqDoc.save();
       } catch {}
-      throw new BadRequestException('This invitation has expired (valid for 24 hours).');
+      throw new BadRequestException(
+        'This invitation has expired (valid for 24 hours).',
+      );
     }
 
     if (action === 'decline') {
@@ -431,7 +478,8 @@ export class PetProfileService {
     if (!updatedPet) {
       const idx = this.inMemoryStore.findIndex((p) => p._id === reqDoc.petId);
       if (idx !== -1) {
-        if (!this.inMemoryStore[idx].coParents) this.inMemoryStore[idx].coParents = [];
+        if (!this.inMemoryStore[idx].coParents)
+          this.inMemoryStore[idx].coParents = [];
         this.inMemoryStore[idx].coParents.push(coParentEntry);
         updatedPet = this.inMemoryStore[idx];
       }
@@ -447,11 +495,17 @@ export class PetProfileService {
   /**
    * Removes a co-parent from a pet's passport
    */
-  async removeCoParent(petId: string, currentUserId: string, coParentUserId: string): Promise<any> {
+  async removeCoParent(
+    petId: string,
+    currentUserId: string,
+    coParentUserId: string,
+  ): Promise<any> {
     const pet = await this.findOne(petId, currentUserId);
 
     if (pet.ownerId !== currentUserId && currentUserId !== coParentUserId) {
-      throw new ForbiddenException('Only the primary owner or the co-parent themselves can remove access.');
+      throw new ForbiddenException(
+        'Only the primary owner or the co-parent themselves can remove access.',
+      );
     }
 
     try {
@@ -467,9 +521,9 @@ export class PetProfileService {
 
     const idx = this.inMemoryStore.findIndex((p) => p._id === petId);
     if (idx !== -1 && this.inMemoryStore[idx].coParents) {
-      this.inMemoryStore[idx].coParents = this.inMemoryStore[idx].coParents.filter(
-        (cp: any) => cp.userId !== coParentUserId,
-      );
+      this.inMemoryStore[idx].coParents = this.inMemoryStore[
+        idx
+      ].coParents.filter((cp: any) => cp.userId !== coParentUserId);
       return this.inMemoryStore[idx];
     }
 
@@ -517,7 +571,11 @@ export class PetProfileService {
     }
   }
 
-  async addMedicalEvent(petId: string, event: any, userId?: string): Promise<any> {
+  async addMedicalEvent(
+    petId: string,
+    event: any,
+    userId?: string,
+  ): Promise<any> {
     await this.findOne(petId, userId);
 
     const newEvent = {
@@ -540,14 +598,19 @@ export class PetProfileService {
 
     const idx = this.inMemoryStore.findIndex((p) => p._id === petId);
     if (idx !== -1) {
-      if (!this.inMemoryStore[idx].medicalHistory) this.inMemoryStore[idx].medicalHistory = [];
+      if (!this.inMemoryStore[idx].medicalHistory)
+        this.inMemoryStore[idx].medicalHistory = [];
       this.inMemoryStore[idx].medicalHistory.unshift(newEvent);
       return this.inMemoryStore[idx];
     }
     throw new NotFoundException(`Pet ${petId} not found`);
   }
 
-  async parseMedicalDocument(fileData?: string, mimeType?: string, fileName?: string): Promise<any> {
+  async parseMedicalDocument(
+    fileData?: string,
+    mimeType?: string,
+    fileName?: string,
+  ): Promise<any> {
     const fileType =
       mimeType?.includes('pdf') || fileName?.endsWith('.pdf')
         ? 'pdf'

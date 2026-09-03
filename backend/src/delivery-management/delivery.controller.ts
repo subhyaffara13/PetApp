@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Query,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -23,7 +32,15 @@ export class DeliveryController {
   }
 
   @Post('support/contact')
-  async submitSupportContact(@Body() body: { name: string; email: string; category: string; message: string }) {
+  async submitSupportContact(
+    @Body()
+    body: {
+      name: string;
+      email: string;
+      category: string;
+      message: string;
+    },
+  ) {
     return this.deliveryService.handleSupportContact(body);
   }
 
@@ -54,7 +71,11 @@ export class DeliveryController {
   async executeStoreAction(
     @Param('masterOrderId') masterOrderId: string,
     @Param('subOrderId') subOrderId: string,
-    @Body() body: { action: 'accept' | 'ready_for_pickup' | 'decline'; prepMinutes?: number },
+    @Body()
+    body: {
+      action: 'accept' | 'ready_for_pickup' | 'decline';
+      prepMinutes?: number;
+    },
   ) {
     return this.deliveryService.executeStoreAction(
       masterOrderId,
@@ -75,7 +96,10 @@ export class DeliveryController {
   }
 
   @Post('store-portal/:storeId/products')
-  async createStoreProduct(@Param('storeId') storeId: string, @Body() body: any) {
+  async createStoreProduct(
+    @Param('storeId') storeId: string,
+    @Body() body: any,
+  ) {
     return this.deliveryService.createStoreProduct(storeId, body);
   }
 

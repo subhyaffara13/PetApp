@@ -14,9 +14,9 @@ describe('EmergencyController', () => {
   let controller: EmergencyController;
 
   const mockEmergencyService = {
-    findNearby: jest.fn().mockResolvedValue([
-      { id: 'clinic-1', name: 'Haifa ER Center' },
-    ]),
+    findNearby: jest
+      .fn()
+      .mockResolvedValue([{ id: 'clinic-1', name: 'Haifa ER Center' }]),
     getAllClinics: jest.fn().mockReturnValue([]),
     updateClinic: jest.fn().mockReturnValue({ id: 'clinic-1' }),
     broadcastLostPetAlert: jest.fn().mockResolvedValue({
@@ -25,7 +25,9 @@ describe('EmergencyController', () => {
       message: 'Broadcasted',
     }),
     getActiveLostPetAlerts: jest.fn().mockResolvedValue([]),
-    resolveLostPetAlert: jest.fn().mockResolvedValue({ id: 'alert-1', status: 'resolved' }),
+    resolveLostPetAlert: jest
+      .fn()
+      .mockResolvedValue({ id: 'alert-1', status: 'resolved' }),
   };
 
   beforeEach(async () => {
@@ -49,7 +51,10 @@ describe('EmergencyController', () => {
   });
 
   it('should return nearby emergency clinics', async () => {
-    const res = await controller.getNearbyClinics({ lat: '32.794', lon: '34.9896' });
+    const res = await controller.getNearbyClinics({
+      lat: '32.794',
+      lon: '34.9896',
+    });
     expect(res).toEqual([{ id: 'clinic-1', name: 'Haifa ER Center' }]);
   });
 });

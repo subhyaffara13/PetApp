@@ -25,7 +25,10 @@ export const ReceiptItemSchema = SchemaFactory.createForClass(ReceiptItem);
 
 @Schema({ _id: false })
 export class PaymentMethodInfo {
-  @Prop({ default: 'stripe', enum: ['stripe', 'wolt_pay', 'apple_pay', 'google_pay', 'cash'] })
+  @Prop({
+    default: 'stripe',
+    enum: ['stripe', 'wolt_pay', 'apple_pay', 'google_pay', 'cash'],
+  })
   type: string;
 
   @Prop()
@@ -38,7 +41,8 @@ export class PaymentMethodInfo {
   transactionId?: string;
 }
 
-export const PaymentMethodInfoSchema = SchemaFactory.createForClass(PaymentMethodInfo);
+export const PaymentMethodInfoSchema =
+  SchemaFactory.createForClass(PaymentMethodInfo);
 
 @Schema({ timestamps: true })
 export class Receipt {
@@ -59,7 +63,13 @@ export class Receipt {
 
   @Prop({
     required: true,
-    enum: ['marketplace', 'grooming', 'telehealth', 'service', 'emergency_deposit'],
+    enum: [
+      'marketplace',
+      'grooming',
+      'telehealth',
+      'service',
+      'emergency_deposit',
+    ],
     default: 'marketplace',
   })
   type: string;

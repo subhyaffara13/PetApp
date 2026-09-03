@@ -1,10 +1,20 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Connection } from 'mongoose';
-import { AdminUser, AdminUserDocument, AdminClaim, AdminClaimDocument, AdminLog, AdminLogDocument } from './admin.schema';
+import {
+  AdminUser,
+  AdminUserDocument,
+  AdminClaim,
+  AdminClaimDocument,
+  AdminLog,
+  AdminLogDocument,
+} from './admin.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { Order, OrderDocument } from '../schemas/order.schema';
-import { CommunityReport, CommunityReportDocument } from '../schemas/community.schema';
+import {
+  CommunityReport,
+  CommunityReportDocument,
+} from '../schemas/community.schema';
 
 export interface SystemServiceStatus {
   name: string;
@@ -20,26 +30,33 @@ export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
   constructor(
-    @InjectModel(AdminUser.name) private readonly userModel: Model<AdminUserDocument>,
-    @InjectModel(AdminClaim.name) private readonly claimModel: Model<AdminClaimDocument>,
-    @InjectModel(AdminLog.name) private readonly logModel: Model<AdminLogDocument>,
+    @InjectModel(AdminUser.name)
+    private readonly userModel: Model<AdminUserDocument>,
+    @InjectModel(AdminClaim.name)
+    private readonly claimModel: Model<AdminClaimDocument>,
+    @InjectModel(AdminLog.name)
+    private readonly logModel: Model<AdminLogDocument>,
     @InjectModel(User.name) private readonly authUserModel: Model<UserDocument>,
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
-    @InjectModel(CommunityReport.name) private readonly reportModel: Model<CommunityReportDocument>,
+    @InjectModel(CommunityReport.name)
+    private readonly reportModel: Model<CommunityReportDocument>,
     @InjectConnection() private readonly connection: Connection,
   ) {}
 
   async getDashboardAnalytics(): Promise<any> {
     try {
-      const [totalUsers, totalOrders, pendingClaims, pendingReports, reports] = await Promise.all([
-        this.authUserModel.countDocuments().exec(),
-        this.orderModel.countDocuments().exec(),
-        this.claimModel.countDocuments({ status: 'pending' }).exec(),
-        this.reportModel.countDocuments({ status: 'pending' }).exec(),
-        this.reportModel.find().sort({ createdAt: -1 }).limit(15).exec(),
-      ]);
+      const [totalUsers, totalOrders, pendingClaims, pendingReports, reports] =
+        await Promise.all([
+          this.authUserModel.countDocuments().exec(),
+          this.orderModel.countDocuments().exec(),
+          this.claimModel.countDocuments({ status: 'pending' }).exec(),
+          this.reportModel.countDocuments({ status: 'pending' }).exec(),
+          this.reportModel.find().sort({ createdAt: -1 }).limit(15).exec(),
+        ]);
 
-      const orders = await this.orderModel.find({ paymentStatus: 'captured' }).exec();
+      const orders = await this.orderModel
+        .find({ paymentStatus: 'captured' })
+        .exec();
       const totalGMV = orders.reduce((sum, o) => sum + (o.subtotal || 0), 0);
       const totalCommission = totalGMV * 0.025; // 2.5% platform fee
 
@@ -72,14 +89,70 @@ export class AdminService {
     const ready = this.connection.readyState === 1;
     const dbStatus: 'healthy' | 'down' = ready ? 'healthy' : 'down';
     return [
-      { name: 'Customer Web App (Vite)', category: 'core', status: 'healthy', uptimePercent: 99.99, latencyMs: 12, lastChecked: now },
-      { name: 'Clinic Station Portal', category: 'portal', status: 'healthy', uptimePercent: 99.95, latencyMs: 18, lastChecked: now },
-      { name: 'Store Merchant Portal', category: 'portal', status: 'healthy', uptimePercent: 99.98, latencyMs: 15, lastChecked: now },
-      { name: 'NestJS Backend API', category: 'core', status: 'healthy', uptimePercent: 100.0, latencyMs: 8, lastChecked: now },
-      { name: 'MongoDB / Mongoose DB', category: 'database', status: dbStatus, uptimePercent: ready ? 99.99 : 0, latencyMs: ready ? 4 : 0, lastChecked: now },
-      { name: 'Socket.IO Gateway', category: 'core', status: 'healthy', uptimePercent: 99.92, latencyMs: 9, lastChecked: now },
-      { name: 'Stripe Payment Gateway', category: 'integration', status: process.env.STRIPE_SECRET_KEY ? 'healthy' : 'degraded', uptimePercent: 99.90, latencyMs: 85, lastChecked: now },
-      { name: 'Wolt Drive DaaS API', category: 'integration', status: process.env.WOLT_DRIVE_API_KEY ? 'healthy' : 'degraded', uptimePercent: 99.85, latencyMs: 110, lastChecked: now },
+      {
+        name: 'Customer Web App (Vite)',
+        category: 'core',
+        status: 'healthy',
+        uptimePercent: 99.99,
+        latencyMs: 12,
+        lastChecked: now,
+      },
+      {
+        name: 'Clinic Station Portal',
+        category: 'portal',
+        status: 'healthy',
+        uptimePercent: 99.95,
+        latencyMs: 18,
+        lastChecked: now,
+      },
+      {
+        name: 'Store Merchant Portal',
+        category: 'portal',
+        status: 'healthy',
+        uptimePercent: 99.98,
+        latencyMs: 15,
+        lastChecked: now,
+      },
+      {
+        name: 'NestJS Backend API',
+        category: 'core',
+        status: 'healthy',
+        uptimePercent: 100.0,
+        latencyMs: 8,
+        lastChecked: now,
+      },
+      {
+        name: 'MongoDB / Mongoose DB',
+        category: 'database',
+        status: dbStatus,
+        uptimePercent: ready ? 99.99 : 0,
+        latencyMs: ready ? 4 : 0,
+        lastChecked: now,
+      },
+      {
+        name: 'Socket.IO Gateway',
+        category: 'core',
+        status: 'healthy',
+        uptimePercent: 99.92,
+        latencyMs: 9,
+        lastChecked: now,
+      },
+      {
+        name: 'Stripe Payment Gateway',
+        category: 'integration',
+        status: process.env.STRIPE_SECRET_KEY ? 'healthy' : 'degraded',
+        uptimePercent: 99.9,
+        latencyMs: 85,
+        lastChecked: now,
+      },
+      {
+        name: 'Wolt Drive DaaS API',
+        category: 'integration',
+        status: process.env.WOLT_DRIVE_API_KEY ? 'healthy' : 'degraded',
+        uptimePercent: 99.85,
+        latencyMs: 110,
+        lastChecked: now,
+      },
     ];
   }
 
@@ -91,8 +164,12 @@ export class AdminService {
       email: d.email,
       role: d.role,
       status: d.isActive === false ? 'blocked' : 'active',
-      createdAt: (d as any).createdAt ? new Date((d as any).createdAt).toISOString().split('T')[0] : '',
-      lastActive: (d as any).updatedAt ? new Date((d as any).updatedAt).toLocaleString() : '',
+      createdAt: (d as any).createdAt
+        ? new Date((d as any).createdAt).toISOString().split('T')[0]
+        : '',
+      lastActive: (d as any).updatedAt
+        ? new Date((d as any).updatedAt).toLocaleString()
+        : '',
     }));
   }
 
@@ -110,13 +187,19 @@ export class AdminService {
       email: saved.email,
       role: saved.role,
       status: saved.isActive ? 'active' : 'blocked',
-      createdAt: (saved as any).createdAt ? new Date((saved as any).createdAt).toISOString().split('T')[0] : '',
-      lastActive: (saved as any).updatedAt ? new Date((saved as any).updatedAt).toLocaleString() : '',
+      createdAt: (saved as any).createdAt
+        ? new Date((saved as any).createdAt).toISOString().split('T')[0]
+        : '',
+      lastActive: (saved as any).updatedAt
+        ? new Date((saved as any).updatedAt).toLocaleString()
+        : '',
     };
   }
 
   async updateUser(id: string, userData: Partial<AdminUser>): Promise<any> {
-    const user = await this.authUserModel.findByIdAndUpdate(id, userData, { new: true });
+    const user = await this.authUserModel.findByIdAndUpdate(id, userData, {
+      new: true,
+    });
     if (!user) throw new NotFoundException('User not found');
     return {
       id: user._id.toString(),
@@ -124,14 +207,25 @@ export class AdminService {
       email: user.email,
       role: user.role,
       status: user.isActive ? 'active' : 'blocked',
-      createdAt: (user as any).createdAt ? new Date((user as any).createdAt).toISOString().split('T')[0] : '',
-      lastActive: (user as any).updatedAt ? new Date((user as any).updatedAt).toLocaleString() : '',
+      createdAt: (user as any).createdAt
+        ? new Date((user as any).createdAt).toISOString().split('T')[0]
+        : '',
+      lastActive: (user as any).updatedAt
+        ? new Date((user as any).updatedAt).toLocaleString()
+        : '',
     };
   }
 
-  async updateUserStatus(id: string, action: 'block' | 'unblock' | 'archive'): Promise<any> {
+  async updateUserStatus(
+    id: string,
+    action: 'block' | 'unblock' | 'archive',
+  ): Promise<any> {
     const isActive = action === 'unblock';
-    const user = await this.authUserModel.findByIdAndUpdate(id, { isActive }, { new: true });
+    const user = await this.authUserModel.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true },
+    );
     if (!user) throw new NotFoundException('User not found');
     return {
       id: user._id.toString(),
@@ -169,12 +263,18 @@ export class AdminService {
       contactPhone: d.contactPhone,
       businessLicense: d.businessLicense,
       status: d.status,
-      submittedAt: (d as any).createdAt ? new Date((d as any).createdAt).toLocaleString() : '',
+      submittedAt: (d as any).createdAt
+        ? new Date((d as any).createdAt).toLocaleString()
+        : '',
     }));
   }
 
   async verifyClaim(id: string, status: 'approved' | 'rejected'): Promise<any> {
-    const claim = await this.claimModel.findByIdAndUpdate(id, { status }, { new: true });
+    const claim = await this.claimModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true },
+    );
     if (!claim) throw new NotFoundException('Claim not found');
 
     // If approved and associated with a user account, upgrade role & badge automatically
@@ -209,9 +309,14 @@ export class AdminService {
           updatePayload.practiceType = claim.practiceType;
         }
 
-        await this.authUserModel.findByIdAndUpdate(claim.userId, updatePayload).exec();
+        await this.authUserModel
+          .findByIdAndUpdate(claim.userId, updatePayload)
+          .exec();
       } catch (err: any) {
-        this.logger.warn(`Could not elevate user ${claim.userId} during claim approval:`, err?.message);
+        this.logger.warn(
+          `Could not elevate user ${claim.userId} during claim approval:`,
+          err?.message,
+        );
       }
     }
 
@@ -225,12 +330,18 @@ export class AdminService {
       contactPhone: claim.contactPhone,
       businessLicense: claim.businessLicense,
       status: claim.status,
-      submittedAt: (claim as any).createdAt ? new Date((claim as any).createdAt).toLocaleString() : '',
+      submittedAt: (claim as any).createdAt
+        ? new Date((claim as any).createdAt).toLocaleString()
+        : '',
     };
   }
 
   async getReports(): Promise<any[]> {
-    const docs = await this.reportModel.find().sort({ createdAt: -1 }).limit(100).exec();
+    const docs = await this.reportModel
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .exec();
     return docs.map((d) => ({
       id: d._id.toString(),
       reporterId: d.reporterId,
@@ -241,16 +352,23 @@ export class AdminService {
       details: d.details,
       chatTranscriptSnippet: d.chatTranscriptSnippet,
       status: d.status,
-      createdAt: (d as any).createdAt ? new Date((d as any).createdAt).toLocaleString() : '',
+      createdAt: (d as any).createdAt
+        ? new Date((d as any).createdAt).toLocaleString()
+        : '',
     }));
   }
 
-  async handleReportAction(id: string, action: 'dismiss' | 'action_taken' | 'block_user'): Promise<any> {
+  async handleReportAction(
+    id: string,
+    action: 'dismiss' | 'action_taken' | 'block_user',
+  ): Promise<any> {
     const report = await this.reportModel.findById(id);
     if (!report) throw new NotFoundException('Report not found');
 
     if (action === 'block_user' && report.reportedUserId) {
-      await this.authUserModel.findByIdAndUpdate(report.reportedUserId, { isActive: false });
+      await this.authUserModel.findByIdAndUpdate(report.reportedUserId, {
+        isActive: false,
+      });
       report.status = 'action_taken';
     } else if (action === 'dismiss') {
       report.status = 'dismissed';
@@ -268,13 +386,19 @@ export class AdminService {
   }
 
   async getLogs(): Promise<any[]> {
-    const docs = await this.logModel.find().sort({ createdAt: -1 }).limit(100).exec();
+    const docs = await this.logModel
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .exec();
     return docs.map((d) => ({
       id: d._id.toString(),
       level: d.level,
       service: d.service,
       message: d.message,
-      timestamp: (d as any).createdAt ? new Date((d as any).createdAt).toISOString() : '',
+      timestamp: (d as any).createdAt
+        ? new Date((d as any).createdAt).toISOString()
+        : '',
       userReported: d.userReported || false,
     }));
   }
@@ -292,7 +416,9 @@ export class AdminService {
       level: saved.level,
       service: saved.service,
       message: saved.message,
-      timestamp: (saved as any).createdAt ? new Date((saved as any).createdAt).toISOString() : '',
+      timestamp: (saved as any).createdAt
+        ? new Date((saved as any).createdAt).toISOString()
+        : '',
       userReported: saved.userReported || false,
     };
   }

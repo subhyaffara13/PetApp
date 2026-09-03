@@ -22,12 +22,19 @@ export class ReceiptsService {
     const receiptNumber = data.receiptNumber || `REC-${year}-${randomSuffix}`;
 
     const items = data.items || [];
-    const subtotal = data.subtotal !== undefined ? data.subtotal : items.reduce((sum, item) => sum + item.lineTotal, 0);
+    const subtotal =
+      data.subtotal !== undefined
+        ? data.subtotal
+        : items.reduce((sum, item) => sum + item.lineTotal, 0);
     const taxRate = data.taxRate !== undefined ? data.taxRate : 0.17;
-    const taxAmount = data.taxAmount !== undefined ? data.taxAmount : subtotal * taxRate;
+    const taxAmount =
+      data.taxAmount !== undefined ? data.taxAmount : subtotal * taxRate;
     const deliveryFee = data.deliveryFee || 0;
     const discountAmount = data.discountAmount || 0;
-    const total = data.total !== undefined ? data.total : subtotal + taxAmount + deliveryFee - discountAmount;
+    const total =
+      data.total !== undefined
+        ? data.total
+        : subtotal + taxAmount + deliveryFee - discountAmount;
 
     const receiptPayload = {
       ...data,
@@ -45,7 +52,9 @@ export class ReceiptsService {
     let savedReceipt: ReceiptDocument;
     try {
       savedReceipt = await this.receiptModel.create(receiptPayload);
-      this.logger.log(`Itemized Receipt ${receiptNumber} saved to profile of ${data.customerEmail}`);
+      this.logger.log(
+        `Itemized Receipt ${receiptNumber} saved to profile of ${data.customerEmail}`,
+      );
     } catch (err: any) {
       this.logger.error(`Failed to save receipt to database: ${err?.message}`);
       savedReceipt = receiptPayload as any;
@@ -96,7 +105,11 @@ export class ReceiptsService {
           ...(email ? [{ customerEmail: email.toLowerCase().trim() }] : []),
         ],
       };
-      return await this.receiptModel.find(query).sort({ createdAt: -1 }).limit(100).exec();
+      return await this.receiptModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .exec();
     } catch (err) {
       this.logger.warn(`Receipt query fallback: ${err}`);
       return [];
@@ -108,7 +121,9 @@ export class ReceiptsService {
    */
   async findOne(idOrNumber: string): Promise<Receipt> {
     const isNumber = idOrNumber.startsWith('REC-');
-    const query = isNumber ? { receiptNumber: idOrNumber } : { _id: idOrNumber };
+    const query = isNumber
+      ? { receiptNumber: idOrNumber }
+      : { _id: idOrNumber };
     const receipt = await this.receiptModel.findOne(query).exec();
     if (!receipt) {
       throw new NotFoundException(`Receipt ${idOrNumber} not found`);

@@ -1,6 +1,11 @@
 import axios from 'axios';
 import { Logger } from '@nestjs/common';
-import { IDeliveryProvider, DispatchRequest, DispatchResult, TrackingInfo } from './delivery-provider.interface';
+import {
+  IDeliveryProvider,
+  DispatchRequest,
+  DispatchResult,
+  TrackingInfo,
+} from './delivery-provider.interface';
 
 export class WoltDriveAdapter implements IDeliveryProvider {
   private readonly logger = new Logger(WoltDriveAdapter.name);
@@ -9,7 +14,8 @@ export class WoltDriveAdapter implements IDeliveryProvider {
 
   constructor() {
     this.apiKey = process.env.WOLT_DRIVE_API_KEY || '';
-    this.baseUrl = process.env.WOLT_DRIVE_BASE_URL || 'https://api.wolt.com/v1/drive';
+    this.baseUrl =
+      process.env.WOLT_DRIVE_BASE_URL || 'https://api.wolt.com/v1/drive';
   }
 
   private get credentialsConfigured(): boolean {
@@ -18,7 +24,9 @@ export class WoltDriveAdapter implements IDeliveryProvider {
 
   async createDispatch(payload: DispatchRequest): Promise<DispatchResult> {
     if (!this.credentialsConfigured) {
-      throw new Error('Wolt Drive API key not configured. Set WOLT_DRIVE_API_KEY.');
+      throw new Error(
+        'Wolt Drive API key not configured. Set WOLT_DRIVE_API_KEY.',
+      );
     }
 
     try {
@@ -96,10 +104,13 @@ export class WoltDriveAdapter implements IDeliveryProvider {
       throw new Error('Wolt Drive API key not configured.');
     }
 
-    const response = await axios.get(`${this.baseUrl}/deliveries/${externalTaskId}/tracking`, {
-      headers: { Authorization: `Bearer ${this.apiKey}` },
-      timeout: 7000,
-    });
+    const response = await axios.get(
+      `${this.baseUrl}/deliveries/${externalTaskId}/tracking`,
+      {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+        timeout: 7000,
+      },
+    );
 
     const data = response.data;
     return {
@@ -108,9 +119,14 @@ export class WoltDriveAdapter implements IDeliveryProvider {
       courierName: data.courier?.name,
       courierPhone: data.courier?.phone_number,
       courierLocation: data.courier?.location
-        ? { type: 'Point', coordinates: [data.courier.location.lon, data.courier.location.lat] }
+        ? {
+            type: 'Point',
+            coordinates: [data.courier.location.lon, data.courier.location.lat],
+          }
         : undefined,
-      estimatedArrival: data.estimated_arrival ? new Date(data.estimated_arrival) : undefined,
+      estimatedArrival: data.estimated_arrival
+        ? new Date(data.estimated_arrival)
+        : undefined,
     };
   }
 }

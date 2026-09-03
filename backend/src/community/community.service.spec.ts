@@ -1,11 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { CommunityService } from './community.service';
-import { Story, Post, DirectMessage, CommunityReport } from '../schemas/community.schema';
+import {
+  Story,
+  Post,
+  DirectMessage,
+  CommunityReport,
+} from '../schemas/community.schema';
 import { User } from '../schemas/user.schema';
+import { PetProfile } from '../schemas/pet-profile.schema';
 
 describe('CommunityService', () => {
   let service: CommunityService;
+
+  const mockPetProfileModel: any = {
+    find: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([
+          {
+            _id: 'pet-1',
+            name: 'Buddy',
+            species: 'dog',
+            breed: 'Golden Retriever',
+            age: 3,
+            photoUrl: 'https://example.com/buddy.jpg',
+          },
+        ]),
+      }),
+    }),
+  };
 
   const mockStoryModel: any = jest.fn().mockImplementation((dto) => ({
     ...dto,
@@ -15,7 +38,11 @@ describe('CommunityService', () => {
   mockStoryModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue([
-        { _id: 'story-1', petName: 'Luna', mediaUrl: 'https://img.com/luna.jpg' },
+        {
+          _id: 'story-1',
+          petName: 'Luna',
+          mediaUrl: 'https://img.com/luna.jpg',
+        },
       ]),
     }),
   });
@@ -28,7 +55,13 @@ describe('CommunityService', () => {
   mockPostModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
       exec: jest.fn().mockResolvedValue([
-        { _id: 'post-1', petName: 'Rocky', likesCount: 5, likedBy: [], comments: [] },
+        {
+          _id: 'post-1',
+          petName: 'Rocky',
+          likesCount: 5,
+          likedBy: [],
+          comments: [],
+        },
       ]),
     }),
   });
@@ -39,7 +72,11 @@ describe('CommunityService', () => {
       likesCount: 5,
       likedBy: [],
       comments: [],
-      save: jest.fn().mockResolvedValue({ _id: 'post-1', likesCount: 6, likedBy: ['user-1'] }),
+      save: jest.fn().mockResolvedValue({
+        _id: 'post-1',
+        likesCount: 6,
+        likedBy: ['user-1'],
+      }),
     }),
   });
 
@@ -56,7 +93,13 @@ describe('CommunityService', () => {
     sort: jest.fn().mockReturnValue({
       limit: jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue([
-          { _id: 'dm-1', senderId: 'u1', recipientId: 'u2', encryptedPayload: 'enc...', iv: 'iv...' },
+          {
+            _id: 'dm-1',
+            senderId: 'u1',
+            recipientId: 'u2',
+            encryptedPayload: 'enc...',
+            iv: 'iv...',
+          },
         ]),
       }),
       exec: jest.fn().mockResolvedValue([]),
@@ -65,7 +108,9 @@ describe('CommunityService', () => {
 
   const mockReportModel: any = jest.fn().mockImplementation((dto) => ({
     ...dto,
-    save: jest.fn().mockResolvedValue({ _id: 'rep-1', status: 'pending', ...dto }),
+    save: jest
+      .fn()
+      .mockResolvedValue({ _id: 'rep-1', status: 'pending', ...dto }),
   }));
 
   const mockUserModel: any = {
@@ -100,8 +145,12 @@ describe('CommunityService', () => {
         { provide: getModelToken(Story.name), useValue: mockStoryModel },
         { provide: getModelToken(Post.name), useValue: mockPostModel },
         { provide: getModelToken(DirectMessage.name), useValue: mockDmModel },
-        { provide: getModelToken(CommunityReport.name), useValue: mockReportModel },
+        {
+          provide: getModelToken(CommunityReport.name),
+          useValue: mockReportModel,
+        },
         { provide: getModelToken(User.name), useValue: mockUserModel },
+        { provide: getModelToken(PetProfile.name), useValue: mockPetProfileModel },
       ],
     }).compile();
 

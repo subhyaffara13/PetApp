@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { EmergencyService } from './emergency.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -18,7 +28,13 @@ export class EmergencyController {
   @Get('nearby')
   async getNearbyClinics(@Query() query: NearbyQueryDto) {
     const { lat, lon, query: customQuery, lang, country } = query;
-    return this.emergencyService.findNearby(+lat || 32.794, +lon || 34.9896, customQuery, lang, country);
+    return this.emergencyService.findNearby(
+      +lat || 32.794,
+      +lon || 34.9896,
+      customQuery,
+      lang,
+      country,
+    );
   }
 
   @Get('geocode')
@@ -28,7 +44,12 @@ export class EmergencyController {
     @Query('lat') lat?: string,
     @Query('lon') lon?: string,
   ) {
-    return this.emergencyService.geocodeAddress(q, lang, lat ? +lat : undefined, lon ? +lon : undefined);
+    return this.emergencyService.geocodeAddress(
+      q,
+      lang,
+      lat ? +lat : undefined,
+      lon ? +lon : undefined,
+    );
   }
 
   @Get('clinics')
@@ -37,16 +58,24 @@ export class EmergencyController {
   }
 
   @Patch('clinic/:id')
-  async updateClinic(
-    @Param('id') id: string,
-    @Body() updates: any,
-  ) {
+  async updateClinic(@Param('id') id: string, @Body() updates: any) {
     return this.emergencyService.updateClinic(id, updates);
   }
 
   // --- LIVE MOBILE VET LOCATION BROADCASTING ---
   @Post('mobile-vet/location')
-  async updateMobileVetLocation(@Req() req: any, @Body() body: { lat: number; lng: number; heading?: number; speed?: number; isActive: boolean; userId?: string }) {
+  async updateMobileVetLocation(
+    @Req() req: any,
+    @Body()
+    body: {
+      lat: number;
+      lng: number;
+      heading?: number;
+      speed?: number;
+      isActive: boolean;
+      userId?: string;
+    },
+  ) {
     const userId = req.user?.id || body.userId;
     return this.emergencyService.updateMobileVetLocation(userId, body);
   }
@@ -64,8 +93,14 @@ export class EmergencyController {
   }
 
   @Get('lost-pet')
-  async getActiveLostPetAlerts(@Query('lat') lat?: string, @Query('lon') lon?: string) {
-    return this.emergencyService.getActiveLostPetAlerts(lat ? +lat : 32.794, lon ? +lon : 34.9896);
+  async getActiveLostPetAlerts(
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+  ) {
+    return this.emergencyService.getActiveLostPetAlerts(
+      lat ? +lat : 32.794,
+      lon ? +lon : 34.9896,
+    );
   }
 
   @Patch('lost-pet/:id/resolve')

@@ -17,19 +17,25 @@ export class OrderTimeoutWorkerService implements OnModuleInit {
   private fallbackTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
-    @InjectModel('MasterOrder') private readonly masterOrderModel: Model<IMasterOrder>,
+    @InjectModel('MasterOrder')
+    private readonly masterOrderModel: Model<IMasterOrder>,
     private readonly deliveryGateway: DeliveryGateway,
   ) {}
 
   onModuleInit() {
-    this.logger.log('BullMQ Order Timeout & SLA Auto-Escalation Worker initialized.');
+    this.logger.log(
+      'BullMQ Order Timeout & SLA Auto-Escalation Worker initialized.',
+    );
   }
 
   /**
    * Schedule SLA check when an order is created.
    * delayMs: 180,000ms (3 min) for SOS Emergency, 300,000ms (5 min) for Standard
    */
-  async scheduleOrderAcceptanceTimeout(data: OrderTimeoutJobData, delayMs?: number) {
+  async scheduleOrderAcceptanceTimeout(
+    data: OrderTimeoutJobData,
+    delayMs?: number,
+  ) {
     const effectiveDelay = delayMs ?? (data.isEmergency ? 180000 : 300000);
     const key = `timeout-${data.subOrderId}`;
 
@@ -40,7 +46,9 @@ export class OrderTimeoutWorkerService implements OnModuleInit {
     }, effectiveDelay);
 
     this.fallbackTimers.set(key, timer);
-    this.logger.log(`[SLA Worker] Scheduled timeout check for sub-order ${data.subOrderId} in ${effectiveDelay / 1000}s`);
+    this.logger.log(
+      `[SLA Worker] Scheduled timeout check for sub-order ${data.subOrderId} in ${effectiveDelay / 1000}s`,
+    );
   }
 
   /**
@@ -52,7 +60,9 @@ export class OrderTimeoutWorkerService implements OnModuleInit {
     if (timer) {
       clearTimeout(timer);
       this.fallbackTimers.delete(key);
-      this.logger.log(`[SLA Worker] Timeout cleared for accepted sub-order ${subOrderId}`);
+      this.logger.log(
+        `[SLA Worker] Timeout cleared for accepted sub-order ${subOrderId}`,
+      );
     }
   }
 
@@ -65,7 +75,9 @@ export class OrderTimeoutWorkerService implements OnModuleInit {
     const masterOrder = await this.masterOrderModel.findById(masterOrderId);
     if (!masterOrder) return;
 
-    const subOrder = masterOrder.storeOrders.find((so) => so._id.toString() === subOrderId);
+    const subOrder = masterOrder.storeOrders.find(
+      (so) => so._id.toString() === subOrderId,
+    );
     if (!subOrder || subOrder.status !== 'awaiting_store_acceptance') {
       return;
     }
@@ -80,19 +92,25 @@ export class OrderTimeoutWorkerService implements OnModuleInit {
           'storeOrders.$[elem].updatedAt': new Date(),
         },
       },
-      { arrayFilters: [{ 'elem._id': new Types.ObjectId(subOrderId) }] }
+      { arrayFilters: [{ 'elem._id': new Types.ObjectId(subOrderId) }] },
     );
 
     // Emit real-time WebSocket alerts
-    this.deliveryGateway.server?.to(`store:${storeId}`).emit('ORDER_TIMED_OUT', { masterOrderId, subOrderId });
-    this.deliveryGateway.server?.to(`order:${masterOrderId}`).emit('SUB_ORDER_STATUS_CHANGED', {
-      subOrderId,
-      status: 'cancelled',
-      reason: isEmergency
-        ? 'Store did not respond to emergency request in time. Rerouting options available.'
-        : 'Store did not accept the order in time.',
-    });
+    this.deliveryGateway.server
+      ?.to(`store:${storeId}`)
+      .emit('ORDER_TIMED_OUT', { masterOrderId, subOrderId });
+    this.deliveryGateway.server
+      ?.to(`order:${masterOrderId}`)
+      .emit('SUB_ORDER_STATUS_CHANGED', {
+        subOrderId,
+        status: 'cancelled',
+        reason: isEmergency
+          ? 'Store did not respond to emergency request in time. Rerouting options available.'
+          : 'Store did not accept the order in time.',
+      });
 
-    this.logger.warn(`[SLA Worker] Sub-order ${subOrderId} auto-cancelled due to merchant SLA timeout.`);
+    this.logger.warn(
+      `[SLA Worker] Sub-order ${subOrderId} auto-cancelled due to merchant SLA timeout.`,
+    );
   }
 }

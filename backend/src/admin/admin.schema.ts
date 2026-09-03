@@ -11,10 +11,17 @@ export class AdminUser {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true, enum: ['customer', 'clinic_admin', 'store_merchant'] })
+  @Prop({
+    required: true,
+    enum: ['customer', 'clinic_admin', 'store_merchant'],
+  })
   role: string;
 
-  @Prop({ required: true, default: 'active', enum: ['active', 'blocked', 'archived'] })
+  @Prop({
+    required: true,
+    default: 'active',
+    enum: ['active', 'blocked', 'archived'],
+  })
   status: string;
 
   @Prop()
@@ -51,7 +58,11 @@ export class AdminClaim {
   @Prop({ required: true })
   businessLicense: string;
 
-  @Prop({ required: true, default: 'pending', enum: ['pending', 'approved', 'rejected'] })
+  @Prop({
+    required: true,
+    default: 'pending',
+    enum: ['pending', 'approved', 'rejected'],
+  })
   status: string;
 }
 

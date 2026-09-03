@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Headers, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Headers,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -63,14 +74,25 @@ export class MarketplaceController {
   }
 
   @Post('orders/:id/payment-confirm')
-  async confirmOrderPayment(@Param('id') id: string, @Body() body: { paymentIntentId?: string }) {
-    return this.marketplaceService.confirmOrderPayment(id, body.paymentIntentId);
+  async confirmOrderPayment(
+    @Param('id') id: string,
+    @Body() body: { paymentIntentId?: string },
+  ) {
+    return this.marketplaceService.confirmOrderPayment(
+      id,
+      body.paymentIntentId,
+    );
   }
 
   /** Creates a Stripe PaymentIntent and returns the clientSecret for the frontend Elements form */
   @Post('payment-intent')
-  async createPaymentIntent(@Body() body: { amount: number; currency?: string }) {
-    return this.marketplaceService.createPaymentIntent(body.amount, body.currency || 'ils');
+  async createPaymentIntent(
+    @Body() body: { amount: number; currency?: string },
+  ) {
+    return this.marketplaceService.createPaymentIntent(
+      body.amount,
+      body.currency || 'ils',
+    );
   }
 
   @Post('shops/:shopId/products')
@@ -79,7 +101,10 @@ export class MarketplaceController {
   }
 
   @Post('products/:productId')
-  async updateProduct(@Param('productId') productId: string, @Body() body: any) {
+  async updateProduct(
+    @Param('productId') productId: string,
+    @Body() body: any,
+  ) {
     return this.marketplaceService.updateProduct(productId, body);
   }
 
@@ -88,4 +113,3 @@ export class MarketplaceController {
     return this.marketplaceService.deleteProduct(productId);
   }
 }
-

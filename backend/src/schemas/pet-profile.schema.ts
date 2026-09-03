@@ -8,7 +8,17 @@ export class MedicalEvent {
   @Prop({ required: true })
   date: string;
 
-  @Prop({ required: true, enum: ['vaccination', 'checkup', 'surgery', 'illness', 'medication', 'other'] })
+  @Prop({
+    required: true,
+    enum: [
+      'vaccination',
+      'checkup',
+      'surgery',
+      'illness',
+      'medication',
+      'other',
+    ],
+  })
   type: string;
 
   @Prop({ required: true })
@@ -34,14 +44,18 @@ export class CoParentMember {
   @Prop()
   email?: string;
 
-  @Prop({ default: 'co_parent', enum: ['co_parent', 'family_member', 'caretaker'] })
+  @Prop({
+    default: 'co_parent',
+    enum: ['co_parent', 'family_member', 'caretaker'],
+  })
   role: string;
 
   @Prop({ default: Date.now })
   addedAt: Date;
 }
 
-export const CoParentMemberSchema = SchemaFactory.createForClass(CoParentMember);
+export const CoParentMemberSchema =
+  SchemaFactory.createForClass(CoParentMember);
 
 @Schema({ timestamps: true })
 export class PetProfile {
@@ -57,7 +71,10 @@ export class PetProfile {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, enum: ['dog', 'cat', 'bird', 'reptile', 'small_mammal', 'other'] })
+  @Prop({
+    required: true,
+    enum: ['dog', 'cat', 'bird', 'reptile', 'small_mammal', 'other'],
+  })
   species: string;
 
   @Prop({ required: true })

@@ -1,8 +1,16 @@
-import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMethod,
+} from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { StoreSchema } from './schemas/store.schema';
 import { MasterOrderSchema } from './schemas/master-order.schema';
-import { StoreProduct, StoreProductSchema } from './schemas/store-product.schema';
+import {
+  StoreProduct,
+  StoreProductSchema,
+} from './schemas/store-product.schema';
 import { AdminClaim, AdminClaimSchema } from '../admin/admin.schema';
 import { OrderStateMachineService } from './services/order-state-machine.service';
 import { DeliveryProviderFactory } from './services/delivery/delivery-provider.factory';
@@ -39,8 +47,11 @@ export class DeliveryManagementModule implements NestModule {
     consumer
       .apply((req: any, res: any, next: any) => {
         const provider = req.params?.provider || req.path.split('/').pop();
-        return verifyDaaSWebhookSignature(provider as any)(req, res, next);
+        return verifyDaaSWebhookSignature(provider)(req, res, next);
       })
-      .forRoutes({ path: 'api/webhooks/daas/:provider', method: RequestMethod.POST });
+      .forRoutes({
+        path: 'api/webhooks/daas/:provider',
+        method: RequestMethod.POST,
+      });
   }
 }

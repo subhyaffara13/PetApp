@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -22,18 +29,34 @@ export interface AuthUserPayload {
   role: UserRole;
 }
 
-export function validatePasswordComplexity(password: string): { isValid: boolean; message?: string } {
+export function validatePasswordComplexity(password: string): {
+  isValid: boolean;
+  message?: string;
+} {
   if (!password || password.length < 8) {
-    return { isValid: false, message: 'Password must be at least 8 characters long.' };
+    return {
+      isValid: false,
+      message: 'Password must be at least 8 characters long.',
+    };
   }
   if (!/[a-zA-Z]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least 1 letter.' };
+    return {
+      isValid: false,
+      message: 'Password must contain at least 1 letter.',
+    };
   }
   if (!/[0-9]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least 1 number.' };
+    return {
+      isValid: false,
+      message: 'Password must contain at least 1 number.',
+    };
   }
   if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least 1 special character (!@#$%^&*...).' };
+    return {
+      isValid: false,
+      message:
+        'Password must contain at least 1 special character (!@#$%^&*...).',
+    };
   }
   return { isValid: true };
 }
@@ -44,7 +67,8 @@ export class AuthService implements OnModuleInit {
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-    @InjectModel(AdminClaim.name) private readonly claimModel: Model<AdminClaimDocument>,
+    @InjectModel(AdminClaim.name)
+    private readonly claimModel: Model<AdminClaimDocument>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
@@ -68,11 +92,14 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException(complexity.message);
     }
 
-    const existing = await this.userModel.findOne({ email: email.toLowerCase().trim() });
-    if (existing) throw new ConflictException('An account with this email already exists.');
+    const existing = await this.userModel.findOne({
+      email: email.toLowerCase().trim(),
+    });
+    if (existing)
+      throw new ConflictException('An account with this email already exists.');
 
     const passwordHash = await bcrypt.hash(password, 12);
-    
+
     // Distinct verification status based on registration portal / role
     let isVerified = false;
     let verificationBadge: any = 'none';
@@ -100,26 +127,44 @@ export class AuthService implements OnModuleInit {
       verificationBadge,
       organizationName: organizationName || '',
       licenseNumber: licenseNumber || '',
-      practiceType: practiceType || (role === 'clinic_admin' ? 'stationary_clinic' : 'none'),
+      practiceType:
+        practiceType ||
+        (role === 'clinic_admin' ? 'stationary_clinic' : 'none'),
     });
 
     return this.issueTokens(user);
   }
 
   async login(email: string, password: string): Promise<AuthTokens> {
-    const user = await this.userModel.findOne({ email: email.toLowerCase().trim() });
-    if (!user || !user.isActive) throw new UnauthorizedException('No active account found with this email. Please register first.');
+    const user = await this.userModel.findOne({
+      email: email.toLowerCase().trim(),
+    });
+    if (!user || !user.isActive)
+      throw new UnauthorizedException(
+        'No active account found with this email. Please register first.',
+      );
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) throw new UnauthorizedException('Incorrect password. Please try again.');
+    if (!isMatch)
+      throw new UnauthorizedException('Incorrect password. Please try again.');
 
     return this.issueTokens(user);
   }
 
-  async oauthLogin(name: string, email: string, avatar?: string, role: UserRole = 'customer'): Promise<AuthTokens> {
-    let user = await this.userModel.findOne({ email: email.toLowerCase().trim() });
+  async oauthLogin(
+    name: string,
+    email: string,
+    avatar?: string,
+    role: UserRole = 'customer',
+  ): Promise<AuthTokens> {
+    let user = await this.userModel.findOne({
+      email: email.toLowerCase().trim(),
+    });
     if (!user) {
-      const dummyHash = await bcrypt.hash(`oauth-${Date.now()}-${Math.random()}`, 10);
+      const dummyHash = await bcrypt.hash(
+        `oauth-${Date.now()}-${Math.random()}`,
+        10,
+      );
       user = await this.userModel.create({
         name: name || 'Google User',
         email: email.toLowerCase().trim(),
@@ -139,28 +184,43 @@ export class AuthService implements OnModuleInit {
     return this.issueTokens(user);
   }
 
-  async forgotPassword(email: string): Promise<{ message: string; resetLink?: string }> {
+  async forgotPassword(
+    email: string,
+  ): Promise<{ message: string; resetLink?: string }> {
     const cleanEmail = email.toLowerCase().trim();
     const user = await this.userModel.findOne({ email: cleanEmail });
     if (!user) {
       // Safe response to prevent user enumeration
-      return { message: 'If an account exists with this email, a password reset link has been dispatched.' };
+      return {
+        message:
+          'If an account exists with this email, a password reset link has been dispatched.',
+      };
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
     user.resetPasswordTokenHash = tokenHash;
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await user.save();
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:5173';
     const resetLink = `${frontendUrl}?resetToken=${rawToken}&resetEmail=${encodeURIComponent(user.email)}`;
 
     this.logger.log(`[Password Reset Dispatched] User: ${user.email}`);
 
     // Dispatch via Resend
-    await this.emailService.sendPasswordResetEmail(user.email, resetLink, user.name);
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      resetLink,
+      user.name,
+    );
 
     return {
       message: 'Password reset link sent to your email.',
@@ -168,14 +228,21 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  async resetPassword(token: string, email: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    email: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     const complexity = validatePasswordComplexity(newPassword);
     if (!complexity.isValid) {
       throw new BadRequestException(complexity.message);
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(token.trim())
+      .digest('hex');
 
     const user = await this.userModel.findOne({
       email: cleanEmail,
@@ -184,7 +251,9 @@ export class AuthService implements OnModuleInit {
     });
 
     if (!user) {
-      throw new BadRequestException('Password reset link is invalid or has expired. Please request a new one.');
+      throw new BadRequestException(
+        'Password reset link is invalid or has expired. Please request a new one.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -196,10 +265,16 @@ export class AuthService implements OnModuleInit {
 
     this.logger.log(`[Password Reset Successful] User: ${user.email}`);
 
-    return { message: 'Password has been successfully updated. You can now sign in with your new password.' };
+    return {
+      message:
+        'Password has been successfully updated. You can now sign in with your new password.',
+    };
   }
 
-  async updateProfile(userId: string, data: { name?: string; avatar?: string; phone?: string; city?: string }): Promise<UserDocument> {
+  async updateProfile(
+    userId: string,
+    data: { name?: string; avatar?: string; phone?: string; city?: string },
+  ): Promise<UserDocument> {
     const user = await this.userModel.findById(userId);
     if (!user) throw new UnauthorizedException('User not found.');
 
@@ -224,10 +299,12 @@ export class AuthService implements OnModuleInit {
     }
 
     const user = await this.userModel.findById(payload.sub);
-    if (!user || !user.isActive || !user.refreshTokenHash) throw new UnauthorizedException('Session expired.');
+    if (!user || !user.isActive || !user.refreshTokenHash)
+      throw new UnauthorizedException('Session expired.');
 
     const isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
-    if (!isValid) throw new UnauthorizedException('Session expired. Please log in again.');
+    if (!isValid)
+      throw new UnauthorizedException('Session expired. Please log in again.');
 
     return this.issueTokens(user);
   }
@@ -247,12 +324,14 @@ export class AuthService implements OnModuleInit {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: (this.configService.get<string>('JWT_EXPIRES_IN') || '15m') as any,
+      expiresIn: (this.configService.get<string>('JWT_EXPIRES_IN') ||
+        '15m') as any,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d') as any,
+      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ||
+        '7d') as any,
     });
 
     const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
@@ -261,31 +340,39 @@ export class AuthService implements OnModuleInit {
     return { accessToken, refreshToken };
   }
 
-  async applyVerification(userId: string, dto: {
-    entityType: 'clinic' | 'store' | 'shelter' | 'sitter';
-    practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
-    entityName: string;
-    entityAddress: string;
-    contactName: string;
-    contactPhone: string;
-    businessLicense?: string;
-  }): Promise<{ message: string; claimId: string }> {
+  async applyVerification(
+    userId: string,
+    dto: {
+      entityType: 'clinic' | 'store' | 'shelter' | 'sitter';
+      practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+      entityName: string;
+      entityAddress: string;
+      contactName: string;
+      contactPhone: string;
+      businessLicense?: string;
+    },
+  ): Promise<{ message: string; claimId: string }> {
     const user = await this.userModel.findById(userId);
     if (!user) throw new UnauthorizedException('User not found.');
 
     const claim = new this.claimModel({
       ...dto,
       userId,
-      practiceType: dto.practiceType || (dto.entityType === 'clinic' ? 'stationary_clinic' : 'none'),
+      practiceType:
+        dto.practiceType ||
+        (dto.entityType === 'clinic' ? 'stationary_clinic' : 'none'),
       businessLicense: dto.businessLicense || 'Online Professional Application',
       status: 'pending',
     });
     const saved = await claim.save();
 
-    this.logger.log(`New verification claim submitted by user ${userId} for ${dto.entityType} (${dto.entityName}) [practiceType: ${claim.practiceType}]`);
+    this.logger.log(
+      `New verification claim submitted by user ${userId} for ${dto.entityType} (${dto.entityName}) [practiceType: ${claim.practiceType}]`,
+    );
 
     return {
-      message: 'Your verification claim has been submitted to the PetSOS Admin team for review.',
+      message:
+        'Your verification claim has been submitted to the PetSOS Admin team for review.',
       claimId: saved._id.toString(),
     };
   }

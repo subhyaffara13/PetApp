@@ -35,7 +35,18 @@ export class Story {
   @Prop({ default: '' })
   caption: string;
 
-  @Prop({ required: true, enum: ['moment', 'lost_pet_sos', 'hazard_alert', 'playdate', 'vet_tip', 'store_promo'], default: 'moment' })
+  @Prop({
+    required: true,
+    enum: [
+      'moment',
+      'lost_pet_sos',
+      'hazard_alert',
+      'playdate',
+      'vet_tip',
+      'store_promo',
+    ],
+    default: 'moment',
+  })
   type: string;
 
   @Prop()
@@ -91,7 +102,19 @@ export class Post {
   @Prop({ default: '' })
   locationTag: string;
 
-  @Prop({ required: true, enum: ['cute', 'playdate', 'lost_found', 'health_tip', 'adoption', 'vet_update', 'promo'], default: 'cute' })
+  @Prop({
+    required: true,
+    enum: [
+      'cute',
+      'playdate',
+      'lost_found',
+      'health_tip',
+      'adoption',
+      'vet_update',
+      'promo',
+    ],
+    default: 'cute',
+  })
   category: string;
 
   @Prop({ default: '' })
@@ -175,7 +198,10 @@ export class CommunityReport {
   @Prop({ default: '' })
   reportedUserName: string;
 
-  @Prop({ required: true, enum: ['harassment', 'spam', 'scam', 'inappropriate_content', 'other'] })
+  @Prop({
+    required: true,
+    enum: ['harassment', 'spam', 'scam', 'inappropriate_content', 'other'],
+  })
   reason: string;
 
   @Prop({ default: '' })
@@ -185,9 +211,13 @@ export class CommunityReport {
   @Prop({ default: '' })
   chatTranscriptSnippet: string;
 
-  @Prop({ default: 'pending', enum: ['pending', 'reviewed', 'action_taken', 'dismissed'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'reviewed', 'action_taken', 'dismissed'],
+  })
   status: string;
 }
 
-export const CommunityReportSchema = SchemaFactory.createForClass(CommunityReport);
+export const CommunityReportSchema =
+  SchemaFactory.createForClass(CommunityReport);
 CommunityReportSchema.index({ status: 1, createdAt: -1 });

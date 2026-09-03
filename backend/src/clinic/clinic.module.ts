@@ -4,8 +4,14 @@ import { ClinicController } from './clinic.controller';
 import { ClinicService } from './clinic.service';
 import { ClinicGateway } from './clinic.gateway';
 import { Clinic, ClinicSchema } from '../schemas/clinic.schema';
-import { MedicalRecord, MedicalRecordSchema } from '../schemas/medical-record.schema';
-import { EmergencyDispatch, EmergencyDispatchSchema } from '../schemas/emergency-dispatch.schema';
+import {
+  MedicalRecord,
+  MedicalRecordSchema,
+} from '../schemas/medical-record.schema';
+import {
+  EmergencyDispatch,
+  EmergencyDispatchSchema,
+} from '../schemas/emergency-dispatch.schema';
 
 @Module({
   imports: [

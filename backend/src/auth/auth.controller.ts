@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { UserRole } from '../schemas/user.schema';
@@ -39,8 +47,21 @@ export class AuthController {
 
   @Post('oauth-login')
   @HttpCode(200)
-  async oauthLogin(@Body() body: { name: string; email: string; avatar?: string; role?: UserRole }) {
-    return this.authService.oauthLogin(body.name, body.email, body.avatar, body.role);
+  async oauthLogin(
+    @Body()
+    body: {
+      name: string;
+      email: string;
+      avatar?: string;
+      role?: UserRole;
+    },
+  ) {
+    return this.authService.oauthLogin(
+      body.name,
+      body.email,
+      body.avatar,
+      body.role,
+    );
   }
 
   @Post('forgot-password')
@@ -51,13 +72,23 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(200)
-  async resetPassword(@Body() body: { token: string; email: string; newPassword: string }) {
-    return this.authService.resetPassword(body.token, body.email, body.newPassword);
+  async resetPassword(
+    @Body() body: { token: string; email: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.token,
+      body.email,
+      body.newPassword,
+    );
   }
 
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
-  async updateProfile(@Req() req: any, @Body() body: { name?: string; avatar?: string; phone?: string; city?: string }) {
+  async updateProfile(
+    @Req() req: any,
+    @Body()
+    body: { name?: string; avatar?: string; phone?: string; city?: string },
+  ) {
     return this.authService.updateProfile(req.user.id, body);
   }
 

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { GroomingService } from './grooming.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -34,7 +44,8 @@ export class GroomingController {
   async createAppointment(@Req() req: any, @Body() body: any) {
     const userId = req.user?.id || body.userId || 'guest-anonymous';
     const customerName = req.user?.name || body.customerName || 'Pet Parent';
-    const customerEmail = req.user?.email || body.customerEmail || 'customer@petsos.app';
+    const customerEmail =
+      req.user?.email || body.customerEmail || 'customer@petsos.app';
     return this.groomingService.createAppointment({
       ...body,
       userId,
@@ -46,9 +57,19 @@ export class GroomingController {
   @Patch('appointments/:id/status')
   async updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: string; coatConditionNotes?: string; afterPhotoUrl?: string },
+    @Body()
+    body: {
+      status: string;
+      coatConditionNotes?: string;
+      afterPhotoUrl?: string;
+    },
   ) {
-    return this.groomingService.updateStatus(id, body.status, body.coatConditionNotes, body.afterPhotoUrl);
+    return this.groomingService.updateStatus(
+      id,
+      body.status,
+      body.coatConditionNotes,
+      body.afterPhotoUrl,
+    );
   }
 
   @Post('appointments/:id/invoice')

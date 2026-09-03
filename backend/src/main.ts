@@ -36,7 +36,10 @@ async function bootstrap() {
       res.setHeader('X-Frame-Options', 'SAMEORIGIN');
       res.setHeader('X-XSS-Protection', '1; mode=block');
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      res.setHeader(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains',
+      );
       next();
     });
 
@@ -61,25 +64,33 @@ async function bootstrap() {
     const isDev = process.env.NODE_ENV !== 'production';
 
     app.enableCors({
-      origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      origin: (
+        origin: string,
+        callback: (err: Error | null, allow?: boolean) => void,
+      ) => {
         if (!origin) return callback(null, true);
         const allowed =
           allowedOrigins.includes(origin) ||
           origin.endsWith('.petsos.com') ||
           origin.endsWith('.run.app') ||
-          /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin) ||
+          /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(
+            origin,
+          ) ||
           /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(origin) ||
           isDev;
         return callback(null, allowed);
       },
       credentials: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type,Accept,Authorization,x-clinic-token,x-admin-token,x-store-token,x-api-key,x-requested-with',
+      allowedHeaders:
+        'Content-Type,Accept,Authorization,x-clinic-token,x-admin-token,x-store-token,x-api-key,x-requested-with',
     });
 
     const port = Number(process.env.PORT) || 8080;
     await app.listen(port, '0.0.0.0');
-    console.log(`🐾 PetSOS Backend Server successfully listening on 0.0.0.0:${port}`);
+    console.log(
+      `🐾 PetSOS Backend Server successfully listening on 0.0.0.0:${port}`,
+    );
   } catch (error) {
     console.error('❌ FATAL: Server failed to start:', error);
     process.exit(1);

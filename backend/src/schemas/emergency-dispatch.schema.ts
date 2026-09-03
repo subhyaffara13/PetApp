@@ -29,7 +29,11 @@ export class EmergencyDispatch {
   @Prop({ required: true })
   clinicId: string;
 
-  @Prop({ required: true, enum: ['critical', 'urgent', 'standard'], default: 'urgent' })
+  @Prop({
+    required: true,
+    enum: ['critical', 'urgent', 'standard'],
+    default: 'urgent',
+  })
   urgency: string;
 
   @Prop({ required: true })
@@ -47,11 +51,16 @@ export class EmergencyDispatch {
   @Prop({ type: [String], default: [] })
   medications: string[];
 
-  @Prop({ required: true, enum: ['en_route', 'arrived', 'triaged', 'completed', 'cancelled'], default: 'en_route' })
+  @Prop({
+    required: true,
+    enum: ['en_route', 'arrived', 'triaged', 'completed', 'cancelled'],
+    default: 'en_route',
+  })
   status: string;
 }
 
-export const EmergencyDispatchSchema = SchemaFactory.createForClass(EmergencyDispatch);
+export const EmergencyDispatchSchema =
+  SchemaFactory.createForClass(EmergencyDispatch);
 EmergencyDispatchSchema.index({ clinicId: 1, status: 1, createdAt: -1 });
 EmergencyDispatchSchema.index({ petId: 1, createdAt: -1 });
 

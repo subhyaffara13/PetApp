@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { SheltersService } from '../shelters/shelters.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
@@ -130,13 +141,20 @@ export class CommunityController {
   }
 
   @Post('feed/:id/like')
-  async toggleLike(@Param('id') id: string, @Body() body: { userId?: string }, @Req() req: any) {
+  async toggleLike(
+    @Param('id') id: string,
+    @Body() body: { userId?: string },
+    @Req() req: any,
+  ) {
     const userId = body?.userId || req.user?.id || 'current-user';
     return this.communityService.toggleLike(id, userId);
   }
 
   @Post('feed/:id/comments')
-  async addComment(@Param('id') id: string, @Body() body: { userName: string; userAvatar: string; text: string }) {
+  async addComment(
+    @Param('id') id: string,
+    @Body() body: { userName: string; userAvatar: string; text: string },
+  ) {
     return this.communityService.addComment(id, body);
   }
 

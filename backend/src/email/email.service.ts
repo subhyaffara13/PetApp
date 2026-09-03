@@ -43,9 +43,13 @@ export class EmailService {
       this.resend = new Resend(apiKey);
       this.logger.log('✅ Resend Email Service initialized.');
     } else {
-      this.logger.warn('⚠️ RESEND_API_KEY not configured. Outgoing emails will be logged to console in dev mode.');
+      this.logger.warn(
+        '⚠️ RESEND_API_KEY not configured. Outgoing emails will be logged to console in dev mode.',
+      );
     }
-    this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'PetSOS <onboarding@resend.dev>';
+    this.fromEmail =
+      this.configService.get<string>('EMAIL_FROM') ||
+      'PetSOS <onboarding@resend.dev>';
   }
 
   async sendPasswordResetEmail(
@@ -104,8 +108,13 @@ export class EmailService {
 </html>`;
 
     if (!this.resend) {
-      this.logger.log(`[Dev Email Simulation] Password reset to: ${to} | Link: ${resetLink}`);
-      return { success: true, message: 'Password reset link sent (simulated in development mode).' };
+      this.logger.log(
+        `[Dev Email Simulation] Password reset to: ${to} | Link: ${resetLink}`,
+      );
+      return {
+        success: true,
+        message: 'Password reset link sent (simulated in development mode).',
+      };
     }
 
     try {
@@ -117,11 +126,18 @@ export class EmailService {
       });
 
       if (response.error) {
-        this.logger.error(`Resend email delivery failed for ${to}:`, response.error);
+        this.logger.error(
+          `Resend email delivery failed for ${to}:`,
+          response.error,
+        );
         return { success: false, message: 'Failed to deliver reset email.' };
       }
 
-      return { success: true, id: response.data?.id, message: 'Password reset link sent to your email.' };
+      return {
+        success: true,
+        id: response.data?.id,
+        message: 'Password reset link sent to your email.',
+      };
     } catch (err: any) {
       this.logger.error(`Error sending email: ${err?.message}`);
       return { success: false, message: 'Email service error.' };
@@ -131,9 +147,17 @@ export class EmailService {
   /**
    * Generates and dispatches a comprehensive, official itemized receipt email
    */
-  async sendItemizedReceiptEmail(to: string, receipt: ItemizedReceiptData): Promise<boolean> {
+  async sendItemizedReceiptEmail(
+    to: string,
+    receipt: ItemizedReceiptData,
+  ): Promise<boolean> {
     const curr = receipt.currency || '₪';
-    const dateStr = receipt.paidAt ? new Date(receipt.paidAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString();
+    const dateStr = receipt.paidAt
+      ? new Date(receipt.paidAt).toLocaleString('en-US', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : new Date().toLocaleString();
 
     const itemsHtml = receipt.items
       .map(
@@ -288,7 +312,9 @@ export class EmailService {
 </html>`;
 
     if (!this.resend) {
-      this.logger.log(`[Dev Email Simulation] Itemized Receipt to: ${to} | Receipt: ${receipt.receiptNumber} | Total: ${curr}${receipt.total}`);
+      this.logger.log(
+        `[Dev Email Simulation] Itemized Receipt to: ${to} | Receipt: ${receipt.receiptNumber} | Total: ${curr}${receipt.total}`,
+      );
       return true;
     }
 
@@ -340,7 +366,9 @@ export class EmailService {
 </html>`;
 
     if (!this.resend) {
-      this.logger.log(`[Dev Email Simulation] Co-Parent Invite to: ${to} for pet: ${invite.petName}`);
+      this.logger.log(
+        `[Dev Email Simulation] Co-Parent Invite to: ${to} for pet: ${invite.petName}`,
+      );
       return true;
     }
 
@@ -358,7 +386,15 @@ export class EmailService {
     }
   }
 
-  async sendOrderConfirmationEmail(to: string, order: { orderId: string; total: number; shopName: string; itemsCount: number }): Promise<boolean> {
+  async sendOrderConfirmationEmail(
+    to: string,
+    order: {
+      orderId: string;
+      total: number;
+      shopName: string;
+      itemsCount: number;
+    },
+  ): Promise<boolean> {
     return this.sendItemizedReceiptEmail(to, {
       receiptNumber: `REC-${order.orderId}`,
       customerName: 'Valued Customer',

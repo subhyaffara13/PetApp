@@ -15,7 +15,11 @@ export class UploadService {
     });
   }
 
-  async uploadBuffer(buffer: Buffer, folder: string, publicId?: string): Promise<{ url: string; publicId: string }> {
+  async uploadBuffer(
+    buffer: Buffer,
+    folder: string,
+    publicId?: string,
+  ): Promise<{ url: string; publicId: string }> {
     return new Promise((resolve, reject) => {
       const options: Record<string, any> = {
         folder: `petsos/${folder}`,
@@ -24,13 +28,22 @@ export class UploadService {
       };
       if (publicId) options.public_id = publicId;
 
-      cloudinary.uploader.upload_stream(options, (error, result: UploadApiResponse | undefined) => {
-        if (error || !result) {
-          this.logger.error('Cloudinary upload failed', error);
-          return reject(new BadRequestException('Image upload failed. Please try again.'));
-        }
-        resolve({ url: result.secure_url, publicId: result.public_id });
-      }).end(buffer);
+      cloudinary.uploader
+        .upload_stream(
+          options,
+          (error, result: UploadApiResponse | undefined) => {
+            if (error || !result) {
+              this.logger.error('Cloudinary upload failed', error);
+              return reject(
+                new BadRequestException(
+                  'Image upload failed. Please try again.',
+                ),
+              );
+            }
+            resolve({ url: result.secure_url, publicId: result.public_id });
+          },
+        )
+        .end(buffer);
     });
   }
 

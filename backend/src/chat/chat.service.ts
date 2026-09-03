@@ -5,37 +5,132 @@ import axios from 'axios';
 import { PetProfileService } from '../pet-profile/pet-profile.service';
 
 const EMERGENCY_KEYWORDS = [
-  'vomiting blood', 'blood in vomit', 'bloody vomit',
-  'seizure', 'seizures', 'seizing', 'convulsing', 'convulsion',
-  'difficulty breathing', "can't breathe", 'cant breathe', 'struggling to breathe',
-  'choking', 'not breathing',
-  'poisoning', 'poison', 'poisoned', 'ate poison', 'toxic', 'toxin',
-  'ate chocolate', 'ate xylitol', 'ate grapes', 'ate raisins', 'ate onion',
-  'antifreeze', 'rat poison', 'snail bait',
-  'collapse', 'collapsed', 'unconscious', 'unresponsive', 'fainted',
-  'swallowed', 'foreign object', 'ate something', 'swallowed bone',
-  'hit by car', 'hit by a car', 'run over', 'car accident', 'vehicle',
-  'bleeding heavily', 'severe bleeding', "won't stop bleeding", 'deep cut', 'deep wound',
-  'broken bone', 'fracture', 'limping badly',
-  'bitten by snake', 'snake bite', 'scorpion sting', 'bee sting swelling',
-  'bloated stomach', 'bloat', 'stomach twisted', 'gdv',
-  'eye injury', 'eye popping out', 'proptosis',
-  'heatstroke', 'heat stroke', 'overheating',
-  'drowning', 'nearly drowned',
-  'electrocuted', 'electric shock',
-  'giving birth', 'labor', 'difficulty whelping', 'stuck puppy', 'stuck kitten',
-  'paralyzed', 'paralysis', "can't move legs", 'dragging legs',
-  'swollen face', 'allergic reaction', 'anaphylaxis',
-  'blood in stool', 'bloody diarrhea', 'black stool',
-  'not eating for days', "hasn't eaten in",
-  'high fever', 'very high temperature',
-  'my pet is dying', 'is dying', 'about to die',
+  'vomiting blood',
+  'blood in vomit',
+  'bloody vomit',
+  'seizure',
+  'seizures',
+  'seizing',
+  'convulsing',
+  'convulsion',
+  'difficulty breathing',
+  "can't breathe",
+  'cant breathe',
+  'struggling to breathe',
+  'choking',
+  'not breathing',
+  'poisoning',
+  'poison',
+  'poisoned',
+  'ate poison',
+  'toxic',
+  'toxin',
+  'ate chocolate',
+  'ate xylitol',
+  'ate grapes',
+  'ate raisins',
+  'ate onion',
+  'antifreeze',
+  'rat poison',
+  'snail bait',
+  'collapse',
+  'collapsed',
+  'unconscious',
+  'unresponsive',
+  'fainted',
+  'swallowed',
+  'foreign object',
+  'ate something',
+  'swallowed bone',
+  'hit by car',
+  'hit by a car',
+  'run over',
+  'car accident',
+  'vehicle',
+  'bleeding heavily',
+  'severe bleeding',
+  "won't stop bleeding",
+  'deep cut',
+  'deep wound',
+  'broken bone',
+  'fracture',
+  'limping badly',
+  'bitten by snake',
+  'snake bite',
+  'scorpion sting',
+  'bee sting swelling',
+  'bloated stomach',
+  'bloat',
+  'stomach twisted',
+  'gdv',
+  'eye injury',
+  'eye popping out',
+  'proptosis',
+  'heatstroke',
+  'heat stroke',
+  'overheating',
+  'drowning',
+  'nearly drowned',
+  'electrocuted',
+  'electric shock',
+  'giving birth',
+  'labor',
+  'difficulty whelping',
+  'stuck puppy',
+  'stuck kitten',
+  'paralyzed',
+  'paralysis',
+  "can't move legs",
+  'dragging legs',
+  'swollen face',
+  'allergic reaction',
+  'anaphylaxis',
+  'blood in stool',
+  'bloody diarrhea',
+  'black stool',
+  'not eating for days',
+  "hasn't eaten in",
+  'high fever',
+  'very high temperature',
+  'my pet is dying',
+  'is dying',
+  'about to die',
   // Hebrew Emergency Keywords
-  'דם', 'מקיא דם', 'פרכוס', 'פרכוסים', 'קשיי נשימה', 'נחנק', 'מורעל', 'הרעלה',
-  'אכל שוקולד', 'אכל רעל', 'נדרס', 'תאונה', 'דימום קשה', 'שבר', 'הכשת נחש', 'עקיצה',
-  'התעלף', 'גוסס', 'מתנשף בכבדות', 'עין נפוחה', 'מכת חום', 'טביעה', 'שיתוק',
+  'דם',
+  'מקיא דם',
+  'פרכוס',
+  'פרכוסים',
+  'קשיי נשימה',
+  'נחנק',
+  'מורעל',
+  'הרעלה',
+  'אכל שוקולד',
+  'אכל רעל',
+  'נדרס',
+  'תאונה',
+  'דימום קשה',
+  'שבר',
+  'הכשת נחש',
+  'עקיצה',
+  'התעלף',
+  'גוסס',
+  'מתנשף בכבדות',
+  'עין נפוחה',
+  'מכת חום',
+  'טביעה',
+  'שיתוק',
   // Arabic Emergency Keywords
-  'دم', 'يتقيأ دم', 'تشنج', 'صعوبة تنفس', 'اختناق', 'تسمم', 'سم', 'حادث سيارة', 'نزيف شديد', 'كسر', 'لدغة ثعبان',
+  'دم',
+  'يتقيأ دم',
+  'تشنج',
+  'صعوبة تنفس',
+  'اختناق',
+  'تسمم',
+  'سم',
+  'حادث سيارة',
+  'نزيف شديد',
+  'كسر',
+  'لدغة ثعبان',
 ];
 
 const SYSTEM_PROMPT = `You are PetSOS AI Veterinary Assistant, a friendly and expert pet care advisor. Your role is to help pet owners with questions about:
@@ -51,7 +146,11 @@ CRITICAL SAFETY RULES:
 3. Always respond fluently in the EXACT language of the user prompt (Hebrew, Arabic, Russian, English, etc.).
 4. Use clear bullet points, warm tone, and emojis 🐾.`;
 
-const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+const GEMINI_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-2.0-flash',
+];
 
 @Injectable()
 export class ChatService {
@@ -83,7 +182,9 @@ export class ChatService {
       const lowerMessage = (message || '').toLowerCase();
       for (const keyword of EMERGENCY_KEYWORDS) {
         if (lowerMessage.includes(keyword)) {
-          this.logger.warn(`Emergency keyword detected: "${keyword}" in message: "${message}"`);
+          this.logger.warn(
+            `Emergency keyword detected: "${keyword}" in message: "${message}"`,
+          );
           const isHebrew = /[\u0590-\u05FF]/.test(message);
           const isArabic = /[\u0600-\u06FF]/.test(message);
           return {
@@ -91,8 +192,8 @@ export class ChatService {
             message: isHebrew
               ? `🚨 זוהה מצב חירום פוטנציאלי הקשור ל-"${keyword}". אנא פנה לבית חולים וטרינרי לחירום באופן מיידי!`
               : isArabic
-              ? `🚨 تم اكتشاف حالة طوارئ محتملة تتعلق بـ "${keyword}". يرجى الاتصال بمستشفى الطوارئ البيطري فوراً!`
-              : `🚨 Potential emergency detected related to "${keyword}". Please contact an emergency animal hospital immediately!`,
+                ? `🚨 تم اكتشاف حالة طوارئ محتملة تتعلق بـ "${keyword}". يرجى الاتصال بمستشفى الطوارئ البيطري فوراً!`
+                : `🚨 Potential emergency detected related to "${keyword}". Please contact an emergency animal hospital immediately!`,
           };
         }
       }
@@ -105,7 +206,8 @@ export class ChatService {
           const petSummaries = allPets.map((p) => {
             return `- Name: ${p.name}, Species: ${p.species}, Breed: ${p.breed}, Age: ${p.age}y, Allergies: ${p.allergies?.join(', ') || 'None'}`;
           });
-          dynamicRAGContext += `\n\nUSER'S REGISTERED PETS:\n` + petSummaries.join('\n');
+          dynamicRAGContext +=
+            `\n\nUSER'S REGISTERED PETS:\n` + petSummaries.join('\n');
         }
       } catch {}
 
@@ -118,8 +220,18 @@ export class ChatService {
             const model = this.genAI.getGenerativeModel({ model: modelName });
             const chat = model.startChat({
               history: [
-                { role: 'user', parts: [{ text: 'System instructions: ' + fullSystemPrompt }] },
-                { role: 'model', parts: [{ text: 'Understood. I will provide helpful veterinary pet care advice.' }] },
+                {
+                  role: 'user',
+                  parts: [{ text: 'System instructions: ' + fullSystemPrompt }],
+                },
+                {
+                  role: 'model',
+                  parts: [
+                    {
+                      text: 'Understood. I will provide helpful veterinary pet care advice.',
+                    },
+                  ],
+                },
                 ...history.slice(-10).map((msg) => ({
                   role: msg.role === 'assistant' ? 'model' : 'user',
                   parts: [{ text: msg.content }],
@@ -143,7 +255,10 @@ export class ChatService {
               return { message: responseText, emergency: false };
             }
           } catch (err: any) {
-            this.logger.warn(`Gemini model ${modelName} call failed:`, err?.message);
+            this.logger.warn(
+              `Gemini model ${modelName} call failed:`,
+              err?.message,
+            );
           }
         }
       }
@@ -152,17 +267,26 @@ export class ChatService {
       return this.generateSmartDiagnosticResponse(message);
     } catch (err: any) {
       return {
-        message: '🐾 I am here to help! Please tell me about your pet’s symptoms, age, and breed.',
+        message:
+          '🐾 I am here to help! Please tell me about your pet’s symptoms, age, and breed.',
         emergency: false,
       };
     }
   }
 
-  private generateSmartDiagnosticResponse(message: string): { message: string; emergency: boolean } {
+  private generateSmartDiagnosticResponse(message: string): {
+    message: string;
+    emergency: boolean;
+  } {
     const text = message.toLowerCase();
     const isHebrew = /[\u0590-\u05FF]/.test(message);
 
-    if (text.includes('food') || text.includes('diet') || text.includes('אוכל') || text.includes('מזון')) {
+    if (
+      text.includes('food') ||
+      text.includes('diet') ||
+      text.includes('אוכל') ||
+      text.includes('מזון')
+    ) {
       return {
         message: isHebrew
           ? `🍖 **המלצות תזונה ודיאטה לחיות מחמד**:\n- **גורים**: מזון עתיר חלבון ושומן בריא (3-4 ארוחות ביום).\n- **בוגרים**: מזון יבש מאוזן מותאם לגודל וגזע (2 ארוחות ביום).\n- **מזונות מסוכנים**: שוקולד, ענבים, בצל, שום, קסיליטול ועצמות מבושלות.\n\nהאם תרצה המלצה למותג ספציפי עבור הכלב/חתול שלך?`
@@ -171,7 +295,13 @@ export class ChatService {
       };
     }
 
-    if (text.includes('rash') || text.includes('itch') || text.includes('scratch') || text.includes('גרד') || text.includes('עור')) {
+    if (
+      text.includes('rash') ||
+      text.includes('itch') ||
+      text.includes('scratch') ||
+      text.includes('גרד') ||
+      text.includes('עור')
+    ) {
       return {
         message: isHebrew
           ? `🩺 **אבחון גירוד ובעיות עור**:\n- גירוד מתמשך יכול לנבוע מפרעושים, אלרגיה למזון (עוף/דגנים), או אטופיה סביבתית.\n- **עזרה ראשונה**: סרוק עם מסרק פרעושים, שטוף בשמפו שיבולת שועל היפואלרגני, והימנע מחשיפה לדשא טרי.\n- אם יש פצע אדום חם ("Hot Spot"), יש לפנות לבדיקת וטרינר למתן טיפול מרגיע.`

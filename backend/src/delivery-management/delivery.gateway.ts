@@ -9,13 +9,21 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       const allowedOrigins = [
-        'http://localhost:5173', 'http://localhost:5174',
-        'http://localhost:5175', 'http://localhost:5176',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        'http://localhost:5176',
       ];
-      const envOrigins = (process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+      const envOrigins = (process.env.CORS_ORIGINS || '')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean);
       const allowed =
         allowedOrigins.includes(origin) ||
         envOrigins.includes(origin) ||
@@ -31,12 +39,18 @@ export class DeliveryGateway {
   server: Server;
 
   @SubscribeMessage('join:store')
-  handleJoinStore(@ConnectedSocket() client: Socket, @MessageBody() storeId: string) {
+  handleJoinStore(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() storeId: string,
+  ) {
     client.join(`store:${storeId}`);
   }
 
   @SubscribeMessage('join:order')
-  handleJoinOrder(@ConnectedSocket() client: Socket, @MessageBody() masterOrderId: string) {
+  handleJoinOrder(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() masterOrderId: string,
+  ) {
     client.join(`order:${masterOrderId}`);
   }
 
@@ -49,7 +63,7 @@ export class DeliveryGateway {
     masterOrderId: string,
     subOrderId: string,
     status: string,
-    extra: Record<string, any> = {}
+    extra: Record<string, any> = {},
   ): void {
     // Notify Store Dashboard
     this.server?.to(`store:${storeId}`).emit('ORDER_STATUS_CHANGED', {
@@ -70,7 +84,7 @@ export class DeliveryGateway {
   public emitCourierLocationPing(
     masterOrderId: string,
     subOrderId: string,
-    coordinates: [number, number]
+    coordinates: [number, number],
   ): void {
     this.server?.to(`order:${masterOrderId}`).emit('COURIER_LOCATION', {
       subOrderId,

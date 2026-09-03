@@ -5,7 +5,9 @@ const logger = new Logger('AtomicEnvValidator');
 
 const envSchema = z.object({
   PORT: z.string().default('3000'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
 
   // --- App URLs -----------------------------------------------
   FRONTEND_URL: z.string().default('http://localhost:5173'),
@@ -20,7 +22,9 @@ const envSchema = z.object({
 
   // --- JWT Auth -----------------------------------------------
   JWT_SECRET: z.string().default('petsos_jwt_dev_secret_change_in_production'),
-  JWT_REFRESH_SECRET: z.string().default('petsos_refresh_dev_secret_change_in_production'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .default('petsos_refresh_dev_secret_change_in_production'),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
 
@@ -63,7 +67,9 @@ export function validateEnvironment(): ValidatedEnv {
       logger.error(` -> ${err.path.join('.')}: ${err.message}`);
     });
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('Server boot aborted due to missing/invalid production environment variables.');
+      throw new Error(
+        'Server boot aborted due to missing/invalid production environment variables.',
+      );
     }
   }
 
@@ -83,18 +89,34 @@ export function validateEnvironment(): ValidatedEnv {
     for (const key of requiredProd) {
       const val = process.env[key];
       if (!val || val.includes('mock') || val.includes('dev_secret')) {
-        logger.warn(`⚠️  PRODUCTION WARNING: ${key} is missing or using a placeholder value.`);
+        logger.warn(
+          `⚠️  PRODUCTION WARNING: ${key} is missing or using a placeholder value.`,
+        );
       }
     }
 
     // Integration readiness audit (warn but don't block)
-    const integrations: Array<{ key: keyof ValidatedEnv; name: string; url: string }> = [
-      { key: 'WOLT_DRIVE_API_KEY', name: 'Wolt Drive DaaS', url: 'https://explore.wolt.com/he/il/drive' },
-      { key: 'GEMINI_API_KEY', name: 'Google Gemini AI', url: 'https://aistudio.google.com/app/apikey' },
+    const integrations: Array<{
+      key: keyof ValidatedEnv;
+      name: string;
+      url: string;
+    }> = [
+      {
+        key: 'WOLT_DRIVE_API_KEY',
+        name: 'Wolt Drive DaaS',
+        url: 'https://explore.wolt.com/he/il/drive',
+      },
+      {
+        key: 'GEMINI_API_KEY',
+        name: 'Google Gemini AI',
+        url: 'https://aistudio.google.com/app/apikey',
+      },
     ];
     for (const integration of integrations) {
       if (!process.env[integration.key]) {
-        logger.warn(`🔌 INTEGRATION NOT CONFIGURED: ${integration.name} — get credentials at ${integration.url}`);
+        logger.warn(
+          `🔌 INTEGRATION NOT CONFIGURED: ${integration.name} — get credentials at ${integration.url}`,
+        );
       }
     }
   }

@@ -1,7 +1,21 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Story, StoryDocument, Post, PostDocument, DirectMessage, DirectMessageDocument, CommunityReport, CommunityReportDocument } from '../schemas/community.schema';
+import {
+  Story,
+  StoryDocument,
+  Post,
+  PostDocument,
+  DirectMessage,
+  DirectMessageDocument,
+  CommunityReport,
+  CommunityReportDocument,
+} from '../schemas/community.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
 
@@ -43,10 +57,13 @@ export class CommunityService implements OnModuleInit {
   constructor(
     @InjectModel(Story.name) private storyModel: Model<StoryDocument>,
     @InjectModel(Post.name) private postModel: Model<PostDocument>,
-    @InjectModel(DirectMessage.name) private dmModel: Model<DirectMessageDocument>,
-    @InjectModel(CommunityReport.name) private reportModel: Model<CommunityReportDocument>,
+    @InjectModel(DirectMessage.name)
+    private dmModel: Model<DirectMessageDocument>,
+    @InjectModel(CommunityReport.name)
+    private reportModel: Model<CommunityReportDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(PetProfile.name) private petProfileModel: Model<PetProfileDocument>,
+    @InjectModel(PetProfile.name)
+    private petProfileModel: Model<PetProfileDocument>,
   ) {}
 
   async onModuleInit() {
@@ -56,12 +73,16 @@ export class CommunityService implements OnModuleInit {
   /** Removes any legacy dummy users not named Subhy Affara so fresh user accounts can be tested */
   async cleanNonSubhyUsers(): Promise<{ deletedCount: number }> {
     try {
-      const res = await this.userModel.deleteMany({
-        name: { $not: /subhy\s*affara|subhi/i },
-        email: { $not: /subhyaffara|subhi/i },
-      }).exec();
+      const res = await this.userModel
+        .deleteMany({
+          name: { $not: /subhy\s*affara|subhi/i },
+          email: { $not: /subhyaffara|subhi/i },
+        })
+        .exec();
       if (res.deletedCount > 0) {
-        this.logger.log(`Cleaned up ${res.deletedCount} legacy test accounts; retained Subhy Affara.`);
+        this.logger.log(
+          `Cleaned up ${res.deletedCount} legacy test accounts; retained Subhy Affara.`,
+        );
       }
       return { deletedCount: res.deletedCount || 0 };
     } catch (err: any) {
@@ -74,7 +95,10 @@ export class CommunityService implements OnModuleInit {
   async getStories(): Promise<StoryDocument[]> {
     try {
       const now = new Date();
-      return await this.storyModel.find({ expiresAt: { $gt: now } }).sort({ createdAt: -1 }).exec();
+      return await this.storyModel
+        .find({ expiresAt: { $gt: now } })
+        .sort({ createdAt: -1 })
+        .exec();
     } catch {
       return [];
     }
@@ -99,7 +123,10 @@ export class CommunityService implements OnModuleInit {
 
   async getPostsByUser(userId: string): Promise<PostDocument[]> {
     try {
-      return await this.postModel.find({ authorId: userId }).sort({ createdAt: -1 }).exec();
+      return await this.postModel
+        .find({ authorId: userId })
+        .sort({ createdAt: -1 })
+        .exec();
     } catch {
       return [];
     }
@@ -111,9 +138,11 @@ export class CommunityService implements OnModuleInit {
 
     // Increment user's liked category preferences if available
     if (dto.authorId && dto.category) {
-      await this.userModel.findByIdAndUpdate(dto.authorId, {
-        $addToSet: { likedCategories: dto.category },
-      }).exec();
+      await this.userModel
+        .findByIdAndUpdate(dto.authorId, {
+          $addToSet: { likedCategories: dto.category },
+        })
+        .exec();
     }
     return saved;
   }
@@ -137,7 +166,10 @@ export class CommunityService implements OnModuleInit {
     return post.save();
   }
 
-  async addComment(postId: string, comment: { userName: string; userAvatar: string; text: string }): Promise<any> {
+  async addComment(
+    postId: string,
+    comment: { userName: string; userAvatar: string; text: string },
+  ): Promise<any> {
     const post = await this.postModel.findById(postId).exec();
     if (!post) throw new NotFoundException('Post not found');
 
@@ -146,7 +178,10 @@ export class CommunityService implements OnModuleInit {
   }
 
   // --- LIVE USER PROFILES (100% Database Powered) ---
-  async getUserProfile(targetUserId: string, currentUserId?: string): Promise<UserProfileResponse> {
+  async getUserProfile(
+    targetUserId: string,
+    currentUserId?: string,
+  ): Promise<UserProfileResponse> {
     let user: UserDocument | null = null;
     try {
       user = await this.userModel.findById(targetUserId).exec();
@@ -160,7 +195,8 @@ export class CommunityService implements OnModuleInit {
         id: targetUserId,
         name: 'Pet Parent',
         handle: '@petparent',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatar:
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         bio: 'Animal lover in Haifa 🐾',
         followersCount: 0,
         followingCount: 0,
@@ -169,22 +205,29 @@ export class CommunityService implements OnModuleInit {
       };
     }
 
-    const postsCount = await this.postModel.countDocuments({ authorId: user._id.toString() }).exec();
+    const postsCount = await this.postModel
+      .countDocuments({ authorId: user._id.toString() })
+      .exec();
     const followers = user.followers || [];
     const following = user.following || [];
-    const isFollowing = currentUserId ? followers.includes(currentUserId) : false;
+    const isFollowing = currentUserId
+      ? followers.includes(currentUserId)
+      : false;
 
     // Query public pets safely (NO medical records, allergies, microchip IDs, or sensitive notes)
     let pets: PublicPetSummary[] = [];
     try {
-      const rawPets = await this.petProfileModel.find({
-        $or: [
-          { ownerId: user._id.toString() },
-          { ownerId: user.email },
-          { 'coParents.userId': user._id.toString() },
-        ],
-        isArchived: { $ne: true },
-      }).select('name species breed age dateOfBirth gender photoUrl').exec();
+      const rawPets = await this.petProfileModel
+        .find({
+          $or: [
+            { ownerId: user._id.toString() },
+            { ownerId: user.email },
+            { 'coParents.userId': user._id.toString() },
+          ],
+          isArchived: { $ne: true },
+        })
+        .select('name species breed age dateOfBirth gender photoUrl')
+        .exec();
 
       pets = rawPets.map((p) => ({
         _id: p._id.toString(),
@@ -211,36 +254,68 @@ export class CommunityService implements OnModuleInit {
       id: user._id.toString(),
       name: user.name,
       handle: user.handle || `@${user.email.split('@')[0]}`,
-      avatar: user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      avatar:
+        user.avatar ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       bio: user.bio || 'Proud pet parent 🐾',
       role: user.role,
       isVerified: user.isVerified || false,
-      verificationBadge: user.verificationBadge || (user.role === 'clinic_admin' ? 'veterinarian' : user.role === 'store_merchant' ? 'pet_store' : user.role === 'shelter_org' ? 'animal_shelter' : user.role === 'superadmin' ? 'platform_admin' : 'none'),
+      verificationBadge:
+        user.verificationBadge ||
+        (user.role === 'clinic_admin'
+          ? 'veterinarian'
+          : user.role === 'store_merchant'
+            ? 'pet_store'
+            : user.role === 'shelter_org'
+              ? 'animal_shelter'
+              : user.role === 'superadmin'
+                ? 'platform_admin'
+                : 'none'),
       organizationName: user.organizationName || '',
       followersCount: followers.length,
       followingCount: following.length,
       postsCount,
       isFollowing,
-      petBreeds: pets.length > 0 ? pets.map((p) => p.breed) : (user.petBreeds || ['Golden Retriever']),
+      petBreeds:
+        pets.length > 0
+          ? pets.map((p) => p.breed)
+          : user.petBreeds || ['Golden Retriever'],
       pets,
       posts,
     };
   }
 
-  async checkHandleAvailability(rawHandle: string, currentUserId?: string): Promise<{ available: boolean; handle: string; message: string }> {
+  async checkHandleAvailability(
+    rawHandle: string,
+    currentUserId?: string,
+  ): Promise<{ available: boolean; handle: string; message: string }> {
     if (!rawHandle || !rawHandle.trim()) {
-      return { available: false, handle: '', message: 'Handle cannot be empty.' };
+      return {
+        available: false,
+        handle: '',
+        message: 'Handle cannot be empty.',
+      };
     }
     let handle = rawHandle.trim().toLowerCase();
     if (!handle.startsWith('@')) handle = `@${handle}`;
 
     const isValid = /^@[a-z0-9_]{3,24}$/.test(handle);
     if (!isValid) {
-      return { available: false, handle, message: 'Handle must be 3-24 characters (letters, numbers, underscores only).' };
+      return {
+        available: false,
+        handle,
+        message:
+          'Handle must be 3-24 characters (letters, numbers, underscores only).',
+      };
     }
 
     const query: any = { handle };
-    if (currentUserId && currentUserId !== 'current-user' && currentUserId !== 'guest-anonymous' && currentUserId !== 'guest') {
+    if (
+      currentUserId &&
+      currentUserId !== 'current-user' &&
+      currentUserId !== 'guest-anonymous' &&
+      currentUserId !== 'guest'
+    ) {
       try {
         query._id = { $ne: currentUserId };
       } catch {}
@@ -248,19 +323,39 @@ export class CommunityService implements OnModuleInit {
 
     const existing = await this.userModel.findOne(query).exec();
     if (existing) {
-      return { available: false, handle, message: `The handle ${handle} is already taken.` };
+      return {
+        available: false,
+        handle,
+        message: `The handle ${handle} is already taken.`,
+      };
     }
     return { available: true, handle, message: `${handle} is available!` };
   }
 
-  async updateProfile(userId: string, dto: { name?: string; bio?: string; handle?: string; avatar?: string; petBreeds?: string[] }): Promise<UserProfileResponse> {
-    if (!userId || userId === 'guest' || userId === 'guest-anonymous' || userId === 'current-user') {
+  async updateProfile(
+    userId: string,
+    dto: {
+      name?: string;
+      bio?: string;
+      handle?: string;
+      avatar?: string;
+      petBreeds?: string[];
+    },
+  ): Promise<UserProfileResponse> {
+    if (
+      !userId ||
+      userId === 'guest' ||
+      userId === 'guest-anonymous' ||
+      userId === 'current-user'
+    ) {
       // Return updated transient profile
       return {
         id: 'guest',
         name: dto.name || 'Pet Parent',
         handle: dto.handle || '@petparent',
-        avatar: dto.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        avatar:
+          dto.avatar ||
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         bio: dto.bio || 'Proud pet parent 🐾',
         followersCount: 0,
         followingCount: 0,
@@ -278,39 +373,68 @@ export class CommunityService implements OnModuleInit {
       dto.handle = avail.handle;
     }
 
-    const updated = await this.userModel.findByIdAndUpdate(userId, { $set: dto }, { new: true }).exec();
+    const updated = await this.userModel
+      .findByIdAndUpdate(userId, { $set: dto }, { new: true })
+      .exec();
     if (!updated) throw new NotFoundException('User not found');
     return this.getUserProfile(userId);
   }
 
   // --- SEARCH USERS ---
-  async searchUsers(query: string, currentUserId?: string): Promise<UserProfileResponse[]> {
+  async searchUsers(
+    query: string,
+    currentUserId?: string,
+  ): Promise<UserProfileResponse[]> {
     if (!query.trim()) return [];
     const regex = new RegExp(query.trim(), 'i');
 
-    const users = await this.userModel.find({
-      $or: [{ name: regex }, { handle: regex }, { email: regex }],
-    }).limit(15).exec();
+    const users = await this.userModel
+      .find({
+        $or: [{ name: regex }, { handle: regex }, { email: regex }],
+      })
+      .limit(15)
+      .exec();
 
-    return Promise.all(users.map((u) => this.getUserProfile(u._id.toString(), currentUserId)));
+    return Promise.all(
+      users.map((u) => this.getUserProfile(u._id.toString(), currentUserId)),
+    );
   }
 
   // --- SMART RECOMMENDATION ALGORITHM ---
-  async getSuggestedUsers(currentUserId?: string, lat: number = 32.8012, lon: number = 34.9855): Promise<UserProfileResponse[]> {
+  async getSuggestedUsers(
+    currentUserId?: string,
+    lat: number = 32.8012,
+    lon: number = 34.9855,
+  ): Promise<UserProfileResponse[]> {
     let currentUser: UserDocument | null = null;
     if (currentUserId && currentUserId !== 'current-user') {
-      try { currentUser = await this.userModel.findById(currentUserId).exec(); } catch {}
+      try {
+        currentUser = await this.userModel.findById(currentUserId).exec();
+      } catch {}
     }
 
-    const allUsers = await this.userModel.find({
-      _id: { $ne: currentUser?._id },
-      email: { $nin: ['clinic@petsos.app', 'store@petsos.app', 'demo@petsos.app', 'admin@petsos.app'] },
-      isActive: true,
-    }).limit(30).exec();
+    const allUsers = await this.userModel
+      .find({
+        _id: { $ne: currentUser?._id },
+        email: {
+          $nin: [
+            'clinic@petsos.app',
+            'store@petsos.app',
+            'demo@petsos.app',
+            'admin@petsos.app',
+          ],
+        },
+        isActive: true,
+      })
+      .limit(30)
+      .exec();
 
     const scoredUsers = await Promise.all(
       allUsers.map(async (user) => {
-        const profile = await this.getUserProfile(user._id.toString(), currentUserId);
+        const profile = await this.getUserProfile(
+          user._id.toString(),
+          currentUserId,
+        );
         let score = 0;
         let reason = 'Active in neighborhood';
 
@@ -326,9 +450,16 @@ export class CommunityService implements OnModuleInit {
         // 2. Proximity Score (+30 points)
         const uLat = user.locationCoordinates?.lat || 32.805;
         const uLon = user.locationCoordinates?.lon || 34.988;
-        const distKm = Math.round(
-          Math.sqrt(Math.pow((lat - uLat) * 111, 2) + Math.pow((lon - uLon) * 111 * Math.cos(lat * (Math.PI / 180)), 2)) * 10
-        ) / 10;
+        const distKm =
+          Math.round(
+            Math.sqrt(
+              Math.pow((lat - uLat) * 111, 2) +
+                Math.pow(
+                  (lon - uLon) * 111 * Math.cos(lat * (Math.PI / 180)),
+                  2,
+                ),
+            ) * 10,
+          ) / 10;
 
         if (distKm <= 3.0) {
           score += 30;
@@ -347,7 +478,7 @@ export class CommunityService implements OnModuleInit {
         profile.distanceKm = distKm;
         profile.suggestionReason = reason;
         return { profile, score };
-      })
+      }),
     );
 
     // Sort by algorithmic score descending
@@ -356,7 +487,14 @@ export class CommunityService implements OnModuleInit {
   }
 
   // --- TOGGLE FOLLOW WITH LIVE DB COUNTERS ---
-  async toggleFollow(targetUserId: string, currentUserId: string): Promise<{ isFollowing: boolean; targetUser: UserProfileResponse; currentUser: UserProfileResponse }> {
+  async toggleFollow(
+    targetUserId: string,
+    currentUserId: string,
+  ): Promise<{
+    isFollowing: boolean;
+    targetUser: UserProfileResponse;
+    currentUser: UserProfileResponse;
+  }> {
     const target = await this.userModel.findById(targetUserId).exec();
     const curr = await this.userModel.findById(currentUserId).exec();
 
@@ -365,11 +503,27 @@ export class CommunityService implements OnModuleInit {
     const alreadyFollowing = (target.followers || []).includes(currentUserId);
 
     if (alreadyFollowing) {
-      await this.userModel.findByIdAndUpdate(targetUserId, { $pull: { followers: currentUserId } }).exec();
-      await this.userModel.findByIdAndUpdate(currentUserId, { $pull: { following: targetUserId } }).exec();
+      await this.userModel
+        .findByIdAndUpdate(targetUserId, {
+          $pull: { followers: currentUserId },
+        })
+        .exec();
+      await this.userModel
+        .findByIdAndUpdate(currentUserId, {
+          $pull: { following: targetUserId },
+        })
+        .exec();
     } else {
-      await this.userModel.findByIdAndUpdate(targetUserId, { $addToSet: { followers: currentUserId } }).exec();
-      await this.userModel.findByIdAndUpdate(currentUserId, { $addToSet: { following: targetUserId } }).exec();
+      await this.userModel
+        .findByIdAndUpdate(targetUserId, {
+          $addToSet: { followers: currentUserId },
+        })
+        .exec();
+      await this.userModel
+        .findByIdAndUpdate(currentUserId, {
+          $addToSet: { following: targetUserId },
+        })
+        .exec();
     }
 
     const [updatedTarget, updatedCurr] = await Promise.all([
@@ -385,13 +539,20 @@ export class CommunityService implements OnModuleInit {
   }
 
   // --- END-TO-END ENCRYPTED DIRECT MESSAGES ---
-  async getEncryptedConversation(userId1: string, userId2: string): Promise<DirectMessageDocument[]> {
-    return this.dmModel.find({
-      $or: [
-        { senderId: userId1, recipientId: userId2 },
-        { senderId: userId2, recipientId: userId1 },
-      ],
-    }).sort({ createdAt: 1 }).limit(100).exec();
+  async getEncryptedConversation(
+    userId1: string,
+    userId2: string,
+  ): Promise<DirectMessageDocument[]> {
+    return this.dmModel
+      .find({
+        $or: [
+          { senderId: userId1, recipientId: userId2 },
+          { senderId: userId2, recipientId: userId1 },
+        ],
+      })
+      .sort({ createdAt: 1 })
+      .limit(100)
+      .exec();
   }
 
   async sendEncryptedMessage(dto: {
@@ -410,9 +571,12 @@ export class CommunityService implements OnModuleInit {
   }
 
   async getConversationsList(userId: string): Promise<any[]> {
-    const messages = await this.dmModel.find({
-      $or: [{ senderId: userId }, { recipientId: userId }],
-    }).sort({ createdAt: -1 }).exec();
+    const messages = await this.dmModel
+      .find({
+        $or: [{ senderId: userId }, { recipientId: userId }],
+      })
+      .sort({ createdAt: -1 })
+      .exec();
 
     const partners = new Map<string, any>();
     for (const m of messages) {
@@ -421,7 +585,8 @@ export class CommunityService implements OnModuleInit {
         partners.set(partnerId, {
           partnerId,
           partnerName: m.senderId === userId ? m.recipientName : m.senderName,
-          partnerAvatar: m.senderId === userId ? m.recipientAvatar : m.senderAvatar,
+          partnerAvatar:
+            m.senderId === userId ? m.recipientAvatar : m.senderAvatar,
           lastMessageAt: (m as any).createdAt || new Date(),
           lastEncryptedPayload: m.encryptedPayload,
           iv: m.iv,
@@ -444,7 +609,9 @@ export class CommunityService implements OnModuleInit {
   }): Promise<CommunityReportDocument> {
     const report = new this.reportModel(dto);
     const saved = await report.save();
-    this.logger.warn(`Safety Report submitted by ${dto.reporterName} against ${dto.reportedUserName}: ${dto.reason}`);
+    this.logger.warn(
+      `Safety Report submitted by ${dto.reporterName} against ${dto.reportedUserName}: ${dto.reason}`,
+    );
     return saved;
   }
 }

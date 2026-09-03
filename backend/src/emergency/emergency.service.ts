@@ -4,7 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
-import { LostPetAlert, LostPetAlertDocument } from '../schemas/emergency-dispatch.schema';
+import {
+  LostPetAlert,
+  LostPetAlertDocument,
+} from '../schemas/emergency-dispatch.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 
 export interface EmergencyClinicResult {
@@ -283,14 +286,34 @@ function getLocalizedVetKeywords(
     he: ['וטרינר', 'מרפאה וטרינרית', 'בית חולים וטרינרי', 'חירום וטרינרי'],
     ar: ['طبيب بيطري', 'عيادة بيطرية', 'مستشفى بيطري', 'طوارئ بيطرية'],
     de: ['Tierarzt', 'Tierklinik', 'Tierarztpraxis', 'Tiernotdienst'],
-    fr: ['vétérinaire', 'clinique vétérinaire', 'urgence vétérinaire', 'hôpital vétérinaire'],
-    es: ['veterinario', 'clínica veterinaria', 'hospital veterinario', 'urgencias veterinarias'],
+    fr: [
+      'vétérinaire',
+      'clinique vétérinaire',
+      'urgence vétérinaire',
+      'hôpital vétérinaire',
+    ],
+    es: [
+      'veterinario',
+      'clínica veterinaria',
+      'hospital veterinario',
+      'urgencias veterinarias',
+    ],
     it: ['veterinario', 'clinica veterinaria', 'pronto soccorso veterinario'],
     pt: ['veterinário', 'clínica veterinária', 'hospital veterinário'],
-    ru: ['ветеринар', 'ветклиника', 'ветеринарная клиника', 'ветеринарная помощь'],
+    ru: [
+      'ветеринар',
+      'ветклиника',
+      'ветеринарная клиника',
+      'ветеринарная помощь',
+    ],
     ja: ['獣医', '動物病院', '夜間救急動物病院'],
     zh: ['宠物医院', '兽医', '动物医院'],
-    en: ['veterinary clinic', 'animal hospital', 'emergency vet', '24/7 pet clinic'],
+    en: [
+      'veterinary clinic',
+      'animal hospital',
+      'emergency vet',
+      '24/7 pet clinic',
+    ],
   };
 
   const selectedKeywords = keywordMap[detectedLang] || keywordMap.en;
@@ -308,16 +331,25 @@ export class EmergencyService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-    @InjectModel(LostPetAlert.name) private lostPetAlertModel: Model<LostPetAlertDocument>,
+    @InjectModel(LostPetAlert.name)
+    private lostPetAlertModel: Model<LostPetAlertDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {
-    this.G_PLACES_API_KEY = this.configService.get<string>('GOOGLE_PLACES_API_KEY');
+    this.G_PLACES_API_KEY = this.configService.get<string>(
+      'GOOGLE_PLACES_API_KEY',
+    );
   }
 
   // --- LIVE MOBILE VET LOCATION BROADCASTING ---
   async updateMobileVetLocation(
     userId: string,
-    dto: { lat: number; lng: number; heading?: number; speed?: number; isActive: boolean },
+    dto: {
+      lat: number;
+      lng: number;
+      heading?: number;
+      speed?: number;
+      isActive: boolean;
+    },
   ): Promise<{ success: boolean; liveLocation: any }> {
     const user = await this.userModel.findByIdAndUpdate(
       userId,
@@ -387,11 +419,13 @@ export class EmergencyService {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Spam Protection: Max 1 alert per 24 hours per pet
-    const recentAlert = await this.lostPetAlertModel.findOne({
-      petId: dto.petId,
-      createdAt: { $gte: oneDayAgo },
-      status: 'active',
-    }).exec();
+    const recentAlert = await this.lostPetAlertModel
+      .findOne({
+        petId: dto.petId,
+        createdAt: { $gte: oneDayAgo },
+        status: 'active',
+      })
+      .exec();
 
     if (recentAlert) {
       return {
@@ -405,7 +439,9 @@ export class EmergencyService {
       status: 'active',
     });
     const saved = await alert.save();
-    this.logger.log(`🚨 Neighborhood Lost Pet SOS Broadcasted for "${dto.petName}" near ${dto.lastSeenLocation}`);
+    this.logger.log(
+      `🚨 Neighborhood Lost Pet SOS Broadcasted for "${dto.petName}" near ${dto.lastSeenLocation}`,
+    );
 
     return {
       success: true,
@@ -414,23 +450,33 @@ export class EmergencyService {
     };
   }
 
-  async getActiveLostPetAlerts(lat: number = 32.794, lon: number = 34.9896): Promise<LostPetAlertDocument[]> {
+  async getActiveLostPetAlerts(
+    lat: number = 32.794,
+    lon: number = 34.9896,
+  ): Promise<LostPetAlertDocument[]> {
     try {
-      return await this.lostPetAlertModel.find({ status: 'active' }).sort({ createdAt: -1 }).limit(10).exec();
+      return await this.lostPetAlertModel
+        .find({ status: 'active' })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .exec();
     } catch {
       return [];
     }
   }
 
   async resolveLostPetAlert(alertId: string): Promise<any> {
-    return this.lostPetAlertModel.findByIdAndUpdate(
-      alertId,
-      { $set: { status: 'resolved', resolvedAt: new Date() } },
-      { new: true }
-    ).exec();
+    return this.lostPetAlertModel
+      .findByIdAndUpdate(
+        alertId,
+        { $set: { status: 'resolved', resolvedAt: new Date() } },
+        { new: true },
+      )
+      .exec();
   }
 
-  private inMemoryClinicOverrides: Map<string, Partial<EmergencyClinicResult>> = new Map();
+  private inMemoryClinicOverrides: Map<string, Partial<EmergencyClinicResult>> =
+    new Map();
 
   getAllClinics(): EmergencyClinicResult[] {
     return HAIFA_FALLBACK_CLINICS.map((c) => {
@@ -439,10 +485,18 @@ export class EmergencyService {
     });
   }
 
-  updateClinic(id: string, updates: Partial<EmergencyClinicResult>): EmergencyClinicResult {
+  updateClinic(
+    id: string,
+    updates: Partial<EmergencyClinicResult>,
+  ): EmergencyClinicResult {
     const existing = HAIFA_FALLBACK_CLINICS.find((c) => c.id === id);
     const prevOverride = this.inMemoryClinicOverrides.get(id) || {};
-    const updated = { ...(existing || {}), ...prevOverride, ...updates, id } as EmergencyClinicResult;
+    const updated = {
+      ...(existing || {}),
+      ...prevOverride,
+      ...updates,
+      id,
+    } as EmergencyClinicResult;
     this.inMemoryClinicOverrides.set(id, updated);
     return updated;
   }
@@ -455,7 +509,12 @@ export class EmergencyService {
     country?: string,
   ): Promise<EmergencyClinicResult[]> {
     const placesMap = new Map<string, EmergencyClinicResult>();
-    const { keywords, langCode } = getLocalizedVetKeywords(lang, country, lat, lon);
+    const { keywords, langCode } = getLocalizedVetKeywords(
+      lang,
+      country,
+      lat,
+      lon,
+    );
 
     // 0. Include Live On-Duty Mobile Vets broadcasting live GPS in real-time
     try {
@@ -486,7 +545,9 @@ export class EmergencyService {
         const id = `mobile-vet-${vet._id}`;
         placesMap.set(id, {
           id,
-          name: vet.organizationName ? `${vet.organizationName} (Dr. ${vet.name})` : `Dr. ${vet.name} — Mobile Vet Unit`,
+          name: vet.organizationName
+            ? `${vet.organizationName} (Dr. ${vet.name})`
+            : `Dr. ${vet.name} — Mobile Vet Unit`,
           address: '🚐 On-the-Move Vet Ambulatory (Live Approximate Location)',
           isOpenNow: true,
           location: { lat: vetLat, lng: vetLng },
@@ -527,10 +588,17 @@ export class EmergencyService {
       try {
         const queries: any[] = [
           { type: 'veterinary_care', radius: 40000 },
-          { keyword: `${keywords.slice(0, 3).join(' OR ')} OR emergency vet OR animal hospital`, radius: 40000 },
+          {
+            keyword: `${keywords.slice(0, 3).join(' OR ')} OR emergency vet OR animal hospital`,
+            radius: 40000,
+          },
         ];
 
-        if (country && country.trim() && !country.toLowerCase().includes('haifa')) {
+        if (
+          country &&
+          country.trim() &&
+          !country.toLowerCase().includes('haifa')
+        ) {
           queries.push({
             keyword: `emergency vet ${country} OR 24/7 animal hospital ${country}`,
             radius: 50000,
@@ -546,26 +614,41 @@ export class EmergencyService {
             ...query,
           };
 
-          const response = await firstValueFrom(this.httpService.get(url, { params, timeout: 5000 }));
+          const response = await firstValueFrom(
+            this.httpService.get(url, { params, timeout: 5000 }),
+          );
 
           if (response.data?.results?.length > 0) {
             for (const place of response.data.results) {
               if (!placesMap.has(place.place_id) && place.geometry?.location) {
-                const placeLoc = { lat: place.geometry.location.lat, lng: place.geometry.location.lng };
+                const placeLoc = {
+                  lat: place.geometry.location.lat,
+                  lng: place.geometry.location.lng,
+                };
                 const distKm = calcDistance(placeLoc.lat, placeLoc.lng);
-                
+
                 // Only include if within 60km of searched location
                 if (distKm <= 60) {
-                  const isOpen = place.opening_hours ? place.opening_hours.open_now : true;
+                  const isOpen = place.opening_hours
+                    ? place.opening_hours.open_now
+                    : true;
                   placesMap.set(place.place_id, {
                     id: place.place_id,
                     name: place.name,
-                    address: place.vicinity || place.formatted_address || `${country || 'City'} Veterinary Service`,
+                    address:
+                      place.vicinity ||
+                      place.formatted_address ||
+                      `${country || 'City'} Veterinary Service`,
                     isOpenNow: isOpen,
-                    openingHours: isOpen ? 'Open 24/7 Emergency Care' : 'Check Open Hours',
+                    openingHours: isOpen
+                      ? 'Open 24/7 Emergency Care'
+                      : 'Check Open Hours',
                     location: placeLoc,
                     phone: null,
-                    tier: place.rating && place.rating >= 4.5 ? 'verified' : 'unverified',
+                    tier:
+                      place.rating && place.rating >= 4.5
+                        ? 'verified'
+                        : 'unverified',
                     isClaimed: false,
                     rating: place.rating || 4.7,
                     capacityStatus: 'accepting',
@@ -586,9 +669,12 @@ export class EmergencyService {
     try {
       const overpassQuery = `[out:json][timeout:5];(node["amenity"="veterinary"](around:40000,${lat},${lon});way["amenity"="veterinary"](around:40000,${lat},${lon});node["healthcare"="veterinary"](around:40000,${lat},${lon}););out center 40;`;
       const osmRes = await firstValueFrom(
-        this.httpService.get(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`, {
-          timeout: 4000,
-        })
+        this.httpService.get(
+          `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
+          {
+            timeout: 4000,
+          },
+        ),
       );
 
       if (osmRes.data?.elements && Array.isArray(osmRes.data.elements)) {
@@ -611,11 +697,23 @@ export class EmergencyService {
             tags['name:fr'] ||
             tags['name:de'] ||
             'Emergency Veterinary Hospital';
-          const street = tags['addr:street'] ? `${tags['addr:street']} ${tags['addr:housenumber'] || ''}` : '';
+          const street = tags['addr:street']
+            ? `${tags['addr:street']} ${tags['addr:housenumber'] || ''}`
+            : '';
           const city = tags['addr:city'] || country || '';
-          const fullAddress = [street, city].filter(Boolean).join(', ') || 'Local Veterinary Practice';
-          const phone = tags.phone || tags['contact:phone'] || tags['contact:mobile'] || null;
-          const openingHours = tags.opening_hours || (tags['emergency'] === 'yes' ? 'Open 24/7 Emergency Care' : 'Open 24 Hours');
+          const fullAddress =
+            [street, city].filter(Boolean).join(', ') ||
+            'Local Veterinary Practice';
+          const phone =
+            tags.phone ||
+            tags['contact:phone'] ||
+            tags['contact:mobile'] ||
+            null;
+          const openingHours =
+            tags.opening_hours ||
+            (tags['emergency'] === 'yes'
+              ? 'Open 24/7 Emergency Care'
+              : 'Open 24 Hours');
 
           const osmId = `osm-${el.id}`;
           if (!placesMap.has(osmId)) {
@@ -645,9 +743,14 @@ export class EmergencyService {
     const distToHaifa = calcDistance(32.794, 34.9896);
     if (distToHaifa <= 60) {
       for (const clinic of HAIFA_FALLBACK_CLINICS) {
-        const clinicDist = calcDistance(clinic.location.lat, clinic.location.lng);
+        const clinicDist = calcDistance(
+          clinic.location.lat,
+          clinic.location.lng,
+        );
         const override = this.inMemoryClinicOverrides.get(clinic.id);
-        const merged = override ? ({ ...clinic, ...override } as EmergencyClinicResult) : clinic;
+        const merged = override
+          ? ({ ...clinic, ...override } as EmergencyClinicResult)
+          : clinic;
         placesMap.set(clinic.id, {
           ...merged,
           distance: clinicDist,
@@ -717,7 +820,12 @@ export class EmergencyService {
     return results;
   }
 
-  async geocodeAddress(query: string, lang?: string, lat?: number, lon?: number): Promise<any[]> {
+  async geocodeAddress(
+    query: string,
+    lang?: string,
+    lat?: number,
+    lon?: number,
+  ): Promise<any[]> {
     const trimmed = (query || '').trim();
     if (!trimmed) return [];
 
@@ -763,7 +871,8 @@ export class EmergencyService {
     if (this.G_PLACES_API_KEY) {
       // 1. Google Places Autocomplete API (Targeted address & street suggestions with strict proximity)
       try {
-        const autoUrl = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+        const autoUrl =
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json';
         const autoRes = await firstValueFrom(
           this.httpService.get(autoUrl, {
             params: {
@@ -778,46 +887,60 @@ export class EmergencyService {
           }),
         );
 
-        if (autoRes.data?.predictions && Array.isArray(autoRes.data.predictions)) {
-          const detailPromises = autoRes.data.predictions.slice(0, 4).map(async (pred: any) => {
-            try {
-              const detailUrl = 'https://maps.googleapis.com/maps/api/place/details/json';
-              const dRes = await firstValueFrom(
-                this.httpService.get(detailUrl, {
-                  params: {
-                    place_id: pred.place_id,
-                    fields: 'geometry,formatted_address,name,address_components',
-                    language: googleLang,
-                    key: this.G_PLACES_API_KEY,
-                  },
-                  timeout: 3000,
-                }),
-              );
-              const place = dRes.data?.result;
-              const loc = place?.geometry?.location;
-              if (loc) {
-                const addrComps = place.address_components || [];
-                const routeComp = addrComps.find(
-                  (c: any) => c.types.includes('route') || c.types.includes('street_address'),
+        if (
+          autoRes.data?.predictions &&
+          Array.isArray(autoRes.data.predictions)
+        ) {
+          const detailPromises = autoRes.data.predictions
+            .slice(0, 4)
+            .map(async (pred: any) => {
+              try {
+                const detailUrl =
+                  'https://maps.googleapis.com/maps/api/place/details/json';
+                const dRes = await firstValueFrom(
+                  this.httpService.get(detailUrl, {
+                    params: {
+                      place_id: pred.place_id,
+                      fields:
+                        'geometry,formatted_address,name,address_components',
+                      language: googleLang,
+                      key: this.G_PLACES_API_KEY,
+                    },
+                    timeout: 3000,
+                  }),
                 );
-                const localityComp = addrComps.find(
-                  (c: any) => c.types.includes('locality') || c.types.includes('postal_town'),
-                );
-                const countryComp = addrComps.find((c: any) => c.types.includes('country'));
+                const place = dRes.data?.result;
+                const loc = place?.geometry?.location;
+                if (loc) {
+                  const addrComps = place.address_components || [];
+                  const routeComp = addrComps.find(
+                    (c: any) =>
+                      c.types.includes('route') ||
+                      c.types.includes('street_address'),
+                  );
+                  const localityComp = addrComps.find(
+                    (c: any) =>
+                      c.types.includes('locality') ||
+                      c.types.includes('postal_town'),
+                  );
+                  const countryComp = addrComps.find((c: any) =>
+                    c.types.includes('country'),
+                  );
 
-                return {
-                  name: pred.description || place.formatted_address || place.name,
-                  lat: loc.lat,
-                  lng: loc.lng,
-                  street: routeComp?.long_name || place.name,
-                  city: localityComp?.long_name,
-                  countryCode: countryComp?.short_name?.toLowerCase(),
-                  type: 'street' as const,
-                };
-              }
-            } catch {}
-            return null;
-          });
+                  return {
+                    name:
+                      pred.description || place.formatted_address || place.name,
+                    lat: loc.lat,
+                    lng: loc.lng,
+                    street: routeComp?.long_name || place.name,
+                    city: localityComp?.long_name,
+                    countryCode: countryComp?.short_name?.toLowerCase(),
+                    type: 'street' as const,
+                  };
+                }
+              } catch {}
+              return null;
+            });
 
           const resolved = await Promise.all(detailPromises);
           for (const item of resolved) {
@@ -825,7 +948,10 @@ export class EmergencyService {
           }
         }
       } catch (autoErr: any) {
-        this.logger.warn('Google Places Autocomplete error in geocode:', autoErr?.message);
+        this.logger.warn(
+          'Google Places Autocomplete error in geocode:',
+          autoErr?.message,
+        );
       }
 
       // 2. Google Geocoding API with Viewport Bounding Box
@@ -848,13 +974,21 @@ export class EmergencyService {
             const loc = item.geometry?.location;
             if (loc) {
               const addrComponents = item.address_components || [];
-              const countryComp = addrComponents.find((c: any) => c.types.includes('country'));
-              const routeComp = addrComponents.find(
-                (c: any) => c.types.includes('route') || c.types.includes('street_address'),
+              const countryComp = addrComponents.find((c: any) =>
+                c.types.includes('country'),
               );
-              const streetNumberComp = addrComponents.find((c: any) => c.types.includes('street_number'));
+              const routeComp = addrComponents.find(
+                (c: any) =>
+                  c.types.includes('route') ||
+                  c.types.includes('street_address'),
+              );
+              const streetNumberComp = addrComponents.find((c: any) =>
+                c.types.includes('street_number'),
+              );
               const localityComp = addrComponents.find(
-                (c: any) => c.types.includes('locality') || c.types.includes('postal_town'),
+                (c: any) =>
+                  c.types.includes('locality') ||
+                  c.types.includes('postal_town'),
               );
 
               const street = routeComp
@@ -898,7 +1032,10 @@ export class EmergencyService {
           }),
         );
 
-        if (photonRes.data?.features && Array.isArray(photonRes.data.features)) {
+        if (
+          photonRes.data?.features &&
+          Array.isArray(photonRes.data.features)
+        ) {
           for (const feat of photonRes.data.features) {
             const coords = feat.geometry?.coordinates;
             const props = feat.properties || {};
@@ -906,7 +1043,9 @@ export class EmergencyService {
               const street = props.street || props.name;
               const city = props.city || props.town || props.state;
               const country = props.country;
-              const formatted = [street, props.housenumber, city, country].filter(Boolean).join(', ');
+              const formatted = [street, props.housenumber, city, country]
+                .filter(Boolean)
+                .join(', ');
 
               addResult({
                 name: formatted || street || 'Searched Location',
@@ -915,7 +1054,8 @@ export class EmergencyService {
                 countryCode: props.countrycode?.toLowerCase(),
                 street,
                 city,
-                type: props.type === 'street' || props.street ? 'street' : 'city',
+                type:
+                  props.type === 'street' || props.street ? 'street' : 'city',
               });
             }
           }
@@ -948,7 +1088,11 @@ export class EmergencyService {
             const road = addr.road || addr.street || '';
             const houseNumber = addr.house_number || '';
             const city = addr.city || addr.town || addr.village || '';
-            const street = road ? (houseNumber ? `${road} ${houseNumber}` : road) : undefined;
+            const street = road
+              ? houseNumber
+                ? `${road} ${houseNumber}`
+                : road
+              : undefined;
 
             addResult({
               name: item.display_name,

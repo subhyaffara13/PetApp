@@ -2,7 +2,16 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
-import { Story, StorySchema, Post, PostSchema, DirectMessage, DirectMessageSchema, CommunityReport, CommunityReportSchema } from '../schemas/community.schema';
+import {
+  Story,
+  StorySchema,
+  Post,
+  PostSchema,
+  DirectMessage,
+  DirectMessageSchema,
+  CommunityReport,
+  CommunityReportSchema,
+} from '../schemas/community.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { PetProfile, PetProfileSchema } from '../schemas/pet-profile.schema';
 import { AuthModule } from '../auth/auth.module';

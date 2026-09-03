@@ -1,6 +1,9 @@
 import { Document, Types } from 'mongoose';
 
-export type DeliveryMode = 'daas_on_demand' | 'merchant_fleet' | 'standard_postal';
+export type DeliveryMode =
+  | 'daas_on_demand'
+  | 'merchant_fleet'
+  | 'standard_postal';
 export type DaaSProvider = 'wolt_drive' | 'none';
 
 export type StoreOrderStatus =
@@ -14,7 +17,12 @@ export type StoreOrderStatus =
   | 'cancelled'
   | 'failed';
 
-export type PaymentStatus = 'pending' | 'authorized' | 'captured' | 'failed' | 'refunded';
+export type PaymentStatus =
+  | 'pending'
+  | 'authorized'
+  | 'captured'
+  | 'failed'
+  | 'refunded';
 
 export interface IGeoPoint {
   type: 'Point';

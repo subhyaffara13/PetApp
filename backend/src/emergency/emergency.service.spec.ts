@@ -45,9 +45,11 @@ describe('EmergencyService', () => {
   mockLostPetModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
       limit: jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue([
-          { _id: 'alert-123', petName: 'Buddy', status: 'active' },
-        ]),
+        exec: jest
+          .fn()
+          .mockResolvedValue([
+            { _id: 'alert-123', petName: 'Buddy', status: 'active' },
+          ]),
       }),
     }),
   });
@@ -62,7 +64,10 @@ describe('EmergencyService', () => {
         EmergencyService,
         { provide: HttpService, useValue: mockHttpService },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: getModelToken(LostPetAlert.name), useValue: mockLostPetModel },
+        {
+          provide: getModelToken(LostPetAlert.name),
+          useValue: mockLostPetModel,
+        },
         { provide: getModelToken(User.name), useValue: mockUserModel },
       ],
     }).compile();

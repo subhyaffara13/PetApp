@@ -38,7 +38,11 @@ export class MedicalRecord {
   @Prop({ required: true, default: () => new Date().toISOString() })
   visitDate: string;
 
-  @Prop({ required: true, enum: ['emergency', 'routine', 'vaccination', 'surgery', 'followup'], default: 'emergency' })
+  @Prop({
+    required: true,
+    enum: ['emergency', 'routine', 'vaccination', 'surgery', 'followup'],
+    default: 'emergency',
+  })
   visitType: string;
 
   @Prop({ required: true })

@@ -1,5 +1,10 @@
 import { Schema, Types } from 'mongoose';
-import { IMasterOrder, IStoreOrder, IDeliveryDispatch, IOrderItem } from '../delivery.types';
+import {
+  IMasterOrder,
+  IStoreOrder,
+  IDeliveryDispatch,
+  IOrderItem,
+} from '../delivery.types';
 
 export const OrderItemSchema = new Schema<IOrderItem>(
   {
@@ -9,7 +14,7 @@ export const OrderItemSchema = new Schema<IOrderItem>(
     unitPrice: { type: Number, required: true, min: 0 },
     isEmergencyItem: { type: Boolean, default: false },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const DeliveryDispatchSchema = new Schema<IDeliveryDispatch>(
@@ -28,7 +33,7 @@ export const DeliveryDispatchSchema = new Schema<IDeliveryDispatch>(
     },
     lastSyncAt: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const StoreOrderSchema = new Schema<IStoreOrder>(
@@ -64,7 +69,7 @@ export const StoreOrderSchema = new Schema<IStoreOrder>(
     estimatedDeliveryTime: { type: Date },
     dispatchInfo: { type: DeliveryDispatchSchema, default: () => ({}) },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const MasterOrderSchema = new Schema<IMasterOrder>(
@@ -98,7 +103,7 @@ export const MasterOrderSchema = new Schema<IMasterOrder>(
     },
     storeOrders: [StoreOrderSchema],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 MasterOrderSchema.index({ deliveryLocation: '2dsphere' });

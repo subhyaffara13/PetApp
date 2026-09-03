@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { IStore, IMasterOrder } from './delivery.types';
@@ -6,7 +12,10 @@ import { OrderStateMachineService } from './services/order-state-machine.service
 import { DeliveryProviderFactory } from './services/delivery/delivery-provider.factory';
 import { DeliveryGateway } from './delivery.gateway';
 import { OrderTimeoutWorkerService } from './jobs/order-timeout.worker';
-import { StoreProduct, StoreProductDocument } from './schemas/store-product.schema';
+import {
+  StoreProduct,
+  StoreProductDocument,
+} from './schemas/store-product.schema';
 import { AdminClaim, AdminClaimDocument } from '../admin/admin.schema';
 
 @Injectable()
@@ -14,9 +23,12 @@ export class DeliveryService {
   private readonly logger = new Logger(DeliveryService.name);
   constructor(
     @InjectModel('Store') private readonly storeModel: Model<IStore>,
-    @InjectModel('MasterOrder') private readonly masterOrderModel: Model<IMasterOrder>,
-    @InjectModel(StoreProduct.name) private readonly productModel: Model<StoreProductDocument>,
-    @InjectModel(AdminClaim.name) private readonly adminClaimModel: Model<AdminClaimDocument>,
+    @InjectModel('MasterOrder')
+    private readonly masterOrderModel: Model<IMasterOrder>,
+    @InjectModel(StoreProduct.name)
+    private readonly productModel: Model<StoreProductDocument>,
+    @InjectModel(AdminClaim.name)
+    private readonly adminClaimModel: Model<AdminClaimDocument>,
     private readonly stateMachine: OrderStateMachineService,
     private readonly providerFactory: DeliveryProviderFactory,
     private readonly deliveryGateway: DeliveryGateway,
@@ -77,12 +89,66 @@ export class DeliveryService {
       const productCount = await this.productModel.countDocuments();
       if (productCount === 0) {
         await this.productModel.create([
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'), name: 'Royal Canin Adult Medium Dry Dog Food 15kg', price: 289, category: 'Food', tags: ['Food', 'Dogs'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400' },
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'), name: 'Pro Plan Cat Sterilised Salmon 3kg', price: 139, category: 'Food', tags: ['Food', 'Cats'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400' },
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'), name: 'Taste of the Wild High Prairie Canine 12.2kg', price: 315, category: 'Food', tags: ['Food', 'Grain-Free'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400' },
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'), name: 'Smart WiFi Automatic Pet Feeder & HD Camera', price: 320, category: 'Appliances', tags: ['Appliances', 'Smart'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400' },
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'), name: 'Stainless Steel Ultra-Quiet Cat Water Fountain 2.5L', price: 149, category: 'Appliances', tags: ['Appliances', 'Water'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400' },
-          { storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'), name: 'Orthopedic Memory Foam Pet Bed (Large)', price: 195, category: 'Appliances', tags: ['Bedding', 'Comfort'], inStock: true, imageUrl: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400' },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'),
+            name: 'Royal Canin Adult Medium Dry Dog Food 15kg',
+            price: 289,
+            category: 'Food',
+            tags: ['Food', 'Dogs'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
+          },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'),
+            name: 'Pro Plan Cat Sterilised Salmon 3kg',
+            price: 139,
+            category: 'Food',
+            tags: ['Food', 'Cats'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400',
+          },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d1'),
+            name: 'Taste of the Wild High Prairie Canine 12.2kg',
+            price: 315,
+            category: 'Food',
+            tags: ['Food', 'Grain-Free'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
+          },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'),
+            name: 'Smart WiFi Automatic Pet Feeder & HD Camera',
+            price: 320,
+            category: 'Appliances',
+            tags: ['Appliances', 'Smart'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400',
+          },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'),
+            name: 'Stainless Steel Ultra-Quiet Cat Water Fountain 2.5L',
+            price: 149,
+            category: 'Appliances',
+            tags: ['Appliances', 'Water'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=400',
+          },
+          {
+            storeId: new Types.ObjectId('64f1a2b3c4d5e6f7a8b9c0d2'),
+            name: 'Orthopedic Memory Foam Pet Bed (Large)',
+            price: 195,
+            category: 'Appliances',
+            tags: ['Bedding', 'Comfort'],
+            inStock: true,
+            imageUrl:
+              'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=400',
+          },
         ]);
       }
     } catch {}
@@ -119,13 +185,18 @@ export class DeliveryService {
         throw new NotFoundException(`Store not found: ${storeId}`);
       }
 
-      const subtotal = storeItems.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+      const subtotal = storeItems.reduce(
+        (sum, i) => sum + i.unitPrice * i.quantity,
+        0,
+      );
       const deliveryFee = store?.isBusyMode ? 35 : 25;
       const platformFee = 5;
 
       storeOrders.push({
         _id: new Types.ObjectId(),
-        storeId: new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1'),
+        storeId: new Types.ObjectId(
+          storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+        ),
         status: 'awaiting_store_acceptance' as const,
         deliveryMode: store?.supportedDeliveryModes?.[0] || 'daas_on_demand',
         items: storeItems.map((i) => ({
@@ -149,7 +220,10 @@ export class DeliveryService {
       paymentStatus: 'authorized',
       totalAmount: grandTotal,
       deliveryAddress: dto.deliveryAddress,
-      deliveryLocation: dto.deliveryLocation || { type: 'Point', coordinates: [34.9895, 32.794] },
+      deliveryLocation: dto.deliveryLocation || {
+        type: 'Point',
+        coordinates: [34.9895, 32.794],
+      },
       storeOrders,
     });
 
@@ -176,7 +250,11 @@ export class DeliveryService {
   /**
    * Find nearby claimed stores accepting orders (MongoDB 2dsphere $near)
    */
-  async findNearbyStores(lon: number, lat: number, maxDistanceMeters: number = 15000): Promise<IStore[]> {
+  async findNearbyStores(
+    lon: number,
+    lat: number,
+    maxDistanceMeters: number = 15000,
+  ): Promise<IStore[]> {
     return this.storeModel.find({
       location: {
         $near: {
@@ -199,7 +277,10 @@ export class DeliveryService {
   /**
    * Claim a store listing
    */
-  async claimStore(storeId: string, ownerEmail?: string): Promise<IStore | null> {
+  async claimStore(
+    storeId: string,
+    ownerEmail?: string,
+  ): Promise<IStore | null> {
     const store = await this.storeModel.findById(storeId).exec();
     if (!store) throw new NotFoundException(`Store ${storeId} not found`);
 
@@ -207,10 +288,10 @@ export class DeliveryService {
     try {
       await this.adminClaimModel.create({
         entityType: 'store',
-        entityName:
-          (store as any).name || `Store ${storeId}`,
+        entityName: (store as any).name || `Store ${storeId}`,
         entityAddress: (store as any).address
-          ? `${(store as any).address.street || ''} ${(store as any).address.city || ''}`.trim() || String((store as any).address)
+          ? `${(store as any).address.street || ''} ${(store as any).address.city || ''}`.trim() ||
+            String((store as any).address)
           : '',
         contactName: '',
         contactPhone: ownerEmail || (store as any).contactPhone || '',
@@ -223,15 +304,24 @@ export class DeliveryService {
 
     return this.storeModel.findByIdAndUpdate(
       storeId,
-      { isClaimed: true, isActive: true, ...(ownerEmail ? { contactPhone: ownerEmail } : {}) },
-      { new: true }
+      {
+        isClaimed: true,
+        isActive: true,
+        ...(ownerEmail ? { contactPhone: ownerEmail } : {}),
+      },
+      { new: true },
     );
   }
 
   /**
    * Handle user contact / error / support form submission
    */
-  async handleSupportContact(dto: { name: string; email: string; category: string; message: string }): Promise<any> {
+  async handleSupportContact(dto: {
+    name: string;
+    email: string;
+    category: string;
+    message: string;
+  }): Promise<any> {
     return {
       ticketId: `TICKET-${Math.floor(1000 + Math.random() * 9000)}`,
       status: 'received',
@@ -248,7 +338,11 @@ export class DeliveryService {
       .find({
         $or: [
           { 'storeOrders.storeId': storeId },
-          { 'storeOrders.storeId': new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1') },
+          {
+            'storeOrders.storeId': new Types.ObjectId(
+              storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+            ),
+          },
         ],
         'storeOrders.status': { $nin: ['cancelled', 'failed'] },
       })
@@ -262,7 +356,7 @@ export class DeliveryService {
           deliveryAddress: m.deliveryAddress,
           deliveryLocation: m.deliveryLocation,
           subOrder: s,
-        }))
+        })),
     );
   }
 
@@ -270,8 +364,13 @@ export class DeliveryService {
    * Cancel all orders (TEST UTILITY - safe-guarded to non-production environments)
    */
   async cancelAllOrders() {
-    if (process.env.NODE_ENV === 'production' || process.env.ALLOW_ORDER_CLEAR !== 'true') {
-      throw new BadRequestException('Order clearing is disabled in this environment.');
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.ALLOW_ORDER_CLEAR !== 'true'
+    ) {
+      throw new BadRequestException(
+        'Order clearing is disabled in this environment.',
+      );
     }
     await this.masterOrderModel.updateMany(
       {},
@@ -281,9 +380,12 @@ export class DeliveryService {
           'storeOrders.$[].cancellationReason': 'USER_REQUESTED_CLEAR',
           'storeOrders.$[].updatedAt': new Date(),
         },
-      }
+      },
     );
-    return { success: true, message: 'All active test orders cancelled successfully' };
+    return {
+      success: true,
+      message: 'All active test orders cancelled successfully',
+    };
   }
 
   /**
@@ -292,13 +394,21 @@ export class DeliveryService {
   async executeStoreAction(
     masterOrderId: string,
     subOrderId: string,
-    action: 'accept' | 'ready_for_pickup' | 'simulate_pickup' | 'simulate_delivered' | 'decline' | string,
+    action:
+      | 'accept'
+      | 'ready_for_pickup'
+      | 'simulate_pickup'
+      | 'simulate_delivered'
+      | 'decline'
+      | string,
     prepMinutes?: number,
   ): Promise<IMasterOrder> {
     const masterOrder = await this.masterOrderModel.findById(masterOrderId);
     if (!masterOrder) throw new NotFoundException('Master order not found');
 
-    const subOrder = masterOrder.storeOrders.find((s) => s._id.toString() === subOrderId);
+    const subOrder = masterOrder.storeOrders.find(
+      (s) => s._id.toString() === subOrderId,
+    );
     if (!subOrder) throw new NotFoundException('Sub-order not found');
 
     let targetStatus: any;
@@ -310,12 +420,14 @@ export class DeliveryService {
     else throw new BadRequestException('Invalid action');
 
     if (!this.stateMachine.canTransition(subOrder.status, targetStatus)) {
-      throw new ConflictException(`Cannot transition from ${subOrder.status} to ${targetStatus}`);
+      throw new ConflictException(
+        `Cannot transition from ${subOrder.status} to ${targetStatus}`,
+      );
     }
 
     this.timeoutWorker.cancelTimeout(subOrderId);
 
-    let store = await this.storeModel.findById(subOrder.storeId);
+    const store = await this.storeModel.findById(subOrder.storeId);
     if (!store) {
       throw new NotFoundException(`Store not found: ${subOrder.storeId}`);
     }
@@ -328,22 +440,25 @@ export class DeliveryService {
     };
 
     if (action === 'accept') {
-      updatePayload.$set['storeOrders.$[elem].targetPrepMinutes'] = prepMinutes || 15;
+      updatePayload.$set['storeOrders.$[elem].targetPrepMinutes'] =
+        prepMinutes || 15;
       updatePayload.$set['storeOrders.$[elem].prepStartedAt'] = new Date();
     }
 
     // Trigger DaaS Courier Dispatch when ready
-    if (this.stateMachine.shouldTriggerDaaS(targetStatus, subOrder.deliveryMode)) {
-      const daas = this.providerFactory.getProvider(store!.daasProvider);
+    if (
+      this.stateMachine.shouldTriggerDaaS(targetStatus, subOrder.deliveryMode)
+    ) {
+      const daas = this.providerFactory.getProvider(store.daasProvider);
       const dispatchResult = await daas.createDispatch({
         masterOrderId,
         subOrderId,
         pickupStore: {
-          name: store!.name,
-          phone: store!.contactPhone,
-          address: store!.address,
-          location: store!.location,
-          daasStoreId: store!.daasStoreId,
+          name: store.name,
+          phone: store.contactPhone,
+          address: store.address,
+          location: store.location,
+          daasStoreId: store.daasStoreId,
         },
         dropoffCustomer: {
           name: 'Customer',
@@ -360,7 +475,7 @@ export class DeliveryService {
       });
 
       updatePayload.$set['storeOrders.$[elem].dispatchInfo'] = {
-        provider: store!.daasProvider,
+        provider: store.daasProvider,
         externalTaskId: dispatchResult.externalTaskId,
         trackingUrl: dispatchResult.trackingUrl,
         pickupWindowStart: dispatchResult.estimatedPickup,
@@ -392,8 +507,15 @@ export class DeliveryService {
   /**
    * Toggle store rush / busy mode
    */
-  async toggleBusyMode(storeId: string, isBusyMode: boolean): Promise<IStore | null> {
-    return this.storeModel.findByIdAndUpdate(storeId, { isBusyMode }, { new: true });
+  async toggleBusyMode(
+    storeId: string,
+    isBusyMode: boolean,
+  ): Promise<IStore | null> {
+    return this.storeModel.findByIdAndUpdate(
+      storeId,
+      { isBusyMode },
+      { new: true },
+    );
   }
 
   /**
@@ -427,8 +549,10 @@ export class DeliveryService {
     };
 
     if (courier) {
-      updateDoc.$set['storeOrders.$[elem].dispatchInfo.courierName'] = courier.name;
-      updateDoc.$set['storeOrders.$[elem].dispatchInfo.courierPhone'] = courier.phone;
+      updateDoc.$set['storeOrders.$[elem].dispatchInfo.courierName'] =
+        courier.name;
+      updateDoc.$set['storeOrders.$[elem].dispatchInfo.courierPhone'] =
+        courier.phone;
     }
 
     if (location) {
@@ -443,11 +567,9 @@ export class DeliveryService {
       );
     }
 
-    await this.masterOrderModel.updateOne(
-      { _id: masterOrder._id },
-      updateDoc,
-      { arrayFilters: [{ 'elem.dispatchInfo.externalTaskId': externalTaskId }] },
-    );
+    await this.masterOrderModel.updateOne({ _id: masterOrder._id }, updateDoc, {
+      arrayFilters: [{ 'elem.dispatchInfo.externalTaskId': externalTaskId }],
+    });
 
     this.deliveryGateway.emitSubOrderStatusUpdate(
       subOrder.storeId.toString(),
@@ -465,23 +587,38 @@ export class DeliveryService {
 
   async getStoreProducts(storeId: string): Promise<StoreProductDocument[]> {
     return this.productModel
-      .find({ storeId: new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1') })
+      .find({
+        storeId: new Types.ObjectId(
+          storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+        ),
+      })
       .sort({ name: 1 })
       .exec();
   }
 
-  async createStoreProduct(storeId: string, product: any): Promise<StoreProductDocument> {
+  async createStoreProduct(
+    storeId: string,
+    product: any,
+  ): Promise<StoreProductDocument> {
     return this.productModel.create({
       ...product,
-      storeId: new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1'),
+      storeId: new Types.ObjectId(
+        storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+      ),
     });
   }
 
-  async updateStoreProduct(storeId: string, productId: string, updates: any): Promise<StoreProductDocument> {
+  async updateStoreProduct(
+    storeId: string,
+    productId: string,
+    updates: any,
+  ): Promise<StoreProductDocument> {
     const product = await this.productModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(productId),
-        storeId: new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1'),
+        storeId: new Types.ObjectId(
+          storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+        ),
       },
       { ...updates },
       { new: true },
@@ -490,10 +627,15 @@ export class DeliveryService {
     return product;
   }
 
-  async deleteStoreProduct(storeId: string, productId: string): Promise<{ success: boolean }> {
+  async deleteStoreProduct(
+    storeId: string,
+    productId: string,
+  ): Promise<{ success: boolean }> {
     const result = await this.productModel.deleteOne({
       _id: new Types.ObjectId(productId),
-      storeId: new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1'),
+      storeId: new Types.ObjectId(
+        storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+      ),
     });
     return { success: result.deletedCount > 0 };
   }
@@ -503,7 +645,11 @@ export class DeliveryService {
       .find({
         $or: [
           { 'storeOrders.storeId': storeId },
-          { 'storeOrders.storeId': new Types.ObjectId(storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1') },
+          {
+            'storeOrders.storeId': new Types.ObjectId(
+              storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
+            ),
+          },
         ],
       })
       .sort({ createdAt: -1 });
@@ -516,7 +662,7 @@ export class DeliveryService {
           createdAt: (m as any).createdAt || new Date(),
           deliveryAddress: m.deliveryAddress,
           subOrder: s,
-        }))
+        })),
     );
   }
 

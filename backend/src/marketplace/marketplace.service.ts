@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
@@ -13,7 +19,12 @@ import { firstValueFrom } from 'rxjs';
 
 const SERVICE_FEE_RATE = 0.025; // 2.5%
 
-export function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export function getDistanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
   const R = 6371; // Radius of Earth in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -91,12 +102,37 @@ export function getLocalizedPetStoreKeywords(
 
   const keywordMap: Record<string, string[]> = {
     he: ['חנות חיות', 'מזון לבעלי חיים', 'ציוד לחיות מחמד', 'חנות לחיות מחמד'],
-    ar: ['محل حيوانات أليفة', 'مستلزمات حيوانات', 'طعام كلاب وقطط', 'متجر حيوانات'],
+    ar: [
+      'محل حيوانات أليفة',
+      'مستلزمات حيوانات',
+      'طعام كلاب وقطط',
+      'متجر حيوانات',
+    ],
     de: ['Zoohandlung', 'Tierhandlung', 'Haustierbedarf', 'Tierfutter'],
-    fr: ['animalerie', 'magasin pour animaux', 'accessoires animaux', 'nourriture pour animaux'],
-    es: ['tienda de mascotas', 'artículos para mascotas', 'tienda de animales', 'alimento para mascotas'],
-    it: ['negozio di animali', 'articoli per animali', 'pet shop', 'cibo per animali'],
-    pt: ['pet shop', 'loja de animais', 'rações e acessórios', 'produtos para animais'],
+    fr: [
+      'animalerie',
+      'magasin pour animaux',
+      'accessoires animaux',
+      'nourriture pour animaux',
+    ],
+    es: [
+      'tienda de mascotas',
+      'artículos para mascotas',
+      'tienda de animales',
+      'alimento para mascotas',
+    ],
+    it: [
+      'negozio di animali',
+      'articoli per animali',
+      'pet shop',
+      'cibo per animali',
+    ],
+    pt: [
+      'pet shop',
+      'loja de animais',
+      'rações e acessórios',
+      'produtos para animais',
+    ],
     ru: ['зоомагазин', 'товары для животных', 'корм для животных', 'зоотовары'],
     ja: ['ペットショップ', 'ペット用品', 'ペットフード'],
     zh: ['宠物店', '宠物用品店', '宠物食品'],
@@ -129,11 +165,15 @@ export class MarketplaceService implements OnModuleInit {
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey);
     }
-    this.G_PLACES_API_KEY = this.configService.get<string>('GOOGLE_PLACES_API_KEY');
+    this.G_PLACES_API_KEY = this.configService.get<string>(
+      'GOOGLE_PLACES_API_KEY',
+    );
   }
 
   async onModuleInit() {
-    this.logger.log('MarketplaceService initialized with Live Google Places API + MongoDB partner stores.');
+    this.logger.log(
+      'MarketplaceService initialized with Live Google Places API + MongoDB partner stores.',
+    );
   }
 
   async addProduct(shopId: string, dto: any): Promise<ProductDocument> {
@@ -141,8 +181,13 @@ export class MarketplaceService implements OnModuleInit {
     return product.save();
   }
 
-  async updateProduct(productId: string, dto: any): Promise<ProductDocument | null> {
-    return this.productModel.findByIdAndUpdate(productId, { $set: dto }, { new: true }).exec();
+  async updateProduct(
+    productId: string,
+    dto: any,
+  ): Promise<ProductDocument | null> {
+    return this.productModel
+      .findByIdAndUpdate(productId, { $set: dto }, { new: true })
+      .exec();
   }
 
   async deleteProduct(productId: string): Promise<any> {
@@ -157,7 +202,12 @@ export class MarketplaceService implements OnModuleInit {
     country?: string,
   ): Promise<any[]> {
     const shopsMap = new Map<string, any>();
-    const { keywords, langCode } = getLocalizedPetStoreKeywords(lang, country, lat, lon);
+    const { keywords, langCode } = getLocalizedPetStoreKeywords(
+      lang,
+      country,
+      lat,
+      lon,
+    );
 
     // 1. Load claimed & verified database partner stores with their product catalog (within 60km)
     try {
@@ -169,7 +219,8 @@ export class MarketplaceService implements OnModuleInit {
         const distanceKm = getDistanceKm(lat, lon, shopLat, shopLng);
 
         if (distanceKm <= 60) {
-          const shopObj = typeof shop.toObject === 'function' ? shop.toObject() : shop;
+          const shopObj =
+            typeof shop.toObject === 'function' ? shop.toObject() : shop;
           shopsMap.set(id, {
             ...shopObj,
             _id: id,
@@ -190,15 +241,26 @@ export class MarketplaceService implements OnModuleInit {
       try {
         const placesQueries: any[] = [
           { type: 'pet_store', radius: 35000 },
-          { keyword: `${keywords.slice(0, 3).join(' OR ')} OR pet shop OR pet supplies`, radius: 35000 },
+          {
+            keyword: `${keywords.slice(0, 3).join(' OR ')} OR pet shop OR pet supplies`,
+            radius: 35000,
+          },
         ];
 
-        if (country && country.trim() && !country.toLowerCase().includes('haifa')) {
-          placesQueries.push({ keyword: `pet store ${country} OR pet supplies ${country}`, radius: 45000 });
+        if (
+          country &&
+          country.trim() &&
+          !country.toLowerCase().includes('haifa')
+        ) {
+          placesQueries.push({
+            keyword: `pet store ${country} OR pet supplies ${country}`,
+            radius: 45000,
+          });
         }
 
         for (const q of placesQueries) {
-          const url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+          const url =
+            'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
           const params = {
             location: `${lat},${lon}`,
             key: this.G_PLACES_API_KEY,
@@ -206,7 +268,9 @@ export class MarketplaceService implements OnModuleInit {
             ...q,
           };
 
-          const response = await firstValueFrom(this.httpService.get(url, { params, timeout: 5000 }));
+          const response = await firstValueFrom(
+            this.httpService.get(url, { params, timeout: 5000 }),
+          );
           if (response.data?.results?.length > 0) {
             for (const place of response.data.results) {
               const placeId = place.place_id;
@@ -216,14 +280,23 @@ export class MarketplaceService implements OnModuleInit {
                 const distanceKm = getDistanceKm(lat, lon, shopLat, shopLng);
 
                 if (distanceKm <= 60) {
-                  const isOpen = place.opening_hours ? place.opening_hours.open_now : true;
+                  const isOpen = place.opening_hours
+                    ? place.opening_hours.open_now
+                    : true;
                   shopsMap.set(placeId, {
                     _id: placeId,
                     name: place.name,
-                    address: place.vicinity || place.formatted_address || `${country || 'Local'} Pet Store`,
+                    address:
+                      place.vicinity ||
+                      place.formatted_address ||
+                      `${country || 'Local'} Pet Store`,
                     location: { lat: shopLat, lng: shopLng },
                     phone: null,
-                    tags: ['Wolt 30-Min Delivery', 'Pickup & Delivery', 'Google Verified'],
+                    tags: [
+                      'Wolt 30-Min Delivery',
+                      'Pickup & Delivery',
+                      'Google Verified',
+                    ],
                     rating: place.rating || 4.7,
                     isRegistered: true,
                     isClaimed: false,
@@ -264,7 +337,10 @@ export class MarketplaceService implements OnModuleInit {
           }
         }
       } catch (placesErr: any) {
-        this.logger.warn('Google Places pet stores query warning:', placesErr?.message);
+        this.logger.warn(
+          'Google Places pet stores query warning:',
+          placesErr?.message,
+        );
       }
     }
 
@@ -357,7 +433,8 @@ export class MarketplaceService implements OnModuleInit {
       const shop = await this.shopModel.findById(id).exec();
       if (shop) {
         const products = await this.productModel.find({ shopId: id }).exec();
-        const shopObj = typeof shop.toObject === 'function' ? shop.toObject() : shop;
+        const shopObj =
+          typeof shop.toObject === 'function' ? shop.toObject() : shop;
         return { ...shopObj, products };
       }
     } catch {
@@ -365,7 +442,11 @@ export class MarketplaceService implements OnModuleInit {
     }
 
     // If it's a Google Place ID, query Google Places Place Details API
-    if (this.G_PLACES_API_KEY && !id.startsWith('shop-') && !id.startsWith('osm-')) {
+    if (
+      this.G_PLACES_API_KEY &&
+      !id.startsWith('shop-') &&
+      !id.startsWith('osm-')
+    ) {
       try {
         const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(id)}&fields=name,formatted_address,geometry,formatted_phone_number,opening_hours,rating,website&key=${this.G_PLACES_API_KEY}`;
         const res = await firstValueFrom(this.httpService.get(detailsUrl));
@@ -375,7 +456,10 @@ export class MarketplaceService implements OnModuleInit {
             _id: id,
             name: result.name,
             address: result.formatted_address || 'Address on file',
-            location: result.geometry?.location || { lat: 32.794, lng: 34.9896 },
+            location: result.geometry?.location || {
+              lat: 32.794,
+              lng: 34.9896,
+            },
             phone: result.formatted_phone_number || null,
             website: result.website || null,
             rating: result.rating || 4.7,
@@ -389,7 +473,10 @@ export class MarketplaceService implements OnModuleInit {
           };
         }
       } catch (err: any) {
-        this.logger.warn(`Could not fetch details for Google Place ${id}:`, err?.message);
+        this.logger.warn(
+          `Could not fetch details for Google Place ${id}:`,
+          err?.message,
+        );
       }
     }
 
@@ -412,13 +499,19 @@ export class MarketplaceService implements OnModuleInit {
       throw new Error('Cannot place orders with unregistered shops');
     }
 
-    const orderItems: { productId: any; quantity: number; priceAtPurchase: number }[] = [];
+    const orderItems: {
+      productId: any;
+      quantity: number;
+      priceAtPurchase: number;
+    }[] = [];
     let actualSubtotal = 0;
 
     for (const item of dto.items) {
       const product = shop.products?.find((p: any) => p._id === item.productId);
-      if (!product) throw new NotFoundException(`Product ${item.productId} not found`);
-      if (!product.inStock) throw new Error(`Product ${product.name} is out of stock`);
+      if (!product)
+        throw new NotFoundException(`Product ${item.productId} not found`);
+      if (!product.inStock)
+        throw new Error(`Product ${product.name} is out of stock`);
 
       actualSubtotal += product.price * item.quantity;
       orderItems.push({
@@ -429,8 +522,14 @@ export class MarketplaceService implements OnModuleInit {
     }
 
     // Non-profit animal shelters and rescues have 0% platform fee (100% goes to animals)
-    const isNonProfit = (shop as any).isNonProfit || (shop as any).isCharity || shop.type === 'shelter' || (shop as any).category === 'shelter';
-    const serviceFee = isNonProfit ? 0 : Math.round(actualSubtotal * SERVICE_FEE_RATE * 100) / 100;
+    const isNonProfit =
+      shop.isNonProfit ||
+      shop.isCharity ||
+      shop.type === 'shelter' ||
+      shop.category === 'shelter';
+    const serviceFee = isNonProfit
+      ? 0
+      : Math.round(actualSubtotal * SERVICE_FEE_RATE * 100) / 100;
     const total = actualSubtotal + serviceFee;
 
     let stripePaymentIntentId: string | undefined;
@@ -473,7 +572,7 @@ export class MarketplaceService implements OnModuleInit {
 
     // Automatically generate itemized receipt and send email
     const itemsForReceipt = orderItems.map((oi) => {
-      const product = shop.products?.find((p: any) => p._id === oi.productId) as any;
+      const product = shop.products?.find((p: any) => p._id === oi.productId);
       return { product, quantity: oi.quantity };
     });
     try {
@@ -496,11 +595,16 @@ export class MarketplaceService implements OnModuleInit {
         taxAmount: Math.round(actualSubtotal * 0.17 * 100) / 100,
         total,
         currency: 'ILS',
-        paymentMethod: { type: 'stripe', transactionId: savedOrder.stripePaymentIntentId },
+        paymentMethod: {
+          type: 'stripe',
+          transactionId: savedOrder.stripePaymentIntentId,
+        },
         paymentStatus: 'paid',
       });
     } catch (receiptErr) {
-      this.logger.warn(`Receipt creation error on marketplace order: ${receiptErr}`);
+      this.logger.warn(
+        `Receipt creation error on marketplace order: ${receiptErr}`,
+      );
     }
 
     return savedOrder;
@@ -509,7 +613,11 @@ export class MarketplaceService implements OnModuleInit {
   async getOrders(customerId?: string): Promise<any[]> {
     try {
       const query = customerId ? { customerId } : {};
-      const orders = await this.orderModel.find(query).sort({ createdAt: -1 }).limit(30).exec();
+      const orders = await this.orderModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .exec();
       if (orders && orders.length > 0) return orders;
     } catch (err) {
       // Fallback
@@ -521,7 +629,10 @@ export class MarketplaceService implements OnModuleInit {
   }
 
   /** Marks an order as paid (called after a successful Stripe payment) */
-  async confirmOrderPayment(id: string, paymentIntentId?: string): Promise<any> {
+  async confirmOrderPayment(
+    id: string,
+    paymentIntentId?: string,
+  ): Promise<any> {
     let order: any;
     try {
       order = await this.orderModel.findById(id).exec();
@@ -538,7 +649,9 @@ export class MarketplaceService implements OnModuleInit {
     };
 
     try {
-      return await this.orderModel.findByIdAndUpdate(id, update, { new: true }).exec();
+      return await this.orderModel
+        .findByIdAndUpdate(id, update, { new: true })
+        .exec();
     } catch (err) {
       this.logger.warn('MongoDB order update failed, updating memory copy');
       Object.assign(order, update);
@@ -560,9 +673,14 @@ export class MarketplaceService implements OnModuleInit {
   }
 
   /** Creates a Stripe PaymentIntent and returns { clientSecret } to the frontend */
-  async createPaymentIntent(amount: number, currency: string = 'ils'): Promise<{ clientSecret: string }> {
+  async createPaymentIntent(
+    amount: number,
+    currency: string = 'ils',
+  ): Promise<{ clientSecret: string }> {
     if (!this.stripe) {
-      throw new Error('Stripe is not configured. Add STRIPE_SECRET_KEY to your .env file.');
+      throw new Error(
+        'Stripe is not configured. Add STRIPE_SECRET_KEY to your .env file.',
+      );
     }
     const paymentIntent = await this.stripe.paymentIntents.create({
       amount,
@@ -573,29 +691,41 @@ export class MarketplaceService implements OnModuleInit {
   }
 
   /** Secure Stripe Webhook Signature Verification and Event Dispatch */
-  async handleStripeWebhook(signature: string, rawBody: Buffer): Promise<{ received: boolean }> {
+  async handleStripeWebhook(
+    signature: string,
+    rawBody: Buffer,
+  ): Promise<{ received: boolean }> {
     if (!this.stripe) return { received: false };
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     if (!webhookSecret) {
       this.logger.warn('STRIPE_WEBHOOK_SECRET is not configured on server');
       return { received: false };
     }
 
     try {
-      const event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      const event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        webhookSecret,
+      );
       if (event.type === 'payment_intent.succeeded') {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntent = event.data.object;
         const orderId = paymentIntent.metadata?.orderId;
         if (orderId) {
           await this.confirmOrderPayment(orderId, paymentIntent.id);
-          this.logger.log(`Stripe webhook: Order ${orderId} confirmed via payment_intent.succeeded`);
+          this.logger.log(
+            `Stripe webhook: Order ${orderId} confirmed via payment_intent.succeeded`,
+          );
         }
       }
       return { received: true };
     } catch (err: any) {
-      this.logger.error(`Stripe Webhook Signature Verification Failed: ${err?.message}`);
+      this.logger.error(
+        `Stripe Webhook Signature Verification Failed: ${err?.message}`,
+      );
       throw new BadRequestException(`Webhook Error: ${err?.message}`);
     }
   }
 }
-

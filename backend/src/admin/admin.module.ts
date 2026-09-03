@@ -3,10 +3,20 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './admin-auth.guard';
-import { AdminUser, AdminUserSchema, AdminClaim, AdminClaimSchema, AdminLog, AdminLogSchema } from './admin.schema';
+import {
+  AdminUser,
+  AdminUserSchema,
+  AdminClaim,
+  AdminClaimSchema,
+  AdminLog,
+  AdminLogSchema,
+} from './admin.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { Order, OrderSchema } from '../schemas/order.schema';
-import { CommunityReport, CommunityReportSchema } from '../schemas/community.schema';
+import {
+  CommunityReport,
+  CommunityReportSchema,
+} from '../schemas/community.schema';
 
 @Module({
   imports: [

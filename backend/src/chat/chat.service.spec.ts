@@ -27,7 +27,13 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
 
   const mockPetProfileService = {
     findAll: jest.fn().mockResolvedValue([
-      { name: 'Buddy', species: 'Dog', breed: 'Golden Retriever', age: 3, allergies: ['Chicken'] },
+      {
+        name: 'Buddy',
+        species: 'Dog',
+        breed: 'Golden Retriever',
+        age: 3,
+        allergies: ['Chicken'],
+      },
     ]),
   };
 
@@ -49,36 +55,52 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
 
   describe('Multilingual Emergency Triage', () => {
     it('should detect English life-threatening emergency keyword (vomiting blood)', async () => {
-      const res = await service.processMessage('My dog is vomiting blood and breathing fast', []);
+      const res = await service.processMessage(
+        'My dog is vomiting blood and breathing fast',
+        [],
+      );
       expect(res.emergency).toBe(true);
       expect(res.message).toContain('🚨 Potential emergency detected');
     });
 
     it('should detect Hebrew emergency keyword (דימום קשה / מורעל)', async () => {
-      const res = await service.processMessage('הכלב שלי אכל שוקולד ויש לו דימום קשה', []);
+      const res = await service.processMessage(
+        'הכלב שלי אכל שוקולד ויש לו דימום קשה',
+        [],
+      );
       expect(res.emergency).toBe(true);
       expect(res.message).toContain('🚨 זוהה מצב חירום');
     });
 
     it('should detect Arabic emergency keyword (تسمم / نزيف شديد)', async () => {
-      const res = await service.processMessage('كلبي يعاني من تسمم ونزيف شديد', []);
+      const res = await service.processMessage(
+        'كلبي يعاني من تسمم ونزيف شديد',
+        [],
+      );
       expect(res.emergency).toBe(true);
       expect(res.message).toContain('🚨 تم اكتشاف حالة طوارئ');
     });
 
     it('should return AI veterinary advice for wellness queries when AI is active', async () => {
-      const res = await service.processMessage('What is the best food diet for my golden retriever?', []);
+      const res = await service.processMessage(
+        'What is the best food diet for my golden retriever?',
+        [],
+      );
       expect(res.emergency).toBe(false);
       expect(res.message).toBe('Mocked AI veterinary response');
     });
 
     it('should provide smart diagnostic fallback when AI is unavailable', async () => {
       // Test the smart diagnostic rule engine directly
-      const dietResponse = (service as any).generateSmartDiagnosticResponse('food diet recommendations');
+      const dietResponse = (service as any).generateSmartDiagnosticResponse(
+        'food diet recommendations',
+      );
       expect(dietResponse.emergency).toBe(false);
       expect(dietResponse.message).toContain('Pet Nutrition');
 
-      const skinResponse = (service as any).generateSmartDiagnosticResponse('rash and itch');
+      const skinResponse = (service as any).generateSmartDiagnosticResponse(
+        'rash and itch',
+      );
       expect(skinResponse.emergency).toBe(false);
       expect(skinResponse.message).toContain('Skin & Itching');
     });

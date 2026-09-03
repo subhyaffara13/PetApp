@@ -49,7 +49,7 @@ export const StoreSchema = new Schema<IStore>(
     isClaimed: { type: Boolean, default: false },
     contactPhone: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 StoreSchema.index({ location: '2dsphere' });

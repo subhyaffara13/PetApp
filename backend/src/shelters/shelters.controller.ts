@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { SheltersService, CountryEntry } from './shelters.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
@@ -47,4 +56,3 @@ export class SheltersController {
     return this.sheltersService.updateAdoptablePet(id, body);
   }
 }
-
