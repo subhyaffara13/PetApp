@@ -7,6 +7,7 @@ import { OnboardingFlow } from '../../Components/OnboardingFlow/OnboardingFlow';
 import { OwnerProfileModal } from '../../Components/OwnerProfileModal/OwnerProfileModal';
 import { ApplyRoleModal } from '../../Components/ApplyRoleModal/ApplyRoleModal';
 import { CoParentInboxModal } from '../../Components/CoParentInboxModal/CoParentInboxModal';
+import { CoParentInviteModal } from '../../Components/CoParentInviteModal/CoParentInviteModal';
 import { ItemizedReceiptModal } from '../../Components/ItemizedReceiptModal/ItemizedReceiptModal';
 import { GlobalCalendarModal } from '../../Components/GlobalCalendarModal/GlobalCalendarModal';
 import { ProfilePageHeader } from './Components/ProfilePageHeader';
@@ -28,6 +29,7 @@ export const ProfilePage = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedPet, setSelectedPet] = useState<PetProfile | null>(null);
   const [editingPet, setEditingPet] = useState<PetProfile | null>(null);
+  const [invitePet, setInvitePet] = useState<PetProfile | null>(null);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showCoParentInbox, setShowCoParentInbox] = useState(false);
@@ -146,6 +148,7 @@ export const ProfilePage = () => {
           onEdit={(p) => setEditingPet(p)}
           onDelete={handleDelete}
           onToggleArchive={handleToggleArchive}
+          onInviteCoParent={(p) => setInvitePet(p)}
           onSelectPet={(p) => setSelectedPet(p)}
           onAddPet={() => setShowOnboarding(true)}
         />
@@ -160,6 +163,14 @@ export const ProfilePage = () => {
         requests={coParentRequests}
         onRefresh={() => { fetchCoParentRequests(); fetchPets(); }}
       />
+      {invitePet && (
+        <CoParentInviteModal
+          isOpen={!!invitePet}
+          onClose={() => setInvitePet(null)}
+          pet={invitePet}
+          onSuccess={() => { fetchPets(); setInvitePet(null); }}
+        />
+      )}
       <SavedReceiptsListModal
         isOpen={showReceiptsModal}
         onClose={() => setShowReceiptsModal(false)}

@@ -1,5 +1,5 @@
 import { calculatePetAge, type PetProfile } from '../../schemas';
-import { Edit3, Trash2, FileText, Archive, RotateCcw } from 'lucide-react';
+import { Edit3, Trash2, FileText, Archive, RotateCcw, UserPlus } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import './PetCard.css';
 
@@ -8,6 +8,7 @@ interface PetCardProps {
   onEdit: (pet: PetProfile) => void;
   onDelete: (id: string) => void;
   onToggleArchive?: (pet: PetProfile) => void;
+  onInviteCoParent?: (pet: PetProfile) => void;
   isSelected?: boolean;
   onClick?: () => void;
 }
@@ -26,6 +27,7 @@ export const PetCard = ({
   onEdit,
   onDelete,
   onToggleArchive,
+  onInviteCoParent,
   isSelected,
   onClick,
 }: PetCardProps) => {
@@ -65,6 +67,19 @@ export const PetCard = ({
           </p>
         </div>
         <div className="pet-card__actions">
+          {onInviteCoParent && !pet.isArchived && (
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onInviteCoParent(pet);
+              }}
+              title={t('coparent.invite_title', 'Invite Co-Parent / Family Member')}
+              aria-label="Invite co-parent"
+            >
+              <UserPlus size={15} color="#38bdf8" />
+            </button>
+          )}
           {onToggleArchive && (
             <button
               className="btn btn-ghost btn-icon btn-sm"

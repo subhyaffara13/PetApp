@@ -104,9 +104,7 @@ export const ChatPage = () => {
           onSendPreset={(t) => handleSendMessage(t)}
         />
 
-        <div className="chat-input-wrapper">
-          <ChatInput onSend={handleSendMessage} disabled={isTyping} />
-        </div>
+        <ChatInput onSend={handleSendMessage} disabled={isTyping} />
       </div>
 
       <VetHotlinesModal isOpen={showHotlinesModal} onClose={() => setShowHotlinesModal(false)} />

@@ -11,6 +11,7 @@ interface PetListProps {
   onEdit: (pet: PetProfile) => void;
   onDelete: (id: string) => void;
   onToggleArchive: (pet: PetProfile) => void;
+  onInviteCoParent?: (pet: PetProfile) => void;
   onSelectPet: (pet: PetProfile) => void;
   onAddPet: () => void;
 }
@@ -21,6 +22,7 @@ export const PetList = ({
   onEdit,
   onDelete,
   onToggleArchive,
+  onInviteCoParent,
   onSelectPet,
   onAddPet,
 }: PetListProps) => {
@@ -104,6 +106,7 @@ export const PetList = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onToggleArchive={onToggleArchive}
+                onInviteCoParent={onInviteCoParent}
                 onClick={() => onSelectPet(pet)}
               />
             </div>
