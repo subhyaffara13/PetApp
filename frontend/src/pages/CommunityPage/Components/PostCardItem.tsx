@@ -25,6 +25,7 @@ interface PostCardItemProps {
   onCommentInputChange: (id: string, text: string) => void;
   onToggleExpandComments: (id: string) => void;
   onToggleTranslate: (id: string) => void;
+  onOpenUserProfile?: (userId: string, userName?: string, userAvatar?: string) => void;
 }
 
 export const PostCardItem: React.FC<PostCardItemProps> = ({
@@ -39,6 +40,7 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
   onCommentInputChange,
   onToggleExpandComments,
   onToggleTranslate,
+  onOpenUserProfile,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -55,7 +57,12 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
       {/* Author & Follow Header */}
       <div className="post-header">
         <div className="post-header-author-row">
-          <div className="author-meta-wrap">
+          <div
+            className="author-meta-wrap"
+            onClick={() => onOpenUserProfile?.(authorId, authorName, authorAvatar)}
+            style={{ cursor: onOpenUserProfile ? 'pointer' : 'default' }}
+            title="View public profile"
+          >
             <img src={authorAvatar} alt={authorName} className="author-avatar-img" />
             <div className="author-text-info">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>

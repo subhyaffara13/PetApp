@@ -19,6 +19,15 @@ export interface UserProfileData {
   isVerified?: boolean;
   verificationBadge?: BadgeType;
   organizationName?: string;
+  pets?: Array<{
+    _id: string;
+    name: string;
+    species: string;
+    breed: string;
+    age?: number;
+    photoUrl?: string;
+    gender?: string;
+  }>;
 }
 
 interface SocialProfileBarProps {

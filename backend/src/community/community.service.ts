@@ -3,6 +3,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Story, StoryDocument, Post, PostDocument, DirectMessage, DirectMessageDocument, CommunityReport, CommunityReportDocument } from '../schemas/community.schema';
 import { User, UserDocument } from '../schemas/user.schema';
+import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
+
+export interface PublicPetSummary {
+  _id: string;
+  name: string;
+  species: string;
+  breed: string;
+  age?: number;
+  photoUrl?: string;
+  gender?: string;
+}
 
 export interface UserProfileResponse {
   id: string;
@@ -21,6 +32,8 @@ export interface UserProfileResponse {
   isVerified?: boolean;
   verificationBadge?: string;
   organizationName?: string;
+  pets?: PublicPetSummary[];
+  posts?: any[];
 }
 
 @Injectable()
@@ -33,6 +46,7 @@ export class CommunityService implements OnModuleInit {
     @InjectModel(DirectMessage.name) private dmModel: Model<DirectMessageDocument>,
     @InjectModel(CommunityReport.name) private reportModel: Model<CommunityReportDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(PetProfile.name) private petProfileModel: Model<PetProfileDocument>,
   ) {}
 
   async onModuleInit() {
@@ -160,6 +174,39 @@ export class CommunityService implements OnModuleInit {
     const following = user.following || [];
     const isFollowing = currentUserId ? followers.includes(currentUserId) : false;
 
+    // Query public pets safely (NO medical records, allergies, microchip IDs, or sensitive notes)
+    let pets: PublicPetSummary[] = [];
+    try {
+      const rawPets = await this.petProfileModel.find({
+        $or: [
+          { ownerId: user._id.toString() },
+          { ownerId: user.email },
+          { 'coParents.userId': user._id.toString() },
+        ],
+        isArchived: { $ne: true },
+      }).select('name species breed age dateOfBirth gender photoUrl').exec();
+
+      pets = rawPets.map((p) => ({
+        _id: p._id.toString(),
+        name: p.name,
+        species: p.species,
+        breed: p.breed,
+        age: p.age,
+        gender: p.gender,
+        photoUrl: p.photoUrl,
+      }));
+    } catch {}
+
+    // Query user's recent posts
+    let posts: any[] = [];
+    try {
+      posts = await this.postModel
+        .find({ authorId: user._id.toString() })
+        .sort({ createdAt: -1 })
+        .limit(18)
+        .exec();
+    } catch {}
+
     return {
       id: user._id.toString(),
       name: user.name,
@@ -174,7 +221,9 @@ export class CommunityService implements OnModuleInit {
       followingCount: following.length,
       postsCount,
       isFollowing,
-      petBreeds: user.petBreeds || ['Golden Retriever'],
+      petBreeds: pets.length > 0 ? pets.map((p) => p.breed) : (user.petBreeds || ['Golden Retriever']),
+      pets,
+      posts,
     };
   }
 

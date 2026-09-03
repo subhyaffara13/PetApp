@@ -47,6 +47,37 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 
       {profile.bio && <p className="profile-bio-text">{profile.bio}</p>}
 
+      {/* ── My Pets (Instagram Highlights Style) ── */}
+      {profile.pets && profile.pets.length > 0 && (
+        <div className="profile-pets-highlights-tray" style={{ marginTop: '0.85rem', marginBottom: '0.5rem', width: '100%' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem', textAlign: 'left' }}>
+            🐾 Family Pets ({profile.pets.length})
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.35rem' }}>
+            {profile.pets.map((pet) => (
+              <div
+                key={pet._id || pet.name}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', flexShrink: 0, width: 64 }}
+              >
+                <div style={{ width: 54, height: 54, borderRadius: '50%', padding: 2, background: 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #38bdf8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src={pet.photoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=150'}
+                    alt={pet.name}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-bg-elevated, #1f2b42)' }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 64 }}>
+                  {pet.name}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 64 }}>
+                  {pet.breed}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="profile-stats-row">
         <div className="stat-col">
           <strong>{profile.postsCount ?? 0}</strong>

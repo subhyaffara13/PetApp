@@ -6,9 +6,14 @@ import type { StoryItem } from '../../../schemas';
 interface StoryViewerModalProps {
   story: StoryItem | null;
   onClose: () => void;
+  onOpenUserProfile?: (userId: string, userName?: string, userAvatar?: string) => void;
 }
 
-export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({ story, onClose }) => {
+export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
+  story,
+  onClose,
+  onOpenUserProfile,
+}) => {
   const { t } = useTranslation();
   if (!story) return null;
 
@@ -21,7 +26,17 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({ story, onClo
           className="story-viewer-bg-img"
         />
         <div className="story-viewer-header">
-          <div className="story-viewer-author">
+          <div
+            className="story-viewer-author"
+            onClick={() => {
+              if (onOpenUserProfile) {
+                onOpenUserProfile((story as any).authorId || 'current-user', story.petName, story.petAvatar);
+                onClose();
+              }
+            }}
+            style={{ cursor: onOpenUserProfile ? 'pointer' : 'default' }}
+            title="View user profile"
+          >
             <img
               src={story.petAvatar}
               alt={story.petName}

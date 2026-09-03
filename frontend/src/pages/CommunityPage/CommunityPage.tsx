@@ -346,6 +346,18 @@ export const CommunityPage: React.FC = () => {
                     onCommentInputChange={(_id: string, text: string) => setCommentInput((prev) => ({ ...prev, [post._id]: text }))}
                     onToggleExpandComments={() => setExpandedComments((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
                     onToggleTranslate={() => setTranslatedPosts((prev) => ({ ...prev, [post._id]: !prev[post._id] }))}
+                    onOpenUserProfile={(authorId, name, avatar) => {
+                      setSelectedUserProfile({
+                        id: authorId,
+                        name: name || 'Pet Parent',
+                        handle: (name || 'user').toLowerCase().replace(/\s+/g, ''),
+                        avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                        bio: '',
+                        followersCount: 0,
+                        followingCount: 0,
+                        postsCount: 0,
+                      });
+                    }}
                   />
                 </div>
               ))
@@ -419,6 +431,19 @@ export const CommunityPage: React.FC = () => {
         <StoryViewerModal
           story={selectedStoryIndex !== null ? stories[selectedStoryIndex] : null}
           onClose={() => setSelectedStoryIndex(null)}
+          onOpenUserProfile={(authorId, name, avatar) => {
+            setSelectedStoryIndex(null);
+            setSelectedUserProfile({
+              id: authorId,
+              name: name || 'Pet Parent',
+              handle: (name || 'user').toLowerCase().replace(/\s+/g, ''),
+              avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+              bio: '',
+              followersCount: 0,
+              followingCount: 0,
+              postsCount: 0,
+            });
+          }}
         />
       )}
 

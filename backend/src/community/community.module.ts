@@ -4,6 +4,7 @@ import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
 import { Story, StorySchema, Post, PostSchema, DirectMessage, DirectMessageSchema, CommunityReport, CommunityReportSchema } from '../schemas/community.schema';
 import { User, UserSchema } from '../schemas/user.schema';
+import { PetProfile, PetProfileSchema } from '../schemas/pet-profile.schema';
 import { AuthModule } from '../auth/auth.module';
 import { SheltersModule } from '../shelters/shelters.module';
 
@@ -15,6 +16,7 @@ import { SheltersModule } from '../shelters/shelters.module';
       { name: DirectMessage.name, schema: DirectMessageSchema },
       { name: CommunityReport.name, schema: CommunityReportSchema },
       { name: User.name, schema: UserSchema },
+      { name: PetProfile.name, schema: PetProfileSchema },
     ]),
     AuthModule,
     SheltersModule,
