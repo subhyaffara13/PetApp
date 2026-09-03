@@ -2,17 +2,17 @@ import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@ne
 import { SheltersService, CountryEntry } from './shelters.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
-@Controller('shelters')
+@Controller(['shelters', 'adoption'])
 @UseGuards(OptionalJwtAuthGuard)
 export class SheltersController {
   constructor(private readonly sheltersService: SheltersService) {}
 
-  @Get()
+  @Get(['', 'shelters'])
   async find(
-    @Query('country') country: string,
-    @Query('lat') lat: string,
-    @Query('lon') lon: string,
-    @Query('query') query: string,
+    @Query('country') country?: string,
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+    @Query('query') query?: string,
   ) {
     return this.sheltersService.find({
       lat: lat ? +lat : undefined,
@@ -28,7 +28,7 @@ export class SheltersController {
   }
 
   // --- ADOPTABLE PETS DIRECTORY & MANAGER ---
-  @Get('adoptions')
+  @Get(['pets', 'adoptions'])
   async getAdoptablePets(
     @Query('species') species?: string,
     @Query('status') status?: string,
@@ -37,13 +37,14 @@ export class SheltersController {
     return this.sheltersService.getAdoptablePets({ species, status, city });
   }
 
-  @Post('adoptions')
+  @Post(['pets', 'adoptions'])
   async createAdoptablePet(@Body() body: any) {
     return this.sheltersService.createAdoptablePet(body);
   }
 
-  @Patch('adoptions/:id')
+  @Patch(['pets/:id', 'adoptions/:id'])
   async updateAdoptablePet(@Param('id') id: string, @Body() body: any) {
     return this.sheltersService.updateAdoptablePet(id, body);
   }
 }
+
