@@ -46,9 +46,9 @@ export const EmergencyPage = () => {
   const { clinics, fetchClinics } = useEmergencyClinics(currentLang, cityName);
 
   useEffect(() => {
-    if (manualLocationSet.current) return;
-    if (geoLoc) {
-      setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
+    if (geoLoc && !manualLocationSet.current) {
+      const loc: UserLocation = { lat: geoLoc.lat, lon: geoLoc.lon };
+      setUserLocation(loc);
       setAccuracyMode('gps_exact');
 
       reverseGeocodeCountry(geoLoc.lat, geoLoc.lon).then((res) => {
@@ -56,9 +56,11 @@ export const EmergencyPage = () => {
         if (!isManuallySelected && res.countryCode) {
           setLang(mapCountryToLanguage(res.countryCode));
         }
-        if (res.cityName) setCityName(res.cityName);
+        if (res.cityName) {
+          setCityName(res.cityName);
+        }
       });
-    } else if (geoError) {
+    } else if (geoError && !manualLocationSet.current) {
       setAccuracyMode('approximate_default');
     }
   }, [geoLoc, geoError, setLang]);
@@ -79,6 +81,41 @@ export const EmergencyPage = () => {
     } catch {}
   };
 
+  const handleRecenter = () => {
+    manualLocationSet.current = false;
+    try {
+      localStorage.removeItem(LOCATION_STORAGE_KEY);
+      localStorage.removeItem(CITY_NAME_STORAGE_KEY);
+    } catch {}
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc: UserLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          setUserLocation(loc);
+          setAccuracyMode('gps_exact');
+          reverseGeocodeCountry(loc.lat, loc.lon).then((res) => {
+            if (res.cityName) setCityName(res.cityName);
+            if (res.countryCode) {
+              const isManuallySelected = localStorage.getItem('petsos_lang_manual') === 'true';
+              if (!isManuallySelected) setLang(mapCountryToLanguage(res.countryCode));
+            }
+          });
+        },
+        () => {
+          if (geoLoc) {
+            setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
+            setAccuracyMode('gps_exact');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else if (geoLoc) {
+      setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
+      setAccuracyMode('gps_exact');
+    }
+  };
+
   const verifiedCount = clinics.filter((c) => c.tier === 'verified').length;
 
   return (
@@ -95,8 +132,9 @@ export const EmergencyPage = () => {
         <LocationPrompt
           currentCityName={cityName}
           accuracyMode={accuracyMode}
+          centerCoordinates={{ lat: userLocation.lat, lng: userLocation.lon }}
           onLocationFound={handleLocationResolved}
-          onRecenter={() => {}}
+          onRecenter={handleRecenter}
         />
       </div>
 

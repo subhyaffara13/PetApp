@@ -12,6 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { useGeolocation } from '../../Hooks/useGeolocation';
+import { reverseGeocodeCountry } from '../../utils/geo';
 import type { PetShop, CartItem, Product, UserLocation } from '../../schemas';
 import { API_URL } from '../../config/api';
 import './MarketplacePage.css';
@@ -94,6 +95,32 @@ export const MarketplacePage = () => {
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const deliveryCount = shops.filter((s) => s.deliveryAvailable).length;
 
+  const handleRecenter = () => {
+    manualLocationSet.current = false;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc: UserLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          setUserLocation(loc);
+          setAccuracyMode('gps_exact');
+          reverseGeocodeCountry(loc.lat, loc.lon).then((res) => {
+            if (res.cityName) setCityName(res.cityName);
+          });
+        },
+        () => {
+          if (geoLoc) {
+            setUserLocation(geoLoc);
+            setAccuracyMode('gps_exact');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else if (geoLoc) {
+      setUserLocation(geoLoc);
+      setAccuracyMode('gps_exact');
+    }
+  };
+
   return (
     <div className="marketplace-page page" id="marketplace-page">
       <MarketplaceHeaderActions
@@ -113,13 +140,14 @@ export const MarketplacePage = () => {
         <LocationPrompt
           currentCityName={cityName}
           accuracyMode={accuracyMode}
+          centerCoordinates={{ lat: userLocation.lat, lng: userLocation.lon }}
           onLocationFound={(coords) => {
             manualLocationSet.current = true;
             setUserLocation({ lat: coords.lat, lon: coords.lng });
             if (coords.name) setCityName(coords.name);
             setAccuracyMode('city_selected');
           }}
-          onRecenter={() => {}}
+          onRecenter={handleRecenter}
         />
       </div>
 

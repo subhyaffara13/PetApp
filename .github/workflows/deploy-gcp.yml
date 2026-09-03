@@ -64,6 +64,7 @@ jobs:
   deploy-backend:
     name: Deploy Backend API
     needs: validate
+    if: "${{ secrets.GCP_SA_KEY != '' }}"
     runs-on: ubuntu-latest
     outputs:
       backend_url: ${{ steps.deploy-backend.outputs.url }}
@@ -143,6 +144,7 @@ jobs:
   deploy-frontend:
     name: Deploy Customer Frontend
     needs: deploy-backend
+    if: "${{ secrets.GCP_SA_KEY != '' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -202,7 +204,7 @@ jobs:
   deploy-portals:
     name: Deploy Revenue Portals
     needs: deploy-backend
-    if: github.event_name == 'push' || github.event.inputs.deploy_portals == 'true'
+    if: "${{ secrets.GCP_SA_KEY != '' && (github.event_name == 'push' || github.event.inputs.deploy_portals == 'true') }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
