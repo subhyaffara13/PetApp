@@ -542,6 +542,9 @@ export class EmergencyService {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distanceKm = Math.round(6371 * c * 10) / 10;
 
+        // Strictly only include active mobile vets within 60km of search coordinates
+        if (distanceKm > 60) continue;
+
         const id = `mobile-vet-${vet._id}`;
         placesMap.set(id, {
           id,

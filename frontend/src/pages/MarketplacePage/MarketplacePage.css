@@ -4,8 +4,7 @@
 
 .marketplace-page {
   position: relative;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   width: 100%;
   overflow: hidden;
   background: var(--bg, #121417);
