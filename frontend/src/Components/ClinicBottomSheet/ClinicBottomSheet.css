@@ -13,13 +13,13 @@
   /* Smooth animation when snapping */
   transition: height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
-  touch-action: none;
 }
 
 .clinic-bottom-sheet.is-dragging {
   transition: none !important; /* Instant tracking while dragging */
 }
 
+.clinic-bottom-sheet__handle-wrapper,
 .handle-wrap {
   padding: 8px 16px 6px;
   display: flex;
@@ -32,10 +32,12 @@
   background: var(--bg-elevated, #1a1d22);
 }
 
+.clinic-bottom-sheet__handle-wrapper:active,
 .handle-wrap:active {
   cursor: grabbing;
 }
 
+.clinic-bottom-sheet__handle,
 .handle {
   width: 40px;
   height: 4px;
@@ -77,10 +79,13 @@
   color: var(--text, #f3f1ec);
 }
 
+.clinic-bottom-sheet__cards,
 .sheet-cards-list {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 14px 70px;
   flex: 1;
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
@@ -89,6 +94,7 @@
   display: none;
 }
 
+.clinic-bottom-sheet__cards .card,
 .sheet-cards-list .card {
   background: var(--bg-card, #1f2329);
   border: 1px solid var(--border, #2a2e35);

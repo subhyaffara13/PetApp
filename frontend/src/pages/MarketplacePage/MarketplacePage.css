@@ -154,7 +154,6 @@
   box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
   transition: height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
-  touch-action: none;
 }
 
 .market-bottom-sheet.is-dragging {
@@ -287,8 +286,10 @@
 /* Cards Scroll Container */
 .market-bottom-sheet__cards {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 16px 70px;
   flex: 1;
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   display: flex;
