@@ -10,6 +10,7 @@ import { BookingDateTimeSlots } from './Components/BookingDateTimeSlots';
 import { BookingPetForm } from './Components/BookingPetForm';
 import { Modal, Button } from '../UI';
 import { API_URL } from '../../config/api';
+import './UniversalBookingModal.css';
 
 export interface BookingProviderContext {
   id: string;

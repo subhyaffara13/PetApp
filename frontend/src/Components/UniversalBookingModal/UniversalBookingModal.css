@@ -175,10 +175,32 @@
   border-color: #38bdf8;
 }
 
+.booking-date-input-row {
+  margin-bottom: 0.75rem;
+}
+
+.date-picker-field {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: var(--color-bg-input, rgba(15, 23, 42, 0.7));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 10px);
+  color: var(--color-text-primary, #f1f5f9);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all var(--transition-fast, 0.2s ease);
+}
+
+.date-picker-field:focus {
+  border-color: var(--color-accent-coral, #f97316);
+  box-shadow: 0 0 0 3px var(--color-accent-coral-glow, rgba(249, 115, 22, 0.2));
+}
+
 .booking-slots-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
   margin-top: 0.6rem;
   margin-bottom: 1.25rem;
 }

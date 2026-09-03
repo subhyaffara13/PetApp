@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -79,6 +79,7 @@ const AppContent = () => {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<EmergencyPage />} />
+          <Route path="/emergency" element={<EmergencyPage />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route
             path="/chat"
@@ -88,6 +89,7 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/assistant" element={<Navigate to="/chat" replace />} />
           <Route
             path="/profile"
             element={
@@ -96,6 +98,7 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/pets" element={<Navigate to="/profile" replace />} />
           <Route
             path="/marketplace"
             element={
@@ -104,6 +107,8 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/shops" element={<Navigate to="/marketplace" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <BottomNav />
