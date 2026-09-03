@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -97,6 +98,16 @@ export class PetProfileController {
   ) {
     const currentUserId = req.user?.id || 'guest-anonymous';
     return this.petProfileService.removeCoParent(petId, currentUserId, coParentUserId);
+  }
+
+  @Patch(':id/archive')
+  async toggleArchive(
+    @Param('id') id: string,
+    @Body() body: { isArchived: boolean },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id;
+    return this.petProfileService.toggleArchive(id, body.isArchived, userId);
   }
 
   @Post()

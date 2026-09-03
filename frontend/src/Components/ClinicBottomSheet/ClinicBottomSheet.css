@@ -2,7 +2,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--nav-height, 64px);
   z-index: 400;
   background: var(--bg-elevated, #1a1d22);
   border-top: 1px solid var(--border, #2a2e35);

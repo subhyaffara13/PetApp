@@ -401,6 +401,9 @@ export class MarketplaceService implements OnModuleInit {
     items: { productId: string; quantity: number }[];
     subtotal: number;
     customerId?: string;
+    customerName?: string;
+    customerEmail?: string;
+    deliveryMode?: string;
     paymentIntentId?: string;
   }): Promise<any> {
     const shop = await this.getShopWithProducts(dto.shopId);
@@ -469,6 +472,10 @@ export class MarketplaceService implements OnModuleInit {
     }
 
     // Automatically generate itemized receipt and send email
+    const itemsForReceipt = orderItems.map((oi) => {
+      const product = shop.products?.find((p: any) => p._id === oi.productId) as any;
+      return { product, quantity: oi.quantity };
+    });
     try {
       await this.receiptsService.createReceipt({
         userId: dto.customerId || 'guest-customer',
@@ -478,7 +485,7 @@ export class MarketplaceService implements OnModuleInit {
         type: 'marketplace',
         providerName: shop.name,
         providerAddress: shop.address,
-        items: itemsWithDetails.map((it: any) => ({
+        items: itemsForReceipt.map((it: any) => ({
           name: it.product.name,
           quantity: it.quantity,
           unitPrice: it.product.price,

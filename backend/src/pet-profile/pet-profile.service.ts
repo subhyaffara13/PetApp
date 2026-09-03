@@ -190,6 +190,34 @@ export class PetProfileService {
     this.inMemoryStore = this.inMemoryStore.filter((p) => p._id !== id && p.petId !== id);
   }
 
+  /**
+   * Toggles the archived status of a pet profile
+   */
+  async toggleArchive(id: string, isArchived: boolean, userId?: string): Promise<any> {
+    // Verify the pet exists and the user has access
+    await this.findOne(id, userId);
+
+    try {
+      const updated = await this.petProfileModel
+        .findByIdAndUpdate(id, { $set: { isArchived } }, { new: true })
+        .exec();
+      if (updated) {
+        // Sync in-memory store
+        const idx = this.inMemoryStore.findIndex((p) => p._id?.toString() === id || p.petId === id);
+        if (idx !== -1) this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], isArchived };
+        return updated;
+      }
+    } catch (err) {
+      this.logger.warn('MongoDB archive toggle failed, falling back to in-memory');
+    }
+
+    // Fallback: in-memory store
+    const idx = this.inMemoryStore.findIndex((p) => p._id === id || p.petId === id);
+    if (idx === -1) throw new NotFoundException(`Pet profile ${id} not found`);
+    this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], isArchived };
+    return this.inMemoryStore[idx];
+  }
+
   // --- CO-PARENTING & FAMILY HOUSEHOLD INVITATION SYSTEM ---
 
   /**

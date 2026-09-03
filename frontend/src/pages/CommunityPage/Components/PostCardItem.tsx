@@ -96,9 +96,21 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
         </div>
       </div>
 
-      {/* Media Image */}
+      {/* Media Image / Video */}
       <div className="post-media-wrap">
-        <img src={post.mediaUrl} alt={post.petName} className="post-image" />
+        {post.mediaUrl && /\.(mp4|webm|mov|ogg)(\?|$)/i.test(post.mediaUrl) ? (
+          <video
+            src={post.mediaUrl}
+            className="post-video"
+            controls
+            playsInline
+            muted
+            preload="metadata"
+            style={{ width: '100%', maxHeight: 420, borderRadius: 8, background: '#000' }}
+          />
+        ) : (
+          <img src={post.mediaUrl} alt={post.petName} className="post-image" />
+        )}
         <span className={`post-category-tag post-category-tag--${post.category}`}>
           {post.category === 'health_tip'
             ? t('community.tag_health', '🩺 HEALTH & CARE')

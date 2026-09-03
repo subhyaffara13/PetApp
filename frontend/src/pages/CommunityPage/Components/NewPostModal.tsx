@@ -259,7 +259,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
             <label>Photo</label>
 
             {/* Upload your own */}
-            <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+            <input ref={inputRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={handleFileChange} />
 
             {image?.previewUrl ? (
               <div style={{ position: 'relative', marginBottom: '0.5rem' }}>

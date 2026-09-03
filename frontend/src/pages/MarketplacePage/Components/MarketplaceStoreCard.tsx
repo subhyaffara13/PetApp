@@ -109,13 +109,19 @@ export const MarketplaceStoreCard: React.FC<MarketplaceStoreCardProps> = ({
           <Navigation size={13} /> {t('action.directions', 'Directions')}
         </a>
 
-        <button
-          type="button"
-          className="btn btn-primary btn-sm btn-catalog-view"
-          onClick={() => onOpenCatalog(shop)}
-        >
-          <Package size={14} /> {t('market.view_products', 'View Catalog & Order')}
-        </button>
+        {isPartner ? (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm btn-catalog-view"
+            onClick={() => onOpenCatalog(shop)}
+          >
+            <Package size={14} /> {t('market.view_products', 'View Catalog & Order')}
+          </button>
+        ) : (
+          <span className="badge badge--muted" style={{ fontSize: 11, opacity: 0.6, padding: '4px 10px' }}>
+            <Store size={11} /> {t('market.listing_only', 'Listing Only')}
+          </span>
+        )}
       </div>
     </div>
   );

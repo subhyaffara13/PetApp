@@ -10,7 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
-import { OptionalJwtAuthGuard } from '../auth/optional-jwt.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
 @Controller('schedule')
 export class ScheduleController {
