@@ -153,8 +153,8 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
               <VerificationBadge type={(profile?.verificationBadge as any) || 'veterinarian'} size="sm" />
             )}
           </div>
-          <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Close">
-            <X size={18} />
+          <button type="button" className="public-profile-close-btn" onClick={onClose} title="Close">
+            <X size={16} />
           </button>
         </div>
 

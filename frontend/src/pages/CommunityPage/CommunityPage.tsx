@@ -16,7 +16,7 @@ import { FriendsModal } from './Components/FriendsModal';
 import { NewPostModal } from './Components/NewPostModal';
 import { StoryViewerModal } from './Components/StoryViewerModal';
 import { UserSearchHeader } from './Components/UserSearchHeader';
-import { UserProfileModal } from './Components/UserProfileModal';
+import { PublicUserProfileModal } from '../../Components/PublicUserProfileModal/PublicUserProfileModal';
 import { SuggestedNeighborsTray } from './Components/SuggestedNeighborsTray';
 import { DirectMessagesDrawer } from './Components/DirectMessagesDrawer';
 import { ReportSafetyModal } from './Components/ReportSafetyModal';
@@ -389,19 +389,26 @@ export const CommunityPage: React.FC = () => {
         </aside>
       </div>
 
-      {/* Full Instagram-Style User Profile Modal */}
+      {/* Full Floating Instagram-Style User Profile Modal */}
       {selectedUserProfile && (
-        <UserProfileModal
+        <PublicUserProfileModal
+          isOpen={!!selectedUserProfile}
           userId={selectedUserProfile.id}
+          initialName={selectedUserProfile.name}
+          initialAvatar={selectedUserProfile.avatar}
           onClose={() => setSelectedUserProfile(null)}
-          onOpenMessage={(targetUser) => {
+          onOpenDirectMessage={(userId, userName) => {
             setSelectedUserProfile(null);
-            handleOpenMessages(targetUser);
-          }}
-          onOpenReport={(targetUser) => {
-            setSelectedUserProfile(null);
-            setReportUser(targetUser);
-            setReportTranscript(undefined);
+            handleOpenMessages({
+              id: userId,
+              name: userName,
+              handle: `@${userName.toLowerCase().replace(/\s+/g, '')}`,
+              avatar: '',
+              bio: '',
+              followersCount: 0,
+              followingCount: 0,
+              postsCount: 0,
+            });
           }}
         />
       )}
