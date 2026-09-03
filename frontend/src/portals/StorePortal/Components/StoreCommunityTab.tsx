@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Send, CheckCircle2, ShieldCheck, Clock, Store, Tag } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface StoreCommunityTabProps {
   store: any;

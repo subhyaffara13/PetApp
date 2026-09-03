@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Send, Sparkles, CheckCircle2, ShieldCheck, Clock, Stethoscope } from 'lucide-react';
 import type { ClaimableClinic } from '../schemas';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../config/api';
 
 interface ClinicCommunityTabProps {
   clinic: ClaimableClinic;

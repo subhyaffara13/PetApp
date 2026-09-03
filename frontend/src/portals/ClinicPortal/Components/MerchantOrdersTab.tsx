@@ -16,10 +16,8 @@ import {
   Truck,
   User,
 } from 'lucide-react';
+import { API_URL, SOCKET_URL as SOCKET_SERVER_URL } from '../../../config/api';
 import './MerchantOrdersTab.css';
-
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 interface MerchantOrder {
   masterOrderId: string;
