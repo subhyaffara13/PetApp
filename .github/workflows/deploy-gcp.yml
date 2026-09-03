@@ -64,7 +64,6 @@ jobs:
   deploy-backend:
     name: Deploy Backend API
     needs: validate
-    if: "${{ secrets.GCP_SA_KEY != '' }}"
     runs-on: ubuntu-latest
     outputs:
       backend_url: ${{ steps.deploy-backend.outputs.url }}
@@ -74,14 +73,17 @@ jobs:
 
       - name: Authenticate to Google Cloud
         id: auth
+        continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
+        if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Ensure GCP APIs and Artifact Registry Repository Exist
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
         run: |
@@ -94,10 +96,12 @@ jobs:
             --quiet || true
 
       - name: Authorize Docker to Artifact Registry
+        if: steps.auth.outcome == 'success'
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build & Push Backend Container Image
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
         run: |
@@ -109,6 +113,7 @@ jobs:
 
       - name: Deploy Backend to Google Cloud Run
         id: deploy-backend
+        if: steps.auth.outcome == 'success'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petapp
@@ -144,7 +149,6 @@ jobs:
   deploy-frontend:
     name: Deploy Customer Frontend
     needs: deploy-backend
-    if: "${{ secrets.GCP_SA_KEY != '' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -152,14 +156,17 @@ jobs:
 
       - name: Authenticate to Google Cloud
         id: auth
+        continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
+        if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Authorize Docker to Artifact Registry
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
         run: |
@@ -167,6 +174,7 @@ jobs:
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build & Push Frontend Image with Backend URL
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
@@ -187,6 +195,7 @@ jobs:
           docker push "$LATEST_TAG"
 
       - name: Deploy Frontend to Google Cloud Run
+        if: steps.auth.outcome == 'success'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petsos
@@ -204,7 +213,7 @@ jobs:
   deploy-portals:
     name: Deploy Revenue Portals
     needs: deploy-backend
-    if: "${{ secrets.GCP_SA_KEY != '' && (github.event_name == 'push' || github.event.inputs.deploy_portals == 'true') }}"
+    if: github.event_name == 'push' || github.event.inputs.deploy_portals == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -212,14 +221,17 @@ jobs:
 
       - name: Authenticate to Google Cloud
         id: auth
+        continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
+        if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Authorize Docker
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
         run: |
@@ -228,6 +240,7 @@ jobs:
 
       # 4a. Clinic Portal
       - name: Build & Deploy Clinic Portal
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
@@ -245,6 +258,7 @@ jobs:
 
       # 4b. Store Merchant Portal
       - name: Build & Deploy Store Portal
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
@@ -262,6 +276,7 @@ jobs:
 
       # 4c. Admin Portal
       - name: Build & Deploy Admin Portal
+        if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
