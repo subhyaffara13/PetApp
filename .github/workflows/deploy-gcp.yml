@@ -104,7 +104,7 @@ jobs:
         id: deploy-backend
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: petsos-api
+          service: petapp
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
@@ -176,7 +176,7 @@ jobs:
       - name: Deploy Frontend to Google Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: petsos-frontend
+          service: petsos
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
