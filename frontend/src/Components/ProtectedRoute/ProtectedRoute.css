@@ -2,61 +2,148 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  padding: var(--space-lg);
-  background: var(--color-bg-primary);
+  min-height: calc(100vh - var(--nav-height, 72px));
+  padding: var(--space-xl) var(--space-md);
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 20%, rgba(249, 115, 22, 0.08) 0%, rgba(10, 14, 26, 0.98) 70%);
+}
+
+.protected-gate__backdrop-glow {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0) 70%);
+  filter: blur(50px);
+  pointer-events: none;
 }
 
 .protected-gate__card {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 400px;
+  max-width: 440px;
+  width: 100%;
   gap: var(--space-md);
-  padding: var(--space-xl);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  padding: 36px 28px;
+  background: rgba(22, 30, 49, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
 
-.protected-gate__icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(249, 115, 22, 0.1);
+.protected-gate__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  background: rgba(249, 115, 22, 0.12);
   border: 1px solid rgba(249, 115, 22, 0.3);
+  color: var(--color-accent-coral, #f97316);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.protected-gate__badge-icon {
+  color: var(--color-accent-coral, #f97316);
+}
+
+.protected-gate__icon-container {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.05));
+  border: 1px solid rgba(249, 115, 22, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-accent-coral);
+  color: var(--color-accent-coral, #f97316);
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.25);
+  margin-top: 4px;
 }
 
-.protected-gate__card h2 {
-  font-size: var(--text-xl);
-  font-weight: 700;
+.protected-gate__title {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
-.protected-gate__card p {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+.protected-gate__description {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #94a3b8);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.protected-gate__features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin: 8px 0;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  text-align: left;
+}
+
+.protected-gate__feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.feature-check-icon {
+  color: #10b981;
+  flex-shrink: 0;
 }
 
 .protected-gate__notice {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px 14px;
   background: rgba(16, 185, 129, 0.08);
   border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  color: var(--color-status-open);
+  border-radius: 10px;
+  font-size: 0.78rem;
+  color: #34d399;
+  font-weight: 500;
 }
 
 .protected-gate__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  padding: 12px;
-  font-weight: 600;
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.protected-gate__btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(249, 115, 22, 0.55);
 }

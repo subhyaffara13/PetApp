@@ -7,11 +7,19 @@
   flex-shrink: 0;
   display: flex;
   align-items: stretch;
-  height: var(--nav-height, 64px);
+  height: var(--nav-height, 68px);
   padding-bottom: var(--safe-area-bottom, 0px);
-  background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  background: rgba(10, 14, 26, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='light'] .bottom-nav {
+  background: rgba(255, 255, 255, 0.88);
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .bottom-nav__item {
@@ -25,57 +33,94 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #64748b);
   font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.02em;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast, 150ms ease), transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  z-index: 1;
 }
 
 .bottom-nav__item:hover {
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary, #94a3b8);
 }
 
 .bottom-nav__item--active {
-  color: var(--color-accent-coral);
+  color: var(--color-accent-coral, #f97316);
+}
+
+.bottom-nav__item--active::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 8px;
+  right: 8px;
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: 12px;
+  z-index: -1;
 }
 
 .bottom-nav__icon {
-  width: 26px;
-  height: 26px;
-  transition: transform var(--transition-spring);
+  width: 24px;
+  height: 24px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 2;
 }
 
 .bottom-nav__item--active .bottom-nav__icon {
   transform: scale(1.15);
 }
 
+/* SOS Emergency Tab Pulse */
 .bottom-nav__item--sos {
-  color: var(--color-sos-red);
+  color: #ef4444;
 }
 
 .bottom-nav__item--sos.bottom-nav__item--active {
-  color: var(--color-sos-red);
+  color: #ef4444;
+}
+
+.bottom-nav__item--sos.bottom-nav__item--active::before {
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .bottom-nav__item--sos .bottom-nav__icon {
-  filter: drop-shadow(0 0 4px var(--color-sos-red-glow));
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.5));
+  animation: sos-radar-pulse 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes sos-radar-pulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+  }
+  50% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.85));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+  }
 }
 
 /* Active indicator dot */
 .bottom-nav__indicator {
   position: absolute;
   top: 4px;
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--color-accent-coral);
+  background: var(--color-accent-coral, #f97316);
   opacity: 0;
   transform: scale(0);
-  transition: all var(--transition-spring);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 8px var(--color-accent-coral, #f97316);
 }
 
 .bottom-nav__item--active .bottom-nav__indicator {
@@ -84,9 +129,12 @@
 }
 
 .bottom-nav__item--sos .bottom-nav__indicator {
-  background: var(--color-sos-red);
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
 }
 
 .bottom-nav__label {
   line-height: 1;
+  font-size: 10.5px;
+  z-index: 2;
 }

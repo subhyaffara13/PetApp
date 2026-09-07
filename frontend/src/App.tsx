@@ -99,14 +99,7 @@ const AppContent = () => {
             }
           />
           <Route path="/pets" element={<Navigate to="/profile" replace />} />
-          <Route
-            path="/marketplace"
-            element={
-              <ProtectedRoute title="Sign In for Marketplace" description="Shop products from local pet stores with direct DaaS delivery.">
-                <MarketplacePage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/marketplace" element={<MarketplacePage />} />
           <Route path="/shops" element={<Navigate to="/marketplace" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

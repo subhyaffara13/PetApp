@@ -145,14 +145,22 @@
   right: 0;
   bottom: 0;
   z-index: 400;
-  background: var(--bg-elevated, #1a1d22);
-  border-top: 1px solid var(--border, #2a2e35);
-  border-radius: 20px 20px 0 0;
+  background: rgba(18, 24, 38, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55);
   transition: height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
+}
+
+[data-theme='light'] .market-bottom-sheet {
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .market-bottom-sheet.is-dragging {
@@ -168,7 +176,7 @@
   flex-shrink: 0;
   user-select: none;
   touch-action: none;
-  background: var(--bg-elevated, #1a1d22);
+  background: transparent;
 }
 
 .market-bottom-sheet__handle-wrapper:active {

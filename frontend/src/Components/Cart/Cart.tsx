@@ -6,6 +6,7 @@ import { CheckoutModal } from '../CheckoutModal/CheckoutModal';
 import { CartItemList } from './Components/CartItemList';
 import { CartFulfillmentSection } from './Components/CartFulfillmentSection';
 import { CartOrderSummary } from './Components/CartOrderSummary';
+import { useAuth } from '../../context/AuthContext';
 import './Cart.css';
 
 interface CartProps {
@@ -28,6 +29,7 @@ const SERVICE_FEE_RATE = 0.025;
 const SAVED_CARDS_KEY = 'petsos_saved_cards_v1';
 
 export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onCheckout }: CartProps) => {
+  const { isAuthenticated, openAuthModal } = useAuth();
   const [fulfillmentMode, setFulfillmentMode] = useState<'delivery' | 'pickup'>('delivery');
   const [streetAddress, setStreetAddress] = useState('Moriah Blvd 42');
   const [city, setCity] = useState('Haifa');
@@ -36,6 +38,14 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onCheckout }: C
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [, setSavedCards] = useState<SavedCard[]>([]);
+
+  const handleOpenCheckout = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    setShowCheckoutModal(true);
+  };
 
   useEffect(() => {
     try {
@@ -112,7 +122,7 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onCheckout }: C
               deliveryFee={deliveryFee}
               total={total}
               isProcessing={isProcessing}
-              onOpenCheckoutModal={() => setShowCheckoutModal(true)}
+              onOpenCheckoutModal={handleOpenCheckout}
             />
           </div>
         )}
