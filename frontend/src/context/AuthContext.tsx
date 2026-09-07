@@ -140,10 +140,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updated = buildStoredAuth(res.data.accessToken, res.data.refreshToken);
       setStoredAuth(updated);
       saveStoredAuth(updated);
-    } catch {
-      // Refresh token expired — force re-login
-      setStoredAuth(null);
-      clearStoredAuth();
+    } catch (err: any) {
+      // Only force re-login if the refresh token is explicitly rejected (401/403).
+      // Keep session intact during temporary server cold starts or network blips.
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setStoredAuth(null);
+        clearStoredAuth();
+      }
     }
   }, [storedAuth?.refreshToken]);
 

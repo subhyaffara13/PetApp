@@ -103,7 +103,7 @@ export const AuthModal = () => {
     setIsLoading(true);
     setError(null);
     try {
-      await register(email, password, name, 'customer');
+      await register(name, email, password, 'customer');
       closeAuthModal();
       showToast('Account created successfully! Welcome to PetSOS.', 'success', '🎉 Welcome');
     } catch (err: any) {
