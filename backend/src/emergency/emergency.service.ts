@@ -217,7 +217,8 @@ export class EmergencyService {
     lang?: string,
     country?: string,
   ): Promise<EmergencyClinicResult[]> {
-    const placesMap = new Map<string, EmergencyClinicResult>();
+    try {
+      const placesMap = new Map<string, EmergencyClinicResult>();
     const { keywords, langCode } = getLocalizedVetKeywords(
       lang,
       country,
@@ -519,6 +520,10 @@ export class EmergencyService {
     const results = Array.from(placesMap.values());
     results.sort((a, b) => (a.distance || 999) - (b.distance || 999));
     return results;
+    } catch (topLevelErr: any) {
+      this.logger.error('Unexpected error in findNearby, falling back to local registry:', topLevelErr);
+      return this.getAllClinics();
+    }
   }
 
   async geocodeAddress(

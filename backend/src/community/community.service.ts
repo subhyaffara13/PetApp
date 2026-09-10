@@ -264,9 +264,10 @@ export class CommunityService implements OnModuleInit {
     // Increment user's liked category preferences if available
     const authorId = toSafeString(dto.authorId);
     const category = toSafeString(dto.category);
-    if (isSafeObjectId(authorId) && category) {
+    if (authorId && category) {
+      const userQueryId = isSafeObjectId(authorId) ? toSafeObjectId(authorId) : authorId;
       await this.userModel
-        .findByIdAndUpdate(toSafeObjectId(authorId), {
+        .findByIdAndUpdate(userQueryId, {
           $addToSet: { likedCategories: category },
         })
         .exec();
@@ -276,15 +277,17 @@ export class CommunityService implements OnModuleInit {
 
   async deletePost(id: string): Promise<any> {
     const safeId = toSafeString(id);
-    if (!isSafeObjectId(safeId)) return null;
-    return this.postModel.findByIdAndDelete(toSafeObjectId(safeId)).exec();
+    if (!safeId) return null;
+    const queryId = isSafeObjectId(safeId) ? toSafeObjectId(safeId) : safeId;
+    return this.postModel.findByIdAndDelete(queryId).exec();
   }
 
   async toggleLike(postId: string, userId: string): Promise<any> {
     const safePostId = toSafeString(postId);
     const safeUserId = toSafeString(userId);
-    if (!isSafeObjectId(safePostId)) throw new NotFoundException('Post not found');
-    const post = await this.postModel.findById(toSafeObjectId(safePostId)).exec();
+    if (!safePostId) throw new NotFoundException('Post not found');
+    const queryId = isSafeObjectId(safePostId) ? toSafeObjectId(safePostId) : safePostId;
+    const post = await this.postModel.findById(queryId).exec();
     if (!post) throw new NotFoundException('Post not found');
 
     const alreadyLiked = post.likedBy?.includes(safeUserId);
@@ -298,11 +301,12 @@ export class CommunityService implements OnModuleInit {
 
     // Sync likedPostIds and likedCategories to user profile in Atlas
     if (
-      isSafeObjectId(safeUserId) &&
+      safeUserId &&
       safeUserId !== 'guest-anonymous' &&
       safeUserId !== 'current-user'
     ) {
       try {
+        const userQueryId = isSafeObjectId(safeUserId) ? toSafeObjectId(safeUserId) : safeUserId;
         const userUpdate: any = alreadyLiked
           ? { $pull: { likedPostIds: safePostId } }
           : {
@@ -311,7 +315,7 @@ export class CommunityService implements OnModuleInit {
                 likedCategories: post.category,
               },
             };
-        await this.userModel.findByIdAndUpdate(toSafeObjectId(safeUserId), userUpdate).exec();
+        await this.userModel.findByIdAndUpdate(userQueryId, userUpdate).exec();
       } catch (err) {
         this.logger.warn('User like sync note:', err);
       }
@@ -572,7 +576,8 @@ export class CommunityService implements OnModuleInit {
     }
 
     const safeUserId = toSafeString(userId);
-    if (!isSafeObjectId(safeUserId)) throw new NotFoundException('User not found');
+    if (!safeUserId) throw new NotFoundException('User not found');
+    const userQueryId = isSafeObjectId(safeUserId) ? toSafeObjectId(safeUserId) : safeUserId;
 
     const cleanDto = sanitizeMongoInput(dto);
     const allowedKeys = [
@@ -593,7 +598,7 @@ export class CommunityService implements OnModuleInit {
     }
 
     const updated = await this.userModel
-      .findByIdAndUpdate(toSafeObjectId(safeUserId), { $set: updateDoc }, { new: true })
+      .findByIdAndUpdate(userQueryId, { $set: updateDoc }, { new: true })
       .exec();
     if (!updated) throw new NotFoundException('User not found');
     return this.getUserProfile(safeUserId);

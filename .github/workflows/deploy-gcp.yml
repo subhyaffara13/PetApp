@@ -1,6 +1,8 @@
 name: Deploy to Google Cloud Run via GitHub
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       deploy_portals:

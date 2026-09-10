@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { EmergencyService } from './emergency.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
@@ -39,6 +40,8 @@ export class NearbyQueryDto {
 @Controller('emergency')
 @UseGuards(OptionalJwtAuthGuard)
 export class EmergencyController {
+  private readonly logger = new Logger(EmergencyController.name);
+
   constructor(private readonly emergencyService: EmergencyService) {}
 
   @Get('nearby')
@@ -50,24 +53,29 @@ export class EmergencyController {
     @Query('lang') langParam?: string,
     @Query('country') countryParam?: string,
   ) {
-    const lat = latParam ?? query?.lat;
-    const lon = lonParam ?? query?.lon;
-    const customQuery = customQueryParam ?? query?.query;
-    const lang = langParam ?? query?.lang;
-    const country = countryParam ?? query?.country;
+    try {
+      const lat = latParam ?? query?.lat;
+      const lon = lonParam ?? query?.lon;
+      const customQuery = customQueryParam ?? query?.query;
+      const lang = langParam ?? query?.lang;
+      const country = countryParam ?? query?.country;
 
-    const parsedLat =
-      lat !== undefined && !isNaN(Number(lat)) ? Number(lat) : 32.794;
-    const parsedLon =
-      lon !== undefined && !isNaN(Number(lon)) ? Number(lon) : 34.9896;
+      const parsedLat =
+        lat !== undefined && !isNaN(Number(lat)) ? Number(lat) : 32.794;
+      const parsedLon =
+        lon !== undefined && !isNaN(Number(lon)) ? Number(lon) : 34.9896;
 
-    return this.emergencyService.findNearby(
-      parsedLat,
-      parsedLon,
-      customQuery,
-      lang,
-      country,
-    );
+      return await this.emergencyService.findNearby(
+        parsedLat,
+        parsedLon,
+        customQuery,
+        lang,
+        country,
+      );
+    } catch (err: any) {
+      this.logger.error('Failed to get nearby clinics, serving fallback registry:', err);
+      return this.emergencyService.getAllClinics();
+    }
   }
 
   @Get('geocode')
@@ -130,10 +138,15 @@ export class EmergencyController {
     @Query('lat') lat?: string,
     @Query('lon') lon?: string,
   ) {
-    return this.emergencyService.getActiveLostPetAlerts(
-      lat ? +lat : 32.794,
-      lon ? +lon : 34.9896,
-    );
+    try {
+      return await this.emergencyService.getActiveLostPetAlerts(
+        lat ? +lat : 32.794,
+        lon ? +lon : 34.9896,
+      );
+    } catch (err: any) {
+      this.logger.error('Failed to get active lost pet alerts:', err);
+      return [];
+    }
   }
 
   @Patch('lost-pet/:id/resolve')
