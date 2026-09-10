@@ -40,6 +40,7 @@ export const EmergencyPage = () => {
 
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
+  const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const manualLocationSet = useRef<boolean>(Boolean(localStorage.getItem(LOCATION_STORAGE_KEY)));
 
@@ -82,18 +83,34 @@ export const EmergencyPage = () => {
   };
 
   const handleRecenter = () => {
+    // 1. Unselect any active clinic & collapse sheet
+    setSelectedClinic(null);
+    setIsSheetExpanded(false);
+
+    // 2. Clear manual storage overrides
     manualLocationSet.current = false;
     try {
       localStorage.removeItem(LOCATION_STORAGE_KEY);
       localStorage.removeItem(CITY_NAME_STORAGE_KEY);
     } catch {}
 
+    // 3. Immediately trigger map flyTo to current user location
+    setRecenterTrigger((prev) => prev + 1);
+
+    // 4. Restore to hook geoLoc if present
+    if (geoLoc) {
+      setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
+      setAccuracyMode('gps_exact');
+    }
+
+    // 5. Query live device GPS
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc: UserLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
           setUserLocation(loc);
           setAccuracyMode('gps_exact');
+          setRecenterTrigger((prev) => prev + 1);
           reverseGeocodeCountry(loc.lat, loc.lon).then((res) => {
             if (res.cityName) setCityName(res.cityName);
             if (res.countryCode) {
@@ -106,13 +123,11 @@ export const EmergencyPage = () => {
           if (geoLoc) {
             setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
             setAccuracyMode('gps_exact');
+            setRecenterTrigger((prev) => prev + 1);
           }
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
-    } else if (geoLoc) {
-      setUserLocation({ lat: geoLoc.lat, lon: geoLoc.lon });
-      setAccuracyMode('gps_exact');
     }
   };
 
@@ -143,6 +158,7 @@ export const EmergencyPage = () => {
           userLocation={userLocation}
           clinics={clinics}
           selectedClinic={selectedClinic}
+          recenterTrigger={recenterTrigger}
           onClinicSelect={(clinic) => {
             setSelectedClinic(clinic);
             setIsSheetExpanded(true);

@@ -30,6 +30,7 @@ export const MarketplacePage = () => {
   const [accuracyMode, setAccuracyMode] = useState<LocationAccuracyMode>('approximate_default');
   const [shops, setShops] = useState<PetShop[]>([]);
   const [selectedShop, setSelectedShop] = useState<PetShop | null>(null);
+  const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -96,13 +97,22 @@ export const MarketplacePage = () => {
   const deliveryCount = shops.filter((s) => s.deliveryAvailable).length;
 
   const handleRecenter = () => {
+    setSelectedShop(null);
     manualLocationSet.current = false;
+    setRecenterTrigger((prev) => prev + 1);
+
+    if (geoLoc) {
+      setUserLocation(geoLoc);
+      setAccuracyMode('gps_exact');
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc: UserLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
           setUserLocation(loc);
           setAccuracyMode('gps_exact');
+          setRecenterTrigger((prev) => prev + 1);
           reverseGeocodeCountry(loc.lat, loc.lon).then((res) => {
             if (res.cityName) setCityName(res.cityName);
           });
@@ -111,13 +121,11 @@ export const MarketplacePage = () => {
           if (geoLoc) {
             setUserLocation(geoLoc);
             setAccuracyMode('gps_exact');
+            setRecenterTrigger((prev) => prev + 1);
           }
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
-    } else if (geoLoc) {
-      setUserLocation(geoLoc);
-      setAccuracyMode('gps_exact');
     }
   };
 
@@ -156,6 +164,7 @@ export const MarketplacePage = () => {
           userLocation={userLocation}
           items={mapItems}
           selectedItem={mapItems.find((m) => m.id === (selectedShop?._id || selectedShop?.id)) || null}
+          recenterTrigger={recenterTrigger}
           onItemSelect={(item) => {
             const found = shops.find((s) => (s._id || s.id) === item.id);
             if (found) {

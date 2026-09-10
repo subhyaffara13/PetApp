@@ -69,7 +69,22 @@ export const MarketplaceBottomSheet = ({
     setSheetHeight((prev) => (prev < 32 ? 40 : prev));
     const cardEl = document.getElementById(`card-${selectedShopId}`);
     if (cardEl) {
-      cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const cardsContainer = cardEl.closest<HTMLElement>('.marketplace-sheet__cards');
+      if (cardsContainer) {
+        const containerRect = cardsContainer.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
+        const relativeCardTop = cardRect.top - containerRect.top + cardsContainer.scrollTop;
+        const targetScrollTop = relativeCardTop - (cardsContainer.clientHeight / 2) + (cardRect.height / 2);
+        cardsContainer.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth',
+        });
+      }
+
+      if (window.scrollY !== 0) window.scrollTo({ top: 0, left: 0 });
+      const appMain = document.querySelector('.app-main');
+      if (appMain && appMain.scrollTop !== 0) appMain.scrollTop = 0;
+
       cardEl.classList.add('flash');
       const timer = setTimeout(() => cardEl.classList.remove('flash'), 1000);
       return () => clearTimeout(timer);

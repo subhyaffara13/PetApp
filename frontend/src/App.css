@@ -9,6 +9,7 @@
   height: 100dvh;
   width: 100vw;
   overflow: hidden;
+  overflow: clip;
   background: var(--color-bg-primary);
 }
 
@@ -16,6 +17,7 @@
   flex: 1;
   position: relative;
   overflow: hidden;
+  overflow: clip;
   display: flex;
   flex-direction: column;
   padding-bottom: var(--nav-height, 64px);

@@ -175,6 +175,7 @@
 
 /* Cards Scroll Container */
 .clinic-bottom-sheet__cards {
+  position: relative;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 4px 16px 70px;

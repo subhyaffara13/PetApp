@@ -66,21 +66,24 @@ export const createStoreIcon = (category?: string) => {
 };
 
 // --- Map Center & Viewport Synchronizer with Mobile Auto-Invalidate ---
-interface MapUpdaterProps {
+const MapUpdater = ({
+  center,
+  selectedLocation,
+  recenterTrigger,
+}: {
   center: [number, number];
-  selectedLocation?: { lat: number; lng: number } | null;
-}
-
-const MapUpdater = ({ center, selectedLocation }: MapUpdaterProps) => {
+  selectedLocation: { lat: number; lng: number } | null;
+  recenterTrigger?: number;
+}) => {
   const map = useMap();
   const isFirstCenter = useRef(true);
 
-  // Critical for Mobile: Force Leaflet to calculate correct viewport size
+  // Invalidate size on mount / window changes
   useEffect(() => {
     const invalidate = () => {
-      if (map) {
+      try {
         map.invalidateSize();
-      }
+      } catch {}
     };
 
     // Run immediate + staged checks for mobile browser address-bar transitions
@@ -100,6 +103,13 @@ const MapUpdater = ({ center, selectedLocation }: MapUpdaterProps) => {
       window.removeEventListener('orientationchange', invalidate);
     };
   }, [map]);
+
+  // Dedicated handler for explicit recenter trigger
+  useEffect(() => {
+    if (recenterTrigger && recenterTrigger > 0) {
+      map.flyTo(center, 13, { animate: true, duration: 1.0 });
+    }
+  }, [map, recenterTrigger, center]);
 
   useEffect(() => {
     if (selectedLocation) {
@@ -145,6 +155,7 @@ interface MapProps {
   theme?: 'dark' | 'light';
   selectedClinic?: Clinic | null;
   selectedItem?: MapItem | null;
+  recenterTrigger?: number;
   onClinicSelect?: (clinic: Clinic) => void;
   onItemSelect?: (item: MapItem) => void;
   mode?: 'emergency' | 'marketplace';
@@ -157,6 +168,7 @@ export const MapComponent = ({
   theme = 'dark',
   selectedClinic,
   selectedItem,
+  recenterTrigger,
   onClinicSelect,
   onItemSelect,
   mode = 'emergency',
@@ -193,6 +205,7 @@ export const MapComponent = ({
         <MapUpdater
           center={position}
           selectedLocation={activeSelectedLocation}
+          recenterTrigger={recenterTrigger}
         />
 
         {/* User Location Pulsing Dot */}
