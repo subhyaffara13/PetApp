@@ -62,3 +62,20 @@ export function sanitizeMongoInput<T>(obj: T): T {
   }
   return clean as T;
 }
+
+/**
+ * Sanitizes an object IN-PLACE by removing keys that start with '$' or contain '.'.
+ * Use this when the object reference cannot be replaced (e.g. req.query in Express 5
+ * where the property is a read-only getter).
+ */
+export function sanitizeObjectInPlace(obj: Record<string, any>): void {
+  if (!obj || typeof obj !== 'object') return;
+  for (const key of Object.keys(obj)) {
+    if (key.startsWith('$') || key.includes('.') || key === '__proto__' || key === 'constructor') {
+      delete obj[key];
+    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      obj[key] = sanitizeMongoInput(obj[key]);
+    }
+  }
+}
+
