@@ -16,6 +16,7 @@ import {
 } from './data/fallback-clinics.data';
 import { getLocalizedVetKeywords } from './data/vet-keywords.data';
 import { getDistanceKm } from '../utils/geo';
+import { isPlaceOpenNow } from '../utils/opening-hours.util';
 
 export type { EmergencyClinicResult };
 export { HAIFA_FALLBACK_CLINICS, getLocalizedVetKeywords };
@@ -184,7 +185,11 @@ export class EmergencyService {
   getAllClinics(): EmergencyClinicResult[] {
     return HAIFA_FALLBACK_CLINICS.map((c) => {
       const override = this.inMemoryClinicOverrides.get(c.id);
-      return override ? ({ ...c, ...override } as EmergencyClinicResult) : c;
+      const merged = override ? ({ ...c, ...override } as EmergencyClinicResult) : c;
+      return {
+        ...merged,
+        isOpenNow: isPlaceOpenNow(merged),
+      };
     });
   }
 
@@ -200,6 +205,7 @@ export class EmergencyService {
       ...updates,
       id,
     } as EmergencyClinicResult;
+    updated.isOpenNow = isPlaceOpenNow(updated);
     this.inMemoryClinicOverrides.set(id, updated);
     return updated;
   }
@@ -414,7 +420,7 @@ export class EmergencyService {
               id: osmId,
               name,
               address: fullAddress,
-              isOpenNow: true,
+              isOpenNow: isPlaceOpenNow({ openingHours, isOpenNow: true }),
               location: { lat: clinicLat, lng: clinicLon },
               phone,
               openingHours,
@@ -444,8 +450,10 @@ export class EmergencyService {
         const merged = override
           ? ({ ...clinic, ...override } as EmergencyClinicResult)
           : clinic;
+        const isOpenNow = isPlaceOpenNow(merged);
         placesMap.set(clinic.id, {
           ...merged,
+          isOpenNow,
           distance: clinicDist,
           isClaimed: merged.isClaimed !== undefined ? merged.isClaimed : false,
         });

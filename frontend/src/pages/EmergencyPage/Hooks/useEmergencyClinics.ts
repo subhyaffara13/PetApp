@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import axios from 'axios';
 import type { Clinic, UserLocation } from '../../../schemas';
 import { API_URL } from '../../../config/api';
+import { isPlaceOpenNow } from '../../../utils/opening-hours.util';
 
 export function useEmergencyClinics(currentLang: string, cityName: string) {
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -20,22 +21,34 @@ export function useEmergencyClinics(currentLang: string, cityName: string) {
         });
 
         if (response.data && Array.isArray(response.data)) {
-          const transformed: Clinic[] = response.data.map((item) => ({
-            id: String(item.id || item._id),
-            name: item.name,
-            address: item.address || 'Address unavailable',
-            isOpenNow: item.isOpenNow !== undefined ? item.isOpenNow : true,
-            location: item.location || { lat: loc.lat, lng: loc.lon },
-            tier: item.tier || (item.isOpenNow ? 'verified' : 'unverified'),
-            isClaimed: item.isClaimed === true,
-            phoneNum: item.phone ? String(item.phone) : '+97245550100',
-            openingHours: item.openingHours || item.hours || (item.isOpenNow ? 'Open 24/7' : 'Hours Unavailable'),
-            rating: item.rating || (item.tier === 'verified' ? 4.9 : 4.5),
-            capacityStatus: item.capacityStatus || 'accepting',
-            practiceType: item.practiceType || 'stationary_clinic',
-            isMobileVet: item.isMobileVet || item.practiceType === 'mobile_vet',
-            distance: item.distance,
-          }));
+          const transformed: Clinic[] = response.data.map((item) => {
+            const openingHours = item.openingHours || item.hours || (item.isOpenNow ? 'Open 24/7' : 'Hours Unavailable');
+            const openNow = isPlaceOpenNow({
+              openingHours,
+              isOpenNow: item.isOpenNow,
+              isDeclaredOpen: item.isDeclaredOpen,
+              portalStatusOverride: item.portalStatusOverride,
+              capacityStatus: item.capacityStatus,
+              isClaimed: item.isClaimed,
+            });
+
+            return {
+              id: String(item.id || item._id),
+              name: item.name,
+              address: item.address || 'Address unavailable',
+              isOpenNow: openNow,
+              location: item.location || { lat: loc.lat, lng: loc.lon },
+              tier: item.tier || 'unverified',
+              isClaimed: item.isClaimed === true,
+              phoneNum: item.phone ? String(item.phone) : '+97245550100',
+              openingHours,
+              rating: item.rating || (item.tier === 'verified' ? 4.9 : 4.5),
+              capacityStatus: item.capacityStatus || 'accepting',
+              practiceType: item.practiceType || 'stationary_clinic',
+              isMobileVet: item.isMobileVet || item.practiceType === 'mobile_vet',
+              distance: item.distance,
+            };
+          });
           setClinics(transformed);
         }
       } catch (err) {

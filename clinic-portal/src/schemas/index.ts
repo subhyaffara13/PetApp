@@ -14,6 +14,8 @@ export interface ClaimableClinic {
   name: string;
   address: string;
   isOpenNow: boolean;
+  isDeclaredOpen?: boolean;
+  portalStatusOverride?: 'open' | 'closed' | 'schedule';
   location: { lat: number; lng: number };
   phone: string | null;
   openingHours?: string;

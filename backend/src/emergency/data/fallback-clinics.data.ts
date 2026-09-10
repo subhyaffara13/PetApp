@@ -10,6 +10,8 @@ export interface EmergencyClinicResult {
   isClaimed?: boolean;
   rating?: number;
   capacityStatus?: 'accepting' | 'limited' | 'at_capacity';
+  isDeclaredOpen?: boolean;
+  portalStatusOverride?: 'open' | 'closed' | 'schedule';
   practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
   isMobileVet?: boolean;
   isLiveLocation?: boolean;

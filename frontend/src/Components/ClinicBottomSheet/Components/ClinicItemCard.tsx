@@ -4,7 +4,7 @@ import { getDirectionsUrl } from '../../../utils/geo';
 import { Phone, Navigation, Send, Calendar, ShieldCheck, MapPin, Clock } from 'lucide-react';
 
 interface ClinicItemCardProps {
-  clinic: Clinic & { computedDist: number; isVerified: boolean };
+  clinic: Clinic & { computedDist: number; isVerified: boolean; is24HourER?: boolean };
   userLocation: { lat: number; lon: number };
   isSelected: boolean;
   onCardClick?: (clinic: Clinic) => void;
@@ -56,7 +56,7 @@ export const ClinicItemCard: React.FC<ClinicItemCardProps> = ({
           </div>
 
           <div className="clinic-meta-row">
-            {clinic.isVerified ? (
+            {clinic.is24HourER ? (
               <span className="clinic-badge clinic-badge--er">🚨 24/7 ER</span>
             ) : clinic.isOpenNow ? (
               <span className="clinic-badge clinic-badge--open">🟢 Open Now</span>

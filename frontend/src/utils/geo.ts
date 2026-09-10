@@ -215,7 +215,8 @@ export async function searchLocations(
     const backendRes = await fetch(
       `${API_URL}/emergency/geocode?q=${encodeURIComponent(trimmed)}&lang=${lang || 'en'}${proximityParams}`
     );
-    if (backendRes.ok) {
+    const contentType = backendRes.headers.get('content-type') || '';
+    if (backendRes.ok && contentType.includes('application/json')) {
       const data = await backendRes.json();
       if (Array.isArray(data) && data.length > 0) {
         return data.map((item: any) => ({

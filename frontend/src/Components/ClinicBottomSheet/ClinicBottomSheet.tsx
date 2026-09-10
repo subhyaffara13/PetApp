@@ -40,10 +40,15 @@ export const ClinicBottomSheet = ({
         typeof c.distance === 'number'
           ? c.distance
           : haversine(userLocation.lat, userLocation.lon, c.location.lat, c.location.lng);
-      const isVerified =
-        c.tier === 'verified' ||
-        Boolean(c.openingHours && c.openingHours.toLowerCase().includes('24'));
-      return { ...c, computedDist: dist, isVerified };
+      const is24HourER = Boolean(
+        c.openingHours &&
+          (c.openingHours.toLowerCase().includes('24/7') ||
+            c.openingHours.toLowerCase().includes('24 hours') ||
+            c.openingHours.toLowerCase().includes('24 hour') ||
+            c.openingHours.toLowerCase().includes('open 24'))
+      );
+      const isVerified = c.tier === 'verified' || is24HourER;
+      return { ...c, computedDist: dist, isVerified, is24HourER };
     })
     .sort((a, b) => {
       if (a.isMobileVet && !b.isMobileVet) return -1;

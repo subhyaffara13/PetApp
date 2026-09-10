@@ -218,6 +218,40 @@ function App() {
     [currentClinic.id]
   );
 
+  const updatePortalOverride = useCallback(
+    async (override: 'open' | 'closed' | 'schedule') => {
+      setIsUpdating(true);
+      setError(null);
+
+      const isDeclaredOpen = override === 'open' ? true : override === 'closed' ? false : undefined;
+      const isOpenNow = override === 'open' ? true : override === 'closed' ? false : undefined;
+
+      try {
+        await axios.patch(`${API_URL}/emergency/clinic/${currentClinic.id}`, {
+          portalStatusOverride: override,
+          isDeclaredOpen,
+          ...(isOpenNow !== undefined ? { isOpenNow } : {}),
+        });
+        setCurrentClinic((prev) => {
+          const updated = {
+            ...prev,
+            portalStatusOverride: override,
+            isDeclaredOpen,
+            ...(isOpenNow !== undefined ? { isOpenNow } : {}),
+          };
+          localStorage.setItem(CLAIMED_CLINIC_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+        setLastUpdated(new Date());
+      } catch (err: any) {
+        setError('Failed to sync operating status with map directory');
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [currentClinic.id]
+  );
+
   const handleUpdateDispatchStatus = async (dispatchId: string, nextStatus: string) => {
     try {
       await axios.patch(`${API_URL}/clinic/dispatch/${dispatchId}/status`, { status: nextStatus });
@@ -568,11 +602,14 @@ function App() {
           <StatusTab
             status={status}
             currentStatus={currentStatus}
+            portalOverride={currentClinic.portalStatusOverride || (currentClinic.isDeclaredOpen ? 'open' : 'schedule')}
+            openingHours={currentClinic.openingHours}
             lastUpdated={lastUpdated}
             error={error}
             isUpdating={isUpdating}
             statusOptions={STATUS_OPTIONS}
             updateStatus={updateStatus}
+            updatePortalOverride={updatePortalOverride}
           />
         )}
       </main>
