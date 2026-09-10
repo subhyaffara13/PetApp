@@ -80,13 +80,12 @@ jobs:
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Ensure GCP APIs and Artifact Registry Repository Exist
+      - name: Ensure Artifact Registry Repository Exists
         if: steps.auth.outcome == 'success'
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id }}
         run: |
           gcloud config set project "$PROJECT_ID"
-          gcloud services enable run.googleapis.com artifactregistry.googleapis.com --quiet
           gcloud artifacts repositories create ${{ env.GAR_REPO }} \
             --repository-format=docker \
             --location=${{ env.REGION }} \
