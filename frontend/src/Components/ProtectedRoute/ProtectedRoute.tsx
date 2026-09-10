@@ -1,6 +1,16 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, ShieldCheck, ArrowRight, Bot, HeartPulse, CheckCircle2, Lock } from 'lucide-react';
+import {
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  Bot,
+  HeartPulse,
+  CheckCircle2,
+  Lock,
+  ShoppingBag,
+  Users,
+} from 'lucide-react';
 import './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
@@ -20,8 +30,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <>{children}</>;
   }
 
-  const isAssistant = title.toLowerCase().includes('assistant') || title.toLowerCase().includes('ai');
-  const isProfile = title.toLowerCase().includes('profile') || title.toLowerCase().includes('pet');
+  const lowerTitle = title.toLowerCase();
+  const isAssistant = lowerTitle.includes('assistant') || lowerTitle.includes('ai');
+  const isProfile = lowerTitle.includes('profile') || lowerTitle.includes('passport') || lowerTitle.includes('pet');
+  const isCommunity = lowerTitle.includes('community') || lowerTitle.includes('social');
+  const isShop = lowerTitle.includes('shop') || lowerTitle.includes('market') || lowerTitle.includes('delivery');
 
   return (
     <div className="protected-gate" id="protected-gate-view">
@@ -32,15 +45,29 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <Bot size={14} className="protected-gate__badge-icon" />
           ) : isProfile ? (
             <HeartPulse size={14} className="protected-gate__badge-icon" />
+          ) : isCommunity ? (
+            <Users size={14} className="protected-gate__badge-icon" />
+          ) : isShop ? (
+            <ShoppingBag size={14} className="protected-gate__badge-icon" />
           ) : (
             <Sparkles size={14} className="protected-gate__badge-icon" />
           )}
-          <span>PetSOS Premium Member Feature</span>
+          <span>PetSOS Free Member Access</span>
         </div>
 
         <div className="protected-gate__icon-container">
           <div className="protected-gate__icon-halo" />
-          {isAssistant ? <Bot size={34} /> : isProfile ? <HeartPulse size={34} /> : <Lock size={34} />}
+          {isAssistant ? (
+            <Bot size={34} />
+          ) : isProfile ? (
+            <HeartPulse size={34} />
+          ) : isCommunity ? (
+            <Users size={34} />
+          ) : isShop ? (
+            <ShoppingBag size={34} />
+          ) : (
+            <Lock size={34} />
+          )}
         </div>
 
         <h2 className="protected-gate__title">{title}</h2>
@@ -76,6 +103,36 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               <div className="protected-gate__feature-item">
                 <CheckCircle2 size={16} className="feature-check-icon" />
                 <span>Emergency contacts & medical condition history</span>
+              </div>
+            </>
+          ) : isCommunity ? (
+            <>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>Connect with verified local pet parents nearby</span>
+              </div>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>Post pet stories, photos & lost-and-found alerts</span>
+              </div>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>End-to-end encrypted direct messaging between users</span>
+              </div>
+            </>
+          ) : isShop ? (
+            <>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>Verified partner pet stores with rapid local delivery</span>
+              </div>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>Save favorites to your personalized pet wishlist</span>
+              </div>
+              <div className="protected-gate__feature-item">
+                <CheckCircle2 size={16} className="feature-check-icon" />
+                <span>Real-time order tracking, receipts & doorstep delivery</span>
               </div>
             </>
           ) : (

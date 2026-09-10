@@ -12,11 +12,27 @@ import {
 import { EmergencyService } from './emergency.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
+import { IsOptional, IsString } from 'class-validator';
+
 export class NearbyQueryDto {
-  lat: string;
-  lon: string;
+  @IsOptional()
+  @IsString()
+  lat?: string;
+
+  @IsOptional()
+  @IsString()
+  lon?: string;
+
+  @IsOptional()
+  @IsString()
   query?: string;
+
+  @IsOptional()
+  @IsString()
   lang?: string;
+
+  @IsOptional()
+  @IsString()
   country?: string;
 }
 
@@ -26,11 +42,28 @@ export class EmergencyController {
   constructor(private readonly emergencyService: EmergencyService) {}
 
   @Get('nearby')
-  async getNearbyClinics(@Query() query: NearbyQueryDto) {
-    const { lat, lon, query: customQuery, lang, country } = query;
+  async getNearbyClinics(
+    @Query() query?: NearbyQueryDto,
+    @Query('lat') latParam?: string,
+    @Query('lon') lonParam?: string,
+    @Query('query') customQueryParam?: string,
+    @Query('lang') langParam?: string,
+    @Query('country') countryParam?: string,
+  ) {
+    const lat = latParam ?? query?.lat;
+    const lon = lonParam ?? query?.lon;
+    const customQuery = customQueryParam ?? query?.query;
+    const lang = langParam ?? query?.lang;
+    const country = countryParam ?? query?.country;
+
+    const parsedLat =
+      lat !== undefined && !isNaN(Number(lat)) ? Number(lat) : 32.794;
+    const parsedLon =
+      lon !== undefined && !isNaN(Number(lon)) ? Number(lon) : 34.9896;
+
     return this.emergencyService.findNearby(
-      +lat || 32.794,
-      +lon || 34.9896,
+      parsedLat,
+      parsedLon,
       customQuery,
       lang,
       country,

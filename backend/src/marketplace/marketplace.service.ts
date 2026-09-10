@@ -12,139 +12,20 @@ import Stripe from 'stripe';
 import { PetShop, PetShopDocument } from '../schemas/pet-shop.schema';
 import { Product, ProductDocument } from '../schemas/product.schema';
 import { Order, OrderDocument } from '../schemas/order.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 import { ReceiptsService } from '../receipts/receipts.service';
 
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { toSafeString, isSafeObjectId, sanitizeMongoInput } from '../utils/sanitize';
 
 const SERVICE_FEE_RATE = 0.025; // 2.5%
 
-export function getDistanceKm(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-): number {
-  const R = 6371; // Radius of Earth in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
-}
+import { getDistanceKm } from '../utils/geo';
+import { getLocalizedPetStoreKeywords } from './data/store-keywords.data';
 
-export function getLocalizedPetStoreKeywords(
-  lang?: string,
-  country?: string,
-  lat?: number,
-  lon?: number,
-): { keywords: string[]; langCode: string } {
-  const normLang = (lang || '').toLowerCase().slice(0, 2);
-  const normCountry = (country || '').toLowerCase();
+export { getDistanceKm, getLocalizedPetStoreKeywords };
 
-  let detectedLang = normLang;
-  if (!detectedLang || detectedLang === 'un') {
-    if (
-      normCountry.includes('israel') ||
-      (lat && lat > 29.4 && lat < 33.4 && lon && lon > 34.2 && lon < 35.9)
-    ) {
-      detectedLang = 'he';
-    } else if (
-      normCountry.includes('germany') ||
-      normCountry.includes('austria') ||
-      normCountry.includes('switzerland')
-    ) {
-      detectedLang = 'de';
-    } else if (
-      normCountry.includes('france') ||
-      normCountry.includes('belgium')
-    ) {
-      detectedLang = 'fr';
-    } else if (
-      normCountry.includes('spain') ||
-      normCountry.includes('mexico') ||
-      normCountry.includes('argentina') ||
-      normCountry.includes('colombia')
-    ) {
-      detectedLang = 'es';
-    } else if (normCountry.includes('italy')) {
-      detectedLang = 'it';
-    } else if (
-      normCountry.includes('russia') ||
-      normCountry.includes('ukraine') ||
-      normCountry.includes('belarus')
-    ) {
-      detectedLang = 'ru';
-    } else if (normCountry.includes('japan')) {
-      detectedLang = 'ja';
-    } else if (
-      normCountry.includes('uae') ||
-      normCountry.includes('egypt') ||
-      normCountry.includes('saudi') ||
-      normCountry.includes('jordan') ||
-      normCountry.includes('morocco')
-    ) {
-      detectedLang = 'ar';
-    } else if (
-      normCountry.includes('brazil') ||
-      normCountry.includes('portugal')
-    ) {
-      detectedLang = 'pt';
-    } else {
-      detectedLang = 'en';
-    }
-  }
-
-  const keywordMap: Record<string, string[]> = {
-    he: ['חנות חיות', 'מזון לבעלי חיים', 'ציוד לחיות מחמד', 'חנות לחיות מחמד'],
-    ar: [
-      'محل حيوانات أليفة',
-      'مستلزمات حيوانات',
-      'طعام كلاب وقطط',
-      'متجر حيوانات',
-    ],
-    de: ['Zoohandlung', 'Tierhandlung', 'Haustierbedarf', 'Tierfutter'],
-    fr: [
-      'animalerie',
-      'magasin pour animaux',
-      'accessoires animaux',
-      'nourriture pour animaux',
-    ],
-    es: [
-      'tienda de mascotas',
-      'artículos para mascotas',
-      'tienda de animales',
-      'alimento para mascotas',
-    ],
-    it: [
-      'negozio di animali',
-      'articoli per animali',
-      'pet shop',
-      'cibo per animali',
-    ],
-    pt: [
-      'pet shop',
-      'loja de animais',
-      'rações e acessórios',
-      'produtos para animais',
-    ],
-    ru: ['зоомагазин', 'товары для животных', 'корм для животных', 'зоотовары'],
-    ja: ['ペットショップ', 'ペット用品', 'ペットフード'],
-    zh: ['宠物店', '宠物用品店', '宠物食品'],
-    en: ['pet store', 'pet shop', 'pet supplies', 'pet food and accessories'],
-  };
-
-  const selectedKeywords = keywordMap[detectedLang] || keywordMap.en;
-  return {
-    keywords: selectedKeywords,
-    langCode: detectedLang,
-  };
-}
 
 @Injectable()
 export class MarketplaceService implements OnModuleInit {
@@ -157,6 +38,7 @@ export class MarketplaceService implements OnModuleInit {
     @InjectModel(PetShop.name) private shopModel: Model<PetShopDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly receiptsService: ReceiptsService,
@@ -185,8 +67,11 @@ export class MarketplaceService implements OnModuleInit {
     productId: string,
     dto: any,
   ): Promise<ProductDocument | null> {
+    const safeProductId = toSafeString(productId);
+    if (!isSafeObjectId(safeProductId)) return null;
+    const cleanDto = sanitizeMongoInput(dto);
     return this.productModel
-      .findByIdAndUpdate(productId, { $set: dto }, { new: true })
+      .findByIdAndUpdate(safeProductId, { $set: cleanDto }, { new: true })
       .exec();
   }
 
@@ -428,9 +313,14 @@ export class MarketplaceService implements OnModuleInit {
     return results;
   }
 
-  async getShopWithProducts(id: string): Promise<any> {
+  async getShopWithProducts(rawId: string): Promise<any> {
+    const id = toSafeString(rawId);
+    if (!id) return null;
     try {
-      const shop = await this.shopModel.findById(id).exec();
+      let shop: any = null;
+      if (id) {
+        shop = await this.shopModel.findById(id).exec();
+      }
       if (shop) {
         const products = await this.productModel.find({ shopId: id }).exec();
         const shopObj =
@@ -607,7 +497,51 @@ export class MarketplaceService implements OnModuleInit {
       );
     }
 
+    // Synchronize purchase to User.pastPurchases in Atlas
+    const safeCustomerId = toSafeString(dto.customerId);
+    if (
+      safeCustomerId &&
+      safeCustomerId !== 'guest-customer' &&
+      safeCustomerId !== 'guest-anonymous' &&
+      isSafeObjectId(safeCustomerId)
+    ) {
+      try {
+        const user = await this.userModel.findById(safeCustomerId).exec();
+        if (user) {
+          if (!user.pastPurchases) user.pastPurchases = [];
+          user.pastPurchases.unshift({
+            orderId: String(savedOrder._id),
+            orderNumber: `ORD-${String(savedOrder._id).slice(-6).toUpperCase()}`,
+            shopId: String(shop._id || shop.id || ''),
+            shopName: shop.name || 'Pet Partner Store',
+            totalAmount: total,
+            itemsCount: orderItems.reduce((acc, i) => acc + i.quantity, 0),
+            status: 'confirmed',
+            purchasedAt: new Date(),
+            receiptUrl: '',
+          });
+          await user.save();
+        }
+      } catch (userErr) {
+        this.logger.warn('Failed to sync pastPurchases to user in Atlas:', userErr);
+      }
+    }
+
     return savedOrder;
+  }
+
+  /**
+   * Retrieves past purchase history for the user from User.pastPurchases in Atlas
+   */
+  async getMyPurchases(customerId?: string): Promise<any[]> {
+    if (!customerId || customerId === 'guest-anonymous') return [];
+    try {
+      const user = await this.userModel.findById(customerId).exec();
+      if (user && user.pastPurchases && user.pastPurchases.length > 0) {
+        return user.pastPurchases;
+      }
+    } catch {}
+    return this.getOrders(customerId);
   }
 
   async getOrders(customerId?: string): Promise<any[]> {

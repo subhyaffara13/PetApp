@@ -80,7 +80,17 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<EmergencyPage />} />
           <Route path="/emergency" element={<EmergencyPage />} />
-          <Route path="/community" element={<CommunityPage />} />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute
+                title="Sign In for Pet Community"
+                description="Share moments, post lost & found alerts, and connect with neighborhood pet parents."
+              >
+                <CommunityPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/chat"
             element={
@@ -99,7 +109,17 @@ const AppContent = () => {
             }
           />
           <Route path="/pets" element={<Navigate to="/profile" replace />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route
+            path="/marketplace"
+            element={
+              <ProtectedRoute
+                title="Sign In for Pet Shops & Delivery"
+                description="Browse verified local stores, schedule express delivery, and track past orders."
+              >
+                <MarketplacePage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/shops" element={<Navigate to="/marketplace" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -126,8 +126,17 @@ export class CommunityController {
   }
 
   @Get('feed')
-  async getFeed() {
-    return this.communityService.getFeed();
+  async getFeed(
+    @Req() req: any,
+    @Query('mode') mode?: 'for_you' | 'following' | 'saved',
+    @Query('category') category?: string,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.communityService.getPersonalizedFeed(
+      userId,
+      mode || 'for_you',
+      category,
+    );
   }
 
   @Post('feed')
@@ -150,6 +159,21 @@ export class CommunityController {
     return this.communityService.toggleLike(id, userId);
   }
 
+  @Post('feed/:id/bookmark')
+  async toggleBookmark(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.communityService.toggleBookmark(id, userId);
+  }
+
+  @Get('bookmarks')
+  async getBookmarks(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.communityService.getBookmarkedPosts(userId);
+  }
+
   @Post('feed/:id/comments')
   async addComment(
     @Param('id') id: string,
@@ -161,19 +185,30 @@ export class CommunityController {
   // --- ENCRYPTED DIRECT MESSAGES ---
   @Get('messages/conversations')
   async getConversations(@Req() req: any) {
-    const userId = req.user?.id || 'current-user';
+    const userId = req.user?.id || req.user?.sub || req.query?.userId || 'current-user';
     return this.communityService.getConversationsList(userId);
   }
 
   @Get('messages/:partnerId')
   async getMessages(@Param('partnerId') partnerId: string, @Req() req: any) {
-    const userId = req.user?.id || 'current-user';
+    const userId = req.user?.id || req.user?.sub || req.query?.userId || 'current-user';
     return this.communityService.getEncryptedConversation(userId, partnerId);
   }
 
   @Post('messages')
-  async sendMessage(@Body() body: any) {
-    return this.communityService.sendEncryptedMessage(body);
+  async sendMessage(@Body() body: any, @Req() req: any) {
+    const senderId = body.senderId || req.user?.id || req.user?.sub || 'current-user';
+    return this.communityService.sendEncryptedMessage({ ...body, senderId });
+  }
+
+  @Post('messages/:partnerId/read')
+  async markAsRead(
+    @Param('partnerId') partnerId: string,
+    @Req() req: any,
+    @Body() body?: { userId?: string },
+  ) {
+    const userId = body?.userId || req.user?.id || req.user?.sub || req.query?.userId || 'current-user';
+    return this.communityService.markConversationAsRead(userId, partnerId);
   }
 
   // --- HARASSMENT & SAFETY REPORTING ---

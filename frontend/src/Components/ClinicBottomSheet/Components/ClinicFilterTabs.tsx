@@ -24,10 +24,10 @@ export const ClinicFilterTabs: React.FC<ClinicFilterTabsProps> = ({
           type="text"
           id="clinic-search-input"
           name="clinic-search-input"
-          aria-label={t('emergency.search_placeholder', 'Search city or clinic name...')}
+          aria-label={t('emergency.filter_placeholder', 'Search clinics by name, doctor or specialty...')}
           autoComplete="off"
           className="clinic-search-input"
-          placeholder={t('emergency.search_placeholder', 'Search city or emergency clinic...')}
+          placeholder={t('emergency.filter_placeholder', 'Search clinics by name, doctor or specialty...')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />

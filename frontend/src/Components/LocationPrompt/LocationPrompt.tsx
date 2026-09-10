@@ -127,7 +127,7 @@ export const LocationPrompt = ({
             type="text"
             id="location-search-input"
             className="location-search-input"
-            placeholder={t('emergency.search_placeholder', 'Search street address, city, or postal code...')}
+            placeholder={t('location.search_placeholder', 'Search any city, neighborhood, or postal code...')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={async (e) => {

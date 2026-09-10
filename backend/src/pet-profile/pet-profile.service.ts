@@ -14,6 +14,12 @@ import {
 } from '../schemas/co-parent-request.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { EmailService } from '../email/email.service';
+import {
+  escapeRegex,
+  toSafeString,
+  isSafeObjectId,
+  sanitizeMongoInput,
+} from '../utils/sanitize';
 
 /**
  * Generates an official, collision-proof Unique Pet Passport ID (e.g. "PET-8942-A1")
@@ -48,17 +54,25 @@ export class PetProfileService {
 
   /**
    * Strictly scopes pet retrieval to the authenticated user (owned + co-parented pets).
-   * Guest or unauthenticated users always receive an empty list to prevent pet leakage.
+   * By default, returns only active pets (isArchived != true).
    */
-  async findAll(userId = 'guest-anonymous'): Promise<any[]> {
+  async findAll(
+    userId = 'guest-anonymous',
+    includeArchived = false,
+  ): Promise<any[]> {
     if (!userId || userId === 'guest-anonymous') {
       return [];
     }
 
+    const archiveFilter = includeArchived ? {} : { isArchived: { $ne: true } };
+
     try {
       const pets = await this.petProfileModel
         .find({
-          $or: [{ ownerId: userId }, { 'coParents.userId': userId }],
+          $and: [
+            { $or: [{ ownerId: userId }, { 'coParents.userId': userId }] },
+            archiveFilter,
+          ],
         })
         .sort({ createdAt: -1 })
         .exec();
@@ -72,9 +86,125 @@ export class PetProfileService {
 
     return this.inMemoryStore.filter(
       (p) =>
-        p.ownerId === userId ||
-        p.coParents?.some((cp: any) => cp.userId === userId),
+        (p.ownerId === userId ||
+          p.coParents?.some((cp: any) => cp.userId === userId)) &&
+        (includeArchived ? true : !p.isArchived),
     );
+  }
+
+  /**
+   * Retrieves all archived (memorial / rehomed / inactive) pets for the user
+   */
+  async getArchivedPets(userId = 'guest-anonymous'): Promise<any[]> {
+    if (!userId || userId === 'guest-anonymous') return [];
+    try {
+      return await this.petProfileModel
+        .find({
+          ownerId: userId,
+          isArchived: true,
+        })
+        .sort({ archivedAt: -1, createdAt: -1 })
+        .exec();
+    } catch {
+      return this.inMemoryStore.filter(
+        (p) => p.ownerId === userId && p.isArchived,
+      );
+    }
+  }
+
+  /**
+   * Archives a pet with a specific reason and synchronizes with User.archivedPets
+   */
+  async archivePet(
+    id: string,
+    userId: string,
+    reason: 'passed' | 'rehomed' | 'inactive' | 'other' = 'inactive',
+  ): Promise<any> {
+    const pet = await this.findOne(id, userId);
+    if (!pet) throw new NotFoundException('Pet not found');
+
+    const archivedAt = new Date();
+    pet.isArchived = true;
+    pet.archivedReason = reason;
+    pet.archivedAt = archivedAt;
+
+    if (typeof pet.save === 'function') {
+      await pet.save();
+    }
+
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      if (user) {
+        if (!user.archivedPets) user.archivedPets = [];
+        const petIdStr = pet.petId || pet._id?.toString();
+        const existingIdx = user.archivedPets.findIndex(
+          (ap) => ap.petId === petIdStr,
+        );
+        const entry = {
+          petId: petIdStr,
+          name: pet.name,
+          species: pet.species,
+          breed: pet.breed,
+          photoUrl: pet.photoUrl || '',
+          reason: reason || 'inactive',
+          archivedAt,
+        };
+
+        if (existingIdx >= 0) {
+          user.archivedPets[existingIdx] = entry;
+        } else {
+          user.archivedPets.unshift(entry);
+        }
+
+        user.activePetIds = (user.activePetIds || []).filter(
+          (pid) => pid !== petIdStr,
+        );
+
+        await user.save();
+      }
+    } catch (err) {
+      this.logger.warn('Could not sync user archivedPets in Atlas:', err);
+    }
+
+    return pet;
+  }
+
+  /**
+   * Restores an archived pet to active status
+   */
+  async unarchivePet(id: string, userId: string): Promise<any> {
+    const pet = await this.findOne(id, userId);
+    if (!pet) throw new NotFoundException('Pet not found');
+
+    pet.isArchived = false;
+    pet.archivedReason = 'none';
+    pet.archivedAt = null;
+
+    if (typeof pet.save === 'function') {
+      await pet.save();
+    }
+
+    try {
+      const safeUserId = toSafeString(userId);
+      if (isSafeObjectId(safeUserId)) {
+        const user = await this.userModel.findById(safeUserId).exec();
+        if (user) {
+          const petIdStr = pet.petId || pet._id?.toString();
+          user.archivedPets = (user.archivedPets || []).filter(
+            (ap) => ap.petId !== petIdStr,
+          );
+          if (!user.activePetIds) user.activePetIds = [];
+          if (!user.activePetIds.includes(petIdStr)) {
+            user.activePetIds.push(petIdStr);
+          }
+          await user.save();
+        }
+      }
+    } catch (err) {
+      this.logger.warn('Could not sync user unarchive in Atlas:', err);
+    }
+
+    return pet;
   }
 
   /**
@@ -180,20 +310,24 @@ export class PetProfileService {
    * Updates an existing pet profile with ownership authorization
    */
   async update(id: string, data: any, userId?: string): Promise<any> {
-    const existing = await this.findOne(id, userId);
+    const safeId = toSafeString(id);
+    const existing = await this.findOne(safeId, userId);
+    const cleanData = sanitizeMongoInput(data);
 
     try {
-      const updated = await this.petProfileModel
-        .findByIdAndUpdate(id, { $set: data }, { new: true })
-        .exec();
-      if (updated) return updated;
+      if (isSafeObjectId(safeId)) {
+        const updated = await this.petProfileModel
+          .findByIdAndUpdate(safeId, { $set: cleanData }, { new: true })
+          .exec();
+        if (updated) return updated;
+      }
     } catch (err) {}
 
     const idx = this.inMemoryStore.findIndex(
-      (p) => p._id === id || p.petId === id,
+      (p) => p._id === safeId || p.petId === safeId,
     );
-    if (idx === -1) throw new NotFoundException(`Pet profile ${id} not found`);
-    this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], ...data };
+    if (idx === -1) throw new NotFoundException(`Pet profile ${safeId} not found`);
+    this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], ...cleanData };
     return this.inMemoryStore[idx];
   }
 
@@ -255,14 +389,16 @@ export class PetProfileService {
    * Searches registered users to send a co-parenting invitation
    */
   async searchUsers(query: string, currentUserId: string): Promise<any[]> {
-    const q = (query || '').trim();
+    const q = toSafeString(query).trim();
     if (!q || q.length < 2) return [];
 
     try {
-      const regex = new RegExp(q, 'i');
+      const safeCurrentUserId = toSafeString(currentUserId);
+      const escaped = escapeRegex(q);
+      const regex = new RegExp(escaped, 'i');
       const users = await this.userModel
         .find({
-          _id: { $ne: currentUserId },
+          _id: { $ne: safeCurrentUserId },
           $or: [{ name: regex }, { email: regex }, { handle: regex }],
         })
         .select('_id name email avatar role handle')

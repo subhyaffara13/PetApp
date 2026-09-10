@@ -25,7 +25,9 @@ export const LostPetNotificationTicker: React.FC = () => {
   useEffect(() => {
     const fetchActiveAlerts = async () => {
       try {
-        const res = await axios.get<LostPetAlertData[]>(`${API_URL}/emergency/lost-pet`);
+        const res = await axios.get<LostPetAlertData[]>(`${API_URL}/emergency/lost-pet`, {
+          timeout: 10000,
+        });
         if (res.data && res.data.length > 0) {
           setAlerts(res.data);
         }

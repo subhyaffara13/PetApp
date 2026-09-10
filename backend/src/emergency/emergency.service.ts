@@ -9,319 +9,17 @@ import {
   LostPetAlertDocument,
 } from '../schemas/emergency-dispatch.schema';
 import { User, UserDocument } from '../schemas/user.schema';
+import { toSafeString, isSafeObjectId } from '../utils/sanitize';
+import {
+  EmergencyClinicResult,
+  HAIFA_FALLBACK_CLINICS,
+} from './data/fallback-clinics.data';
+import { getLocalizedVetKeywords } from './data/vet-keywords.data';
+import { getDistanceKm } from '../utils/geo';
 
-export interface EmergencyClinicResult {
-  id: string;
-  name: string;
-  address: string;
-  isOpenNow: boolean;
-  location: { lat: number; lng: number };
-  phone: string | null;
-  openingHours?: string;
-  tier?: 'verified' | 'unverified';
-  isClaimed?: boolean;
-  rating?: number;
-  capacityStatus?: 'accepting' | 'limited' | 'at_capacity';
-  practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
-  isMobileVet?: boolean;
-  isLiveLocation?: boolean;
-  heading?: number;
-  speed?: number;
-  distance?: number;
-}
+export type { EmergencyClinicResult };
+export { HAIFA_FALLBACK_CLINICS, getLocalizedVetKeywords };
 
-const HAIFA_FALLBACK_CLINICS: EmergencyClinicResult[] = [
-  // --- 24/7 EMERGENCY HOSPITALS & ICUs ---
-  {
-    id: 'haifa-chavat-daat',
-    name: 'Chavat Daat Veterinary Hospital (חוות דעת - לשעבר מדי-וט)',
-    address: 'HaHistadrut Blvd 140, Haifa Bay',
-    isOpenNow: true,
-    openingHours: 'Open 24/7 · Critical Care & CT Trauma Center',
-    tier: 'verified',
-    location: { lat: 32.795, lng: 35.038 },
-    phone: '04-834-2887',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-moriah-er',
-    name: 'Moriah Veterinary Center 24/7 (מרפאה וטרינרית מוריה - ד"ר תדהר קליין)',
-    address: 'Moriah Ave 45, Center Carmel, Haifa',
-    isOpenNow: true,
-    openingHours: 'Open 24/7 · Emergency Care & Surgery',
-    tier: 'verified',
-    location: { lat: 32.8012, lng: 34.9855 },
-    phone: '04-837-2270',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-shorashim-er',
-    name: 'Shorashim 24/7 Animal Emergency Hospital (בית חולים וטרינרי שורשים)',
-    address: 'Derech Acco 192, Haifa Bay / Krayot Junction',
-    isOpenNow: true,
-    openingHours: 'Open 24/7 · Emergency Triage & ICU',
-    tier: 'verified',
-    location: { lat: 32.812, lng: 35.064 },
-    phone: '04-870-0080',
-    rating: 4.8,
-    capacityStatus: 'accepting',
-  },
-
-  // --- CARMEL, AHUZA & RAMAT BEGIN CLINICS ---
-  {
-    id: 'haifa-family-vet',
-    name: 'Family Vet (פמילי וט - ד"ר מור פימה)',
-    address: 'Moshe Soroka St 39, Ramat Begin / Ahuza, Haifa',
-    isOpenNow: true,
-    openingHours: 'Open 24 Hours · 24/7 Emergency Triage (077-205-3303)',
-    tier: 'verified',
-    location: { lat: 32.776, lng: 34.978 },
-    phone: '077-205-3303',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-vet-hanasi',
-    name: 'Vet HaNasi Veterinary Clinic (וט הנשיא - מרכז רפואי לחיות מחמד)',
-    address: 'HaNassi Ave 105, Central Carmel, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–19:30 · Fri 09:00–14:00',
-    tier: 'verified',
-    location: { lat: 32.808, lng: 34.983 },
-    phone: '04-838-8999',
-    rating: 4.8,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-french-carmel',
-    name: 'French Carmel Veterinary Clinic (מרכז וטרינרי כרמל צרפתי)',
-    address: 'Tchernichovsky St 37, French Carmel, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–19:00 · Fri 09:00–13:30',
-    tier: 'unverified',
-    location: { lat: 32.821, lng: 34.972 },
-    phone: '04-833-2121',
-    rating: 4.7,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-dr-sigal-ritan',
-    name: 'Dr. Sigal Ritan Veterinary Practice (ד"ר סיגל ריטן)',
-    address: 'Mapu St 13, Ahuza, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–18:30 · Emergency hotline available',
-    tier: 'verified',
-    location: { lat: 32.788, lng: 34.989 },
-    phone: '04-825-7888',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-daniel-vet',
-    name: 'Daniel Veterinary Clinic (דניאל מרפאה וטרינרית)',
-    address: 'Moriah Ave 112, Ahuza, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–19:00 · Fri 09:00–14:00',
-    tier: 'unverified',
-    location: { lat: 32.791, lng: 34.986 },
-    phone: '04-838-1234',
-    rating: 4.6,
-    capacityStatus: 'limited',
-  },
-
-  // --- BAT GALIM & COASTAL STRIP CLINICS ---
-  {
-    id: 'haifa-galim-vet',
-    name: 'Galim Veterinary Clinic (מרפאת גלים - בת גלים חיפה)',
-    address: 'HaAliya HaShniya St 39, Bat Galim, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–19:00 · Fri 09:00–13:00 (077-350-2400)',
-    tier: 'verified',
-    location: { lat: 32.8335, lng: 34.9802 },
-    phone: '077-350-2400',
-    rating: 4.5,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-cityvet-alfasi',
-    name: 'CityVet Haifa (סיטיווט - מרפאה וטרינרית ד"ר גבי אלפסי)',
-    address: 'Bat Galim / Hadar / Carmel Area, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–19:00 · Emergency On-Call (054-219-9008)',
-    tier: 'verified',
-    location: { lat: 32.825, lng: 34.988 },
-    phone: '054-219-9008',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-bat-galim-erez',
-    name: 'Bat Galim & Kiryat Eliezer Pet Clinic (ד"ר אורי ארז)',
-    address: 'Allenby Rd 22, Kiryat Eliezer / Bat Galim, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–18:00 · Fri 09:00–13:00',
-    tier: 'unverified',
-    location: { lat: 32.822, lng: 34.986 },
-    phone: '04-854-1100',
-    rating: 4.5,
-    capacityStatus: 'accepting',
-  },
-
-  // --- DOWNTOWN, HADAR, NEVE SHA'ANAN & REGIONAL ---
-  {
-    id: 'haifa-vet-center-gelbart',
-    name: 'Haifa Veterinary Center (מרכז וטרינרי חיפה - ד"ר לימור גלברט)',
-    address: 'Haifa (haifavetcenter.com)',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 08:00–11:00, 17:00–19:30 · (054-545-4599)',
-    tier: 'verified',
-    location: { lat: 32.805, lng: 34.992 },
-    phone: '054-545-4599',
-    rating: 4.9,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-hadar-ronen',
-    name: 'Hadar Community Pet Clinic (מרפאת הדר - ד"ר רונן)',
-    address: 'Herzl St 68, Hadar HaCarmel, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 08:30–19:00 · Fri 09:00–13:00',
-    tier: 'unverified',
-    location: { lat: 32.802, lng: 35.005 },
-    phone: '04-862-1100',
-    rating: 4.6,
-    capacityStatus: 'limited',
-  },
-  {
-    id: 'haifa-neve-shaanan',
-    name: "Neve Sha'anan Veterinary Practice (מרפאת נווה שאנן)",
-    address: "Trumpeldor Ave 44, Neve Sha'anan, Haifa",
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 09:00–18:30',
-    tier: 'unverified',
-    location: { lat: 32.7825, lng: 35.014 },
-    phone: '04-822-4411',
-    rating: 4.5,
-    capacityStatus: 'accepting',
-  },
-  {
-    id: 'haifa-municipal-vet',
-    name: 'Haifa Municipal Veterinary Service (השירות הווטרינרי העירוני חיפה)',
-    address: 'Abba Hillel Silver St 22, Haifa',
-    isOpenNow: true,
-    openingHours: 'Sun–Thu 08:00–15:30 · Municipal Shelter & Quarantine',
-    tier: 'verified',
-    location: { lat: 32.793, lng: 35.021 },
-    phone: '04-823-6566',
-    rating: 4.4,
-    capacityStatus: 'accepting',
-  },
-];
-
-function getLocalizedVetKeywords(
-  lang?: string,
-  country?: string,
-  lat?: number,
-  lon?: number,
-): { keywords: string[]; langCode: string } {
-  const normLang = (lang || '').toLowerCase().slice(0, 2);
-  const normCountry = (country || '').toLowerCase();
-
-  let detectedLang = normLang;
-  if (!detectedLang || detectedLang === 'un') {
-    if (
-      normCountry.includes('israel') ||
-      (lat && lat > 29.4 && lat < 33.4 && lon && lon > 34.2 && lon < 35.9)
-    ) {
-      detectedLang = 'he';
-    } else if (
-      normCountry.includes('germany') ||
-      normCountry.includes('austria') ||
-      normCountry.includes('switzerland')
-    ) {
-      detectedLang = 'de';
-    } else if (
-      normCountry.includes('france') ||
-      normCountry.includes('belgium')
-    ) {
-      detectedLang = 'fr';
-    } else if (
-      normCountry.includes('spain') ||
-      normCountry.includes('mexico') ||
-      normCountry.includes('argentina') ||
-      normCountry.includes('colombia')
-    ) {
-      detectedLang = 'es';
-    } else if (normCountry.includes('italy')) {
-      detectedLang = 'it';
-    } else if (
-      normCountry.includes('russia') ||
-      normCountry.includes('ukraine') ||
-      normCountry.includes('belarus')
-    ) {
-      detectedLang = 'ru';
-    } else if (normCountry.includes('japan')) {
-      detectedLang = 'ja';
-    } else if (
-      normCountry.includes('uae') ||
-      normCountry.includes('egypt') ||
-      normCountry.includes('saudi') ||
-      normCountry.includes('jordan') ||
-      normCountry.includes('morocco')
-    ) {
-      detectedLang = 'ar';
-    } else if (
-      normCountry.includes('brazil') ||
-      normCountry.includes('portugal')
-    ) {
-      detectedLang = 'pt';
-    } else {
-      detectedLang = 'en';
-    }
-  }
-
-  const keywordMap: Record<string, string[]> = {
-    he: ['וטרינר', 'מרפאה וטרינרית', 'בית חולים וטרינרי', 'חירום וטרינרי'],
-    ar: ['طبيب بيطري', 'عيادة بيطرية', 'مستشفى بيطري', 'طوارئ بيطرية'],
-    de: ['Tierarzt', 'Tierklinik', 'Tierarztpraxis', 'Tiernotdienst'],
-    fr: [
-      'vétérinaire',
-      'clinique vétérinaire',
-      'urgence vétérinaire',
-      'hôpital vétérinaire',
-    ],
-    es: [
-      'veterinario',
-      'clínica veterinaria',
-      'hospital veterinario',
-      'urgencias veterinarias',
-    ],
-    it: ['veterinario', 'clinica veterinaria', 'pronto soccorso veterinario'],
-    pt: ['veterinário', 'clínica veterinária', 'hospital veterinário'],
-    ru: [
-      'ветеринар',
-      'ветклиника',
-      'ветеринарная клиника',
-      'ветеринарная помощь',
-    ],
-    ja: ['獣医', '動物病院', '夜間救急動物病院'],
-    zh: ['宠物医院', '兽医', '动物医院'],
-    en: [
-      'veterinary clinic',
-      'animal hospital',
-      'emergency vet',
-      '24/7 pet clinic',
-    ],
-  };
-
-  const selectedKeywords = keywordMap[detectedLang] || keywordMap.en;
-  return {
-    keywords: selectedKeywords,
-    langCode: detectedLang,
-  };
-}
 
 @Injectable()
 export class EmergencyService {
@@ -351,16 +49,18 @@ export class EmergencyService {
       isActive: boolean;
     },
   ): Promise<{ success: boolean; liveLocation: any }> {
+    const safeUserId = toSafeString(userId);
+    if (!isSafeObjectId(safeUserId)) return { success: false, liveLocation: null };
     const user = await this.userModel.findByIdAndUpdate(
-      userId,
+      safeUserId,
       {
         liveLocation: {
-          lat: dto.lat,
-          lng: dto.lng,
+          lat: Number(dto.lat),
+          lng: Number(dto.lng),
           heading: dto.heading ?? 0,
           speed: dto.speed ?? 0,
           updatedAt: new Date(),
-          isActive: dto.isActive,
+          isActive: Boolean(dto.isActive),
         },
       },
       { new: true },
@@ -418,10 +118,11 @@ export class EmergencyService {
   }): Promise<{ success: boolean; alert?: any; message: string }> {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    const safePetId = toSafeString(dto.petId);
     // Spam Protection: Max 1 alert per 24 hours per pet
     const recentAlert = await this.lostPetAlertModel
       .findOne({
-        petId: dto.petId,
+        petId: safePetId,
         createdAt: { $gte: oneDayAgo },
         status: 'active',
       })
@@ -466,9 +167,11 @@ export class EmergencyService {
   }
 
   async resolveLostPetAlert(alertId: string): Promise<any> {
+    const safeAlertId = toSafeString(alertId);
+    if (!isSafeObjectId(safeAlertId)) return null;
     return this.lostPetAlertModel
       .findByIdAndUpdate(
-        alertId,
+        safeAlertId,
         { $set: { status: 'resolved', resolvedAt: new Date() } },
         { new: true },
       )
@@ -531,16 +234,7 @@ export class EmergencyService {
       for (const vet of activeMobileVets) {
         const vetLat = vet.liveLocation?.lat || lat;
         const vetLng = vet.liveLocation?.lng || lon;
-        const dLat = ((vetLat - lat) * Math.PI) / 180;
-        const dLon = ((vetLng - lon) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat * Math.PI) / 180) *
-            Math.cos((vetLat * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distanceKm = Math.round(6371 * c * 10) / 10;
+        const distanceKm = getDistanceKm(lat, lon, vetLat, vetLng);
 
         // Strictly only include active mobile vets within 60km of search coordinates
         if (distanceKm > 60) continue;
@@ -572,19 +266,9 @@ export class EmergencyService {
       this.logger.warn('Could not load active mobile vets:', vetErr?.message);
     }
 
-    // Helper to calculate distance in km
-    const calcDistance = (targetLat: number, targetLng: number): number => {
-      const dLat = ((targetLat - lat) * Math.PI) / 180;
-      const dLon = ((targetLng - lon) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat * Math.PI) / 180) *
-          Math.cos((targetLat * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return Math.round(6371 * c * 10) / 10;
-    };
+    // Helper to calculate distance in km using shared Haversine utility
+    const calcDistance = (targetLat: number, targetLng: number): number =>
+      getDistanceKm(lat, lon, targetLat, targetLng);
 
     // 1. If Google Places API key is present, query nearby & text search internationally
     if (this.G_PLACES_API_KEY) {
@@ -608,7 +292,7 @@ export class EmergencyService {
           });
         }
 
-        for (const query of queries) {
+        const placePromises = queries.map(async (query) => {
           const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`;
           const params = {
             location: `${lat},${lon}`,
@@ -616,10 +300,16 @@ export class EmergencyService {
             language: langCode,
             ...query,
           };
-
-          const response = await firstValueFrom(
+          return firstValueFrom(
             this.httpService.get(url, { params, timeout: 5000 }),
           );
+        });
+
+        const settledResponses = await Promise.allSettled(placePromises);
+
+        for (const settled of settledResponses) {
+          if (settled.status !== 'fulfilled') continue;
+          const response = settled.value;
 
           if (response.data?.results?.length > 0) {
             for (const place of response.data.results) {

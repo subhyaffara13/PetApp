@@ -138,6 +138,47 @@ PostSchema.index({ createdAt: -1 });
 PostSchema.index({ authorId: 1, createdAt: -1 });
 PostSchema.index({ category: 1, createdAt: -1 });
 
+// --- Encrypted Conversation Thread Summary (Anti-Bloat & O(1) Fetching) ---
+export type ConversationThreadDocument = ConversationThread & Document;
+
+@Schema({ timestamps: true })
+export class ConversationThread {
+  @Prop({ required: true, unique: true, index: true })
+  conversationId: string; // Deterministic: [idA, idB].sort().join('_')
+
+  @Prop({ type: [String], required: true, index: true })
+  participants: string[];
+
+  @Prop({ type: Object, default: () => ({}) })
+  participantMeta: Record<
+    string,
+    { name: string; avatar: string; handle?: string }
+  >;
+
+  @Prop({ type: Object, default: () => ({}) })
+  lastMessage: {
+    senderId: string;
+    encryptedPayload: string;
+    iv: string;
+    mediaUrl?: string;
+    sentAt: Date;
+    isRead: boolean;
+  };
+
+  @Prop({ type: Object, default: () => ({}) })
+  unreadCounts: Record<string, number>;
+
+  @Prop({ default: 0 })
+  messageCount: number;
+
+  @Prop({ default: Date.now, index: true })
+  updatedAt: Date;
+}
+
+export const ConversationThreadSchema =
+  SchemaFactory.createForClass(ConversationThread);
+ConversationThreadSchema.index({ participants: 1, updatedAt: -1 });
+
 // --- End-to-End Encrypted (E2EE) Direct Message ---
 export type DirectMessageDocument = DirectMessage & Document;
 
@@ -153,16 +194,16 @@ export class DirectMessage {
   recipientId: string;
 
   @Prop({ default: 'Pet Parent' })
-  senderName: string;
+  senderName?: string;
 
   @Prop({ default: '' })
-  senderAvatar: string;
+  senderAvatar?: string;
 
   @Prop({ default: 'Pet Parent' })
-  recipientName: string;
+  recipientName?: string;
 
   @Prop({ default: '' })
-  recipientAvatar: string;
+  recipientAvatar?: string;
 
   @Prop({ required: true })
   encryptedPayload: string;
@@ -178,8 +219,9 @@ export class DirectMessage {
 }
 
 export const DirectMessageSchema = SchemaFactory.createForClass(DirectMessage);
-DirectMessageSchema.index({ senderId: 1, recipientId: 1, createdAt: -1 });
 DirectMessageSchema.index({ conversationId: 1, createdAt: 1 });
+DirectMessageSchema.index({ conversationId: 1, createdAt: -1 });
+DirectMessageSchema.index({ senderId: 1, recipientId: 1, createdAt: -1 });
 
 // --- Community Safety & Harassment Reports ---
 export type CommunityReportDocument = CommunityReport & Document;

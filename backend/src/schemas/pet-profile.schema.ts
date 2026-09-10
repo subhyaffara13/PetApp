@@ -118,9 +118,19 @@ export class PetProfile {
 
   @Prop({ default: false })
   isArchived: boolean;
+
+  @Prop({
+    type: String,
+    enum: ['passed', 'rehomed', 'inactive', 'other', 'none'],
+    default: 'none',
+  })
+  archivedReason?: string;
+
+  @Prop({ type: Date, default: null })
+  archivedAt?: Date | null;
 }
 
 export const PetProfileSchema = SchemaFactory.createForClass(PetProfile);
-PetProfileSchema.index({ ownerId: 1, createdAt: -1 });
+PetProfileSchema.index({ ownerId: 1, isArchived: 1, createdAt: -1 });
 PetProfileSchema.index({ petId: 1 }, { unique: true, sparse: true });
 PetProfileSchema.index({ 'coParents.userId': 1 });

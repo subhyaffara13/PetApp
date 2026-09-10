@@ -37,6 +37,8 @@ export const CommunityPage: React.FC = () => {
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [feedMode, setFeedMode] = useState<'for_you' | 'following' | 'saved'>('for_you');
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(user?.bookmarkedPostIds || []);
   const [commentInput, setCommentInput] = useState<{ [postId: string]: string }>({});
   const [translatedPosts, setTranslatedPosts] = useState<{ [postId: string]: boolean }>({});
   const [expandedComments, setExpandedComments] = useState<{ [postId: string]: boolean }>({});
@@ -61,12 +63,25 @@ export const CommunityPage: React.FC = () => {
 
   const [communityUsers, setCommunityUsers] = useState<UserProfileData[]>([]);
 
+  // Sync user's bookmarkedPostIds on mount or user change
+  useEffect(() => {
+    if (user?.bookmarkedPostIds) {
+      setBookmarkedIds(user.bookmarkedPostIds);
+    }
+  }, [user]);
+
   // Fetch Live Database Profile & Data
   const fetchData = async () => {
     try {
       const [storiesRes, postsRes, profileRes] = await Promise.all([
         axios.get<StoryItem[]>(`${API_URL}/community/stories`).catch(() => ({ data: [] })),
-        axios.get<PostItem[]>(`${API_URL}/community/feed`).catch(() => ({ data: [] })),
+        axios.get<PostItem[]>(`${API_URL}/community/feed`, {
+          params: {
+            mode: feedMode,
+            category: activeCategory !== 'all' ? activeCategory : undefined,
+            userId: user?.id,
+          },
+        }).catch(() => ({ data: [] })),
         axios.get<UserProfileData>(`${API_URL}/community/profile`).catch(() => ({ data: null })),
       ]);
 
@@ -80,7 +95,7 @@ export const CommunityPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user?.id, feedMode, activeCategory]);
 
   // New Post Form State
   const [postMode, setPostMode] = useState<'feed' | 'story'>('feed');
@@ -137,6 +152,40 @@ export const CommunityPage: React.FC = () => {
       await axios.post(`${API_URL}/community/feed/${postId}/like`, { userId: currentUserId });
     } catch {
       showToast('Like failed. Please try again.', 'error', '❌ Like Failed');
+    }
+  };
+
+  const handleToggleBookmark = async (postId: string) => {
+    if (!isAuthenticated) {
+      showToast('Please sign in to save posts', 'info', '🔒 Sign in Required');
+      openAuthModal('/community');
+      return;
+    }
+
+    const isSaved = bookmarkedIds.includes(postId);
+    const updated = isSaved ? bookmarkedIds.filter((id) => id !== postId) : [...bookmarkedIds, postId];
+    setBookmarkedIds(updated);
+
+    if (feedMode === 'saved' && isSaved) {
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+    }
+
+    showToast(
+      isSaved ? 'Post removed from saved bookmarks' : 'Post saved to your bookmarks! 🔖',
+      'info',
+      isSaved ? 'Bookmark Removed' : 'Post Saved'
+    );
+
+    try {
+      const res = await axios.post(`${API_URL}/community/feed/${postId}/bookmark`, {
+        userId: user?.id || 'current-user',
+      });
+      if (res.data?.bookmarkedPostIds) {
+        setBookmarkedIds(res.data.bookmarkedPostIds);
+      }
+    } catch {
+      setBookmarkedIds(isSaved ? [...bookmarkedIds, postId] : bookmarkedIds.filter((id) => id !== postId));
+      showToast('Failed to update bookmark.', 'error', '❌ Error');
     }
   };
 
@@ -314,6 +363,32 @@ export const CommunityPage: React.FC = () => {
             onSelectStory={(idx) => setSelectedStoryIndex(idx)}
           />
 
+          {/* Social Feed Mode Switcher (For You / Following / Saved) */}
+          <div className="feed-mode-tabs-container">
+            <button
+              type="button"
+              className={`feed-mode-tab ${feedMode === 'for_you' ? 'feed-mode-tab--active' : ''}`}
+              onClick={() => setFeedMode('for_you')}
+            >
+              ✨ {t('community.feed_for_you', 'For You')}
+            </button>
+            <button
+              type="button"
+              className={`feed-mode-tab ${feedMode === 'following' ? 'feed-mode-tab--active' : ''}`}
+              onClick={() => setFeedMode('following')}
+            >
+              👥 {t('community.feed_following', 'Following')}
+            </button>
+            <button
+              type="button"
+              className={`feed-mode-tab ${feedMode === 'saved' ? 'feed-mode-tab--active' : ''}`}
+              onClick={() => setFeedMode('saved')}
+            >
+              🔖 {t('community.feed_saved', 'Saved')}
+              {bookmarkedIds.length > 0 && <span className="feed-mode-badge">{bookmarkedIds.length}</span>}
+            </button>
+          </div>
+
           {/* Category Filter Section */}
           <CategoryFilterSection
             activeCategory={activeCategory}
@@ -325,11 +400,17 @@ export const CommunityPage: React.FC = () => {
             {filteredPosts.length === 0 ? (
               <div className="feed-empty animate-fade-in">
                 <Sparkles size={40} color="var(--color-primary)" />
-                <h3>No posts yet</h3>
-                <p>Be the first to share a cute moment, health tip, or playdate invitation!</p>
-                <button className="btn btn-primary" style={{ marginTop: '0.75rem' }} onClick={() => handleOpenShare('feed')}>
-                  + Create Your First Post
-                </button>
+                <h3>{feedMode === 'saved' ? 'No saved posts yet' : 'No posts yet'}</h3>
+                <p>
+                  {feedMode === 'saved'
+                    ? 'Bookmark posts you love to easily find them later in your collection!'
+                    : 'Be the first to share a cute moment, health tip, or playdate invitation!'}
+                </p>
+                {feedMode !== 'saved' && (
+                  <button className="btn btn-primary" style={{ marginTop: '0.75rem' }} onClick={() => handleOpenShare('feed')}>
+                    + Create Your First Post
+                  </button>
+                )}
               </div>
             ) : (
               filteredPosts.map((post) => (
@@ -339,7 +420,9 @@ export const CommunityPage: React.FC = () => {
                     commentInput={commentInput[post._id] || ''}
                     isExpandedComments={!!expandedComments[post._id]}
                     isTranslated={!!translatedPosts[post._id]}
+                    isBookmarked={bookmarkedIds.includes(post._id)}
                     onToggleLike={() => handleToggleLike(post._id)}
+                    onToggleBookmark={() => handleToggleBookmark(post._id)}
                     onToggleFollow={() => handleToggleFollow((post as any).authorId || 'user-talia', post.petName)}
                     onDeletePost={() => handleDeletePost(post._id)}
                     onAddComment={() => handleAddComment(post._id)}

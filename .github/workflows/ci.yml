@@ -1,4 +1,4 @@
-name: PetSOS Production CI/CD Pipeline
+name: PetSOS Bespoke Production CI/CD Pipeline
 
 on:
   push:
@@ -6,12 +6,45 @@ on:
   pull_request:
     branches: [ main, master ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend-test:
+  # =============================================================
+  # 1. Dependency Security & Vulnerability Audit Gate
+  # =============================================================
+  security-audit:
+    name: Security Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Audit Backend Dependencies (0 High/Critical Allowed)
+        working-directory: ./backend
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: Audit Admin Portal Dependencies
+        working-directory: ./Admin-Portal
+        run: npm audit --audit-level=high --omit=dev
+
+  # =============================================================
+  # 2. Backend Test, Lint & Compile
+  # =============================================================
+  backend-test-build:
     name: Backend Lint, Test & Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -24,19 +57,23 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Run Unit Tests
+      - name: Run Backend Unit Tests (33 Production Specs)
         working-directory: ./backend
         run: npm test
 
-      - name: Build NestJS
+      - name: Compile NestJS Application
         working-directory: ./backend
         run: npm run build
 
+  # =============================================================
+  # 3. Customer Frontend Typecheck & Build
+  # =============================================================
   frontend-build:
     name: Frontend Typecheck & Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -49,15 +86,19 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Build Vite SPA
+      - name: Build Customer Vite SPA
         working-directory: ./frontend
         run: npm run build
 
+  # =============================================================
+  # 4. Portals Verification (Clinic, Store, Admin)
+  # =============================================================
   portals-build:
-    name: Portals Build Verification
+    name: Revenue Portals Build Verification
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -70,7 +111,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build Store Portal
+      - name: Build Store Merchant Portal
         working-directory: ./store-portal
         run: |
           npm ci

@@ -7,6 +7,7 @@ import {
 } from '../schemas/appointment.schema';
 import { Reminder, ReminderDocument } from '../schemas/reminder.schema';
 import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
+import { toSafeString, isSafeObjectId } from '../utils/sanitize';
 
 @Injectable()
 export class ScheduleService {
@@ -24,9 +25,10 @@ export class ScheduleService {
     let petColor = dto.petColor || '#f97316';
     let petPassportId = dto.petPassportId;
 
-    if (dto.petId) {
+    const safePetId = toSafeString(dto.petId);
+    if (safePetId && isSafeObjectId(safePetId)) {
       try {
-        const pet = await this.petModel.findById(dto.petId);
+        const pet = await this.petModel.findById(safePetId);
         if (pet) {
           coParentIds = (pet.coParents || []).map((cp: any) => cp.userId);
           petPassportId = pet.petId || petPassportId;
@@ -119,9 +121,10 @@ export class ScheduleService {
 
   async createReminder(dto: any): Promise<Reminder> {
     let coParentIds: string[] = [];
-    if (dto.petId) {
+    const safePetId = toSafeString(dto.petId);
+    if (safePetId && isSafeObjectId(safePetId)) {
       try {
-        const pet = await this.petModel.findById(dto.petId);
+        const pet = await this.petModel.findById(safePetId);
         if (pet) {
           coParentIds = (pet.coParents || []).map((cp: any) => cp.userId);
         }
@@ -132,7 +135,9 @@ export class ScheduleService {
   }
 
   async toggleReminder(id: string): Promise<Reminder> {
-    const rem = await this.reminderModel.findById(id);
+    const safeId = toSafeString(id);
+    if (!isSafeObjectId(safeId)) throw new NotFoundException('Invalid reminder ID');
+    const rem = await this.reminderModel.findById(safeId);
     if (!rem) throw new NotFoundException('Reminder not found');
     rem.isCompleted = !rem.isCompleted;
     rem.completedAt = rem.isCompleted ? new Date() : undefined;

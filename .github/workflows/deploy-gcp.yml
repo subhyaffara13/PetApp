@@ -129,6 +129,7 @@ jobs:
             MONGO_DB_CONNECTION_STRING=${{ secrets.MONGO_DB_CONNECTION_STRING }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            JWT_REFRESH_EXPIRES_IN=3d
             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
             STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
@@ -138,6 +139,17 @@ jobs:
             ADMIN_SECRET_TOKEN=${{ secrets.ADMIN_SECRET_TOKEN }}
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}
+
+      - name: Verify Backend API Live Health Probe
+        if: steps.auth.outcome == 'success'
+        run: |
+          BACKEND_URL="${{ steps.deploy-backend.outputs.url }}"
+          echo "Pinging production backend at $BACKEND_URL/health..."
+          curl -f --retry 6 --retry-delay 5 --retry-connrefused "$BACKEND_URL/health" || {
+            echo "::error::Backend health check failed on $BACKEND_URL"
+            exit 1
+          }
+          echo "Backend is alive and healthy!"
 
   # =============================================================
   # Step 3: Build & Deploy Customer Frontend to Cloud Run

@@ -57,10 +57,32 @@ export class PetProfileController {
     );
   }
 
-  @Get()
-  async findAll(@Req() req: any) {
+  @Get('archived')
+  async getArchivedPets(@Req() req: any) {
     const userId = req.user?.id;
-    return this.petProfileService.findAll(userId);
+    return this.petProfileService.getArchivedPets(userId);
+  }
+
+  @Get()
+  async findAll(@Req() req: any, @Query('includeArchived') includeArchived?: string) {
+    const userId = req.user?.id;
+    return this.petProfileService.findAll(userId, includeArchived === 'true');
+  }
+
+  @Patch(':id/archive')
+  async archivePet(
+    @Param('id') id: string,
+    @Body() body: { reason?: 'passed' | 'rehomed' | 'inactive' | 'other' },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id;
+    return this.petProfileService.archivePet(id, userId, body?.reason);
+  }
+
+  @Patch(':id/unarchive')
+  async unarchivePet(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    return this.petProfileService.unarchivePet(id, userId);
   }
 
   @Get(':id')

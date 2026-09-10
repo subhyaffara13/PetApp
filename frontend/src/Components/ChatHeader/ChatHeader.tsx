@@ -6,9 +6,16 @@ import './ChatHeader.css';
 interface ChatHeaderProps {
   onToggleSidebar: () => void;
   onOpenHotlines: () => void;
+  onOpenMemoryModal?: () => void;
+  isMemoryActive?: boolean;
 }
 
-export const ChatHeader = ({ onToggleSidebar, onOpenHotlines }: ChatHeaderProps) => {
+export const ChatHeader = ({
+  onToggleSidebar,
+  onOpenHotlines,
+  onOpenMemoryModal,
+  isMemoryActive,
+}: ChatHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -26,6 +33,31 @@ export const ChatHeader = ({ onToggleSidebar, onOpenHotlines }: ChatHeaderProps)
         <span className="chat-canvas__model-badge">
           PetSOS AI <span className="model-version">3.6 Flash</span>
         </span>
+        {isMemoryActive && (
+          <button
+            type="button"
+            className="chat-canvas__memory-badge"
+            onClick={onOpenMemoryModal}
+            title="Atlas AI Pet Memory Active - click to view learned preferences"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.2rem 0.65rem',
+              borderRadius: '9999px',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              background: 'rgba(168, 85, 247, 0.15)',
+              border: '1px solid rgba(168, 85, 247, 0.35)',
+              color: '#c084fc',
+              cursor: onOpenMemoryModal ? 'pointer' : 'default',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span>🧠</span>
+            <span>Pet AI Memory</span>
+          </button>
+        )}
       </div>
 
       <div className="chat-canvas__header-right">

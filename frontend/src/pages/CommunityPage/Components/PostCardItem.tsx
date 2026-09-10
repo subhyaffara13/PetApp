@@ -3,6 +3,7 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  Bookmark,
   Send,
   UserPlus,
   UserCheck,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../context/LanguageContext';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 import { VerificationBadge } from '../../../Components/VerificationBadge/VerificationBadge';
 import type { PostItem, PostComment } from '../../../schemas';
 
@@ -18,7 +20,9 @@ interface PostCardItemProps {
   commentInput: string;
   isExpandedComments: boolean;
   isTranslated: boolean;
+  isBookmarked?: boolean;
   onToggleLike: (id: string) => void;
+  onToggleBookmark?: (id: string) => void;
   onToggleFollow: (authorId: string, authorName: string) => void;
   onDeletePost: (id: string) => void;
   onAddComment: (id: string) => void;
@@ -33,7 +37,9 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
   commentInput,
   isExpandedComments,
   isTranslated,
+  isBookmarked,
   onToggleLike,
+  onToggleBookmark,
   onToggleFollow,
   onDeletePost,
   onAddComment,
@@ -44,12 +50,14 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
-  const isLiked = post.likedBy?.includes('current-user');
-  const isOwnPost = (post as any).authorId === 'current-user' || !post.likedBy;
+  const currentUserId = user?.id || 'current-user';
+  const isLiked = post.likedBy?.includes(currentUserId) || (user?.id ? post.likedBy?.includes(user.id) : false);
+  const authorId = (post as any).authorId || post._id;
+  const isOwnPost = authorId === currentUserId || !post.likedBy;
   const authorName = (post as any).authorName || 'Pet Parent';
   const authorAvatar = (post as any).authorAvatar || post.petAvatar;
-  const authorId = (post as any).authorId || post._id;
   const isFollowing = (post as any).isFollowing;
 
   return (
@@ -160,6 +168,22 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
           >
             <Share2 size={19} />
           </button>
+
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={`btn-icon-action ${isBookmarked ? 'btn-icon-action--bookmarked' : ''}`}
+              onClick={() => onToggleBookmark(post._id)}
+              title={isBookmarked ? 'Remove Bookmark' : 'Save Post'}
+              style={{ color: isBookmarked ? '#f59e0b' : 'inherit' }}
+            >
+              <Bookmark
+                size={19}
+                fill={isBookmarked ? '#f59e0b' : 'none'}
+                color={isBookmarked ? '#f59e0b' : 'currentColor'}
+              />
+            </button>
+          )}
 
           <button
             type="button"

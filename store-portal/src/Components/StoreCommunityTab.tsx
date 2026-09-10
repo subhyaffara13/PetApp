@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Send, CheckCircle2, ShieldCheck, Clock, Store, Tag } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { sanitizeMediaUrl } from '../utils/urlSanitizer';
 
 interface StoreCommunityTabProps {
   store: any;
@@ -180,7 +181,7 @@ export const StoreCommunityTab: React.FC<StoreCommunityTabProps> = ({ store }) =
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'post')} style={{ width: '100%', fontSize: '0.8rem', color: '#94a3b8' }} />
               {mediaUrl && (
                 <div style={{ position: 'relative', marginTop: 6, display: 'inline-block' }}>
-                  <img src={mediaUrl} alt="preview" style={{ height: 70, borderRadius: 8, objectFit: 'cover' }} />
+                  <img src={sanitizeMediaUrl(mediaUrl)} alt="preview" style={{ height: 70, borderRadius: 8, objectFit: 'cover' }} />
                   <button type="button" onClick={() => setMediaUrl('')} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer' }}>✕</button>
                 </div>
               )}
@@ -209,7 +210,7 @@ export const StoreCommunityTab: React.FC<StoreCommunityTabProps> = ({ store }) =
               <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'story')} style={{ width: '100%', fontSize: '0.8rem', color: '#94a3b8' }} />
               {storyMediaUrl && (
                 <div style={{ position: 'relative', marginTop: 6, display: 'inline-block' }}>
-                  <img src={storyMediaUrl} alt="story preview" style={{ height: 90, borderRadius: 8, objectFit: 'cover' }} />
+                  <img src={sanitizeMediaUrl(storyMediaUrl)} alt="story preview" style={{ height: 90, borderRadius: 8, objectFit: 'cover' }} />
                   <button type="button" onClick={() => setStoryMediaUrl('')} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer' }}>✕</button>
                 </div>
               )}

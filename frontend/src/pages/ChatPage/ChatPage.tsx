@@ -5,20 +5,25 @@ import { ChatInput, type ChatAttachment } from '../../Components/ChatInput/ChatI
 import { ChatSidebar } from '../../Components/ChatSidebar/ChatSidebar';
 import { ChatHeader } from '../../Components/ChatHeader/ChatHeader';
 import { VetHotlinesModal } from '../../Components/VetHotlinesModal/VetHotlinesModal';
+import { PetAiMemoryModal } from '../../Components/PetAiMemoryModal/PetAiMemoryModal';
 import { ChatMessagesView } from './Components/ChatMessagesView';
 import { useChatThreads } from './Hooks/useChatThreads';
-import type { ChatMessage, PetProfile } from '../../schemas';
+import { useAuth } from '../../context/AuthContext';
+import type { ChatMessage, PetProfile, ChatThread, AiPetMemory } from '../../schemas';
 import { API_URL } from '../../config/api';
 import './ChatPage.css';
 
 export const ChatPage = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userPets, setUserPets] = useState<PetProfile[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [emergencyTriggered, setEmergencyTriggered] = useState(false);
   const [emergencyMessage, setEmergencyMessage] = useState('');
   const [showHotlinesModal, setShowHotlinesModal] = useState(false);
+  const [showMemoryModal, setShowMemoryModal] = useState(false);
+  const [aiMemory, setAiMemory] = useState<AiPetMemory | null>(user?.aiMemory || null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -35,6 +40,43 @@ export const ChatPage = () => {
       .then((res) => { if (res.data?.length > 0) setUserPets(res.data); })
       .catch(() => {});
   }, []);
+
+  // Sync AI Memory and Past Chat Sessions from MongoDB Atlas
+  useEffect(() => {
+    if (isAuthenticated) {
+      axios.get(`${API_URL}/chat/memory`)
+        .then((res) => {
+          if (res.data?.aiMemory) setAiMemory(res.data.aiMemory);
+        })
+        .catch(() => {});
+
+      axios.get(`${API_URL}/chat/sessions`)
+        .then((res) => {
+          const atlasSessions = res.data;
+          if (Array.isArray(atlasSessions) && atlasSessions.length > 0) {
+            const mappedThreads: ChatThread[] = atlasSessions.map((session: any) => ({
+              id: session.sessionId || session._id,
+              title: session.title || 'Chat Session',
+              createdAt: new Date(session.createdAt || Date.now()).getTime(),
+              updatedAt: new Date(session.updatedAt || session.createdAt || Date.now()).getTime(),
+              messages: (session.messages || []).map((m: any, idx: number) => ({
+                id: `atlas-${session.sessionId}-${idx}`,
+                role: m.role,
+                content: m.content,
+                timestamp: new Date(m.timestamp || Date.now()).getTime(),
+              })),
+            }));
+
+            setThreads((prev) => {
+              const existingIds = new Set(prev.map((t) => t.id));
+              const newThreads = mappedThreads.filter((t) => !existingIds.has(t.id));
+              return [...prev, ...newThreads];
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, user?.id]);
 
   const activeThread = threads.find((t) => t.id === activeThreadId);
   const messages = activeThread ? activeThread.messages : [];
@@ -62,7 +104,18 @@ export const ChatPage = () => {
 
     try {
       const petContext = userPets.length > 0 ? userPets.map((p) => `${p.name} (${p.species}, ${p.breed}, ${p.age}y)`).join('; ') : undefined;
-      const res = await axios.post(`${API_URL}/chat`, { message: text, history: messages, petContext });
+      const res = await axios.post(`${API_URL}/chat`, {
+        message: text,
+        history: messages,
+        petContext,
+        sessionId: currentThreadId,
+        userId: user?.id,
+      });
+
+      if (res.data?.memory) {
+        setAiMemory(res.data.memory);
+      }
+
       const botMsg: ChatMessage = { id: `bot-${Date.now()}`, role: 'assistant', content: res.data.reply, timestamp: Date.now(), isEmergency: res.data.isEmergency };
       if (res.data.isEmergency) { setEmergencyTriggered(true); setEmergencyMessage(text); }
       setThreads((prev) => prev.map((t) => (t.id === currentThreadId ? { ...t, updatedAt: Date.now(), messages: [...t.messages, botMsg] } : t)));
@@ -92,6 +145,8 @@ export const ChatPage = () => {
         <ChatHeader
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onOpenHotlines={() => setShowHotlinesModal(true)}
+          onOpenMemoryModal={() => setShowMemoryModal(true)}
+          isMemoryActive={!!user || !!aiMemory}
         />
 
         <ChatMessagesView
@@ -108,6 +163,12 @@ export const ChatPage = () => {
       </div>
 
       <VetHotlinesModal isOpen={showHotlinesModal} onClose={() => setShowHotlinesModal(false)} />
+      <PetAiMemoryModal
+        isOpen={showMemoryModal}
+        onClose={() => setShowMemoryModal(false)}
+        memory={aiMemory}
+        onMemoryUpdated={(updated) => setAiMemory(updated)}
+      />
     </div>
   );
 };

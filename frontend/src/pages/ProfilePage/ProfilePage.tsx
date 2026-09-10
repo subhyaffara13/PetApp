@@ -13,6 +13,8 @@ import { GlobalCalendarModal } from '../../Components/GlobalCalendarModal/Global
 import { ProfilePageHeader } from './Components/ProfilePageHeader';
 import { CoParentBanner } from './Components/CoParentBanner';
 import { SavedReceiptsListModal } from './Components/SavedReceiptsListModal';
+import { ArchivedPetsSection } from './Components/ArchivedPetsSection';
+import { PastPurchasesSection } from './Components/PastPurchasesSection';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
 import type { PetProfile, CoParentRequest, Receipt } from '../../schemas';
@@ -23,6 +25,9 @@ export const ProfilePage = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const [pets, setPets] = useState<PetProfile[]>([]);
+  const [archivedPets, setArchivedPets] = useState<PetProfile[]>([]);
+  const [activeTab, setActiveTab] = useState<'pets' | 'purchases' | 'archived'>('pets');
+  const [isLoadingArchived, setIsLoadingArchived] = useState(false);
   const [coParentRequests, setCoParentRequests] = useState<CoParentRequest[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +52,17 @@ export const ProfilePage = () => {
     }
   }, []);
 
+  const fetchArchivedPets = useCallback(async () => {
+    setIsLoadingArchived(true);
+    try {
+      const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile/archived`);
+      if (Array.isArray(res.data)) setArchivedPets(res.data);
+    } catch {
+    } finally {
+      setIsLoadingArchived(false);
+    }
+  }, []);
+
   const fetchCoParentRequests = useCallback(async () => {
     try {
       const res = await axios.get<CoParentRequest[]>(`${API_URL}/pet-profile/co-parent/requests/inbox`);
@@ -67,6 +83,12 @@ export const ProfilePage = () => {
     fetchReceipts();
   }, [fetchPets, fetchCoParentRequests, fetchReceipts]);
 
+  useEffect(() => {
+    if (activeTab === 'archived') {
+      fetchArchivedPets();
+    }
+  }, [activeTab, fetchArchivedPets]);
+
   const handleCreate = async (pet: Omit<PetProfile, '_id' | 'createdAt' | 'updatedAt' | 'medicalHistory'>) => {
     try {
       await axios.post(`${API_URL}/pet-profile`, { ...pet, medicalHistory: [], isArchived: false });
@@ -80,19 +102,40 @@ export const ProfilePage = () => {
       await axios.delete(`${API_URL}/pet-profile/${id}`);
       if (selectedPet?._id === id) setSelectedPet(null);
       if (editingPet?._id === id) setEditingPet(null);
+      setArchivedPets((prev) => prev.filter((p) => p._id !== id));
       fetchPets();
     } catch {}
   };
 
   const handleToggleArchive = async (pet: PetProfile) => {
     const nextArchived = !pet.isArchived;
-    if (!window.confirm(`Are you sure you want to ${nextArchived ? 'archive' : 'restore'} ${pet.name}?`)) return;
+    let reason = 'inactive';
+    if (nextArchived) {
+      const inputReason = window.prompt(
+        `Please specify archive reason for ${pet.name} (e.g. passed, rehomed, inactive, other):`,
+        'inactive'
+      );
+      if (inputReason === null) return;
+      reason = inputReason.trim().toLowerCase() || 'inactive';
+    } else {
+      if (!window.confirm(`Are you sure you want to restore ${pet.name} to active pets?`)) return;
+    }
+
     try {
-      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: nextArchived });
+      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: nextArchived, reason });
       fetchPets();
+      if (activeTab === 'archived') fetchArchivedPets();
       if (selectedPet?._id === pet._id) {
-        setSelectedPet((prev) => (prev ? { ...prev, isArchived: nextArchived } : null));
+        setSelectedPet((prev) => (prev ? { ...prev, isArchived: nextArchived, archivedReason: reason } : null));
       }
+    } catch {}
+  };
+
+  const handleRestorePet = async (pet: PetProfile) => {
+    try {
+      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: false });
+      setArchivedPets((prev) => prev.filter((p) => p._id !== pet._id));
+      fetchPets();
     } catch {}
   };
 
@@ -130,6 +173,87 @@ export const ProfilePage = () => {
         onClick={() => setShowCoParentInbox(true)}
       />
 
+      {!editingPet && !selectedPet && (
+        <div
+          className="profile-tabs-nav"
+          style={{
+            display: 'flex',
+            gap: '0.65rem',
+            marginBottom: '1.25rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            paddingBottom: '0.65rem',
+            overflowX: 'auto',
+          }}
+        >
+          <button
+            type="button"
+            className={`profile-tab-pill ${activeTab === 'pets' ? 'profile-tab-pill--active' : ''}`}
+            onClick={() => setActiveTab('pets')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.5rem 1.1rem',
+              borderRadius: '9999px',
+              border: activeTab === 'pets' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeTab === 'pets' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeTab === 'pets' ? '#38bdf8' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            🐾 Active Pets ({pets.length})
+          </button>
+          <button
+            type="button"
+            className={`profile-tab-pill ${activeTab === 'purchases' ? 'profile-tab-pill--active' : ''}`}
+            onClick={() => setActiveTab('purchases')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.5rem 1.1rem',
+              borderRadius: '9999px',
+              border: activeTab === 'purchases' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeTab === 'purchases' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeTab === 'purchases' ? '#38bdf8' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            📦 Past Purchases
+          </button>
+          <button
+            type="button"
+            className={`profile-tab-pill ${activeTab === 'archived' ? 'profile-tab-pill--active' : ''}`}
+            onClick={() => setActiveTab('archived')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.5rem 1.1rem',
+              borderRadius: '9999px',
+              border: activeTab === 'archived' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+              background: activeTab === 'archived' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+              color: activeTab === 'archived' ? '#38bdf8' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            🗄️ Archived Pets
+          </button>
+        </div>
+      )}
+
       {editingPet ? (
         <PetEditForm pet={editingPet} onSave={handleUpdate} onCancel={() => setEditingPet(null)} />
       ) : selectedPet ? (
@@ -140,6 +264,15 @@ export const ProfilePage = () => {
           onDelete={handleDelete}
           onToggleArchive={handleToggleArchive}
           onRefresh={fetchPets}
+        />
+      ) : activeTab === 'purchases' ? (
+        <PastPurchasesSection userId={user?.id} />
+      ) : activeTab === 'archived' ? (
+        <ArchivedPetsSection
+          archivedPets={archivedPets}
+          isLoading={isLoadingArchived}
+          onRestorePet={handleRestorePet}
+          onDeletePet={handleDelete}
         />
       ) : (
         <PetList

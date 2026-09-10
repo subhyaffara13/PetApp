@@ -17,6 +17,7 @@ import {
   StoreProductDocument,
 } from './schemas/store-product.schema';
 import { AdminClaim, AdminClaimDocument } from '../admin/admin.schema';
+import { toSafeString, isSafeObjectId } from '../utils/sanitize';
 
 @Injectable()
 export class DeliveryService {
@@ -302,12 +303,15 @@ export class DeliveryService {
       this.logger.warn('Failed to submit store claim for admin review', err);
     }
 
+    const safeStoreId = toSafeString(storeId);
+    if (!safeStoreId || !isSafeObjectId(safeStoreId)) return null;
+
     return this.storeModel.findByIdAndUpdate(
-      storeId,
+      safeStoreId,
       {
         isClaimed: true,
         isActive: true,
-        ...(ownerEmail ? { contactPhone: ownerEmail } : {}),
+        ...(ownerEmail ? { contactPhone: toSafeString(ownerEmail) } : {}),
       },
       { new: true },
     );
@@ -333,17 +337,18 @@ export class DeliveryService {
   /**
    * Fetch all active orders for a merchant dashboard
    */
-  async getLiveStoreOrders(storeId: string): Promise<any[]> {
+  async getLiveStoreOrders(rawStoreId: string): Promise<any[]> {
+    const storeId = toSafeString(rawStoreId);
+    if (!storeId) return [];
+
+    const queryConditions: any[] = [{ 'storeOrders.storeId': storeId }];
+    if (isSafeObjectId(storeId)) {
+      queryConditions.push({ 'storeOrders.storeId': new Types.ObjectId(storeId) });
+    }
+
     const orders = await this.masterOrderModel
       .find({
-        $or: [
-          { 'storeOrders.storeId': storeId },
-          {
-            'storeOrders.storeId': new Types.ObjectId(
-              storeId.length === 24 ? storeId : '64f1a2b3c4d5e6f7a8b9c0d1',
-            ),
-          },
-        ],
+        $or: queryConditions,
         'storeOrders.status': { $nin: ['cancelled', 'failed'] },
       })
       .sort({ createdAt: -1 });
@@ -511,9 +516,11 @@ export class DeliveryService {
     storeId: string,
     isBusyMode: boolean,
   ): Promise<IStore | null> {
+    const safeStoreId = toSafeString(storeId);
+    if (!safeStoreId || !isSafeObjectId(safeStoreId)) return null;
     return this.storeModel.findByIdAndUpdate(
-      storeId,
-      { isBusyMode },
+      safeStoreId,
+      { isBusyMode: Boolean(isBusyMode) },
       { new: true },
     );
   }
@@ -523,9 +530,11 @@ export class DeliveryService {
    */
   async handleCourierWebhook(body: any): Promise<any> {
     const { event, externalTaskId, courier, location } = body;
+    const safeExternalTaskId = toSafeString(externalTaskId);
+    if (!safeExternalTaskId) return { status: 'ignored_invalid_task_id' };
 
     const masterOrder = await this.masterOrderModel.findOne({
-      'storeOrders.dispatchInfo.externalTaskId': externalTaskId,
+      'storeOrders.dispatchInfo.externalTaskId': safeExternalTaskId,
     });
 
     if (!masterOrder) return { status: 'ignored_unmatched' };

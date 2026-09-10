@@ -2,22 +2,16 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import axios from 'axios';
 
 import { API_URL } from '../config/api';
+import type { User, UserRole } from '../schemas';
+export type { User, UserRole };
 const AUTH_STORAGE_KEY = 'petsos_auth_v2';
-
-export type UserRole = 'customer' | 'clinic_admin' | 'store_merchant' | 'superadmin';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  role: UserRole;
-}
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 Days in milliseconds
 
 interface StoredAuth {
   user: User;
   accessToken: string;
   refreshToken: string;
+  loginTimestamp?: number;
 }
 
 interface AuthContextType {
@@ -67,7 +61,14 @@ function loadStoredAuth(): StoredAuth | null {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed: StoredAuth = JSON.parse(raw);
+    const loginTime = parsed.loginTimestamp || 0;
+    // Enforce 3-day hard timeout
+    if (loginTime > 0 && Date.now() - loginTime > THREE_DAYS_MS) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -105,7 +106,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => axios.interceptors.request.eject(interceptor);
   }, [storedAuth?.accessToken]);
 
-  function buildStoredAuth(accessToken: string, refreshToken: string, fallbackUser?: Partial<User>): StoredAuth {
+  function buildStoredAuth(
+    accessToken: string,
+    refreshToken: string,
+    fallbackUser?: Partial<User>,
+    existingLoginTimestamp?: number
+  ): StoredAuth {
     const payload = decodeJwtPayload(accessToken) || {};
     const user: User = {
       id: payload.sub || fallbackUser?.id || `user-${Date.now()}`,
@@ -114,7 +120,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       avatar: payload.avatar || fallbackUser?.avatar || '',
       role: payload.role || fallbackUser?.role || 'customer',
     };
-    return { user, accessToken, refreshToken };
+    return {
+      user,
+      accessToken,
+      refreshToken,
+      loginTimestamp: existingLoginTimestamp || Date.now(),
+    };
   }
 
   // Auto-refresh if access token is expired or close to expiry
@@ -135,9 +146,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const silentRefresh = useCallback(async () => {
     if (!storedAuth?.refreshToken) return;
+
+    // Reject refresh if original login was more than 3 days ago
+    if (storedAuth.loginTimestamp && Date.now() - storedAuth.loginTimestamp > THREE_DAYS_MS) {
+      setStoredAuth(null);
+      clearStoredAuth();
+      setShowAuthModal(true);
+      return;
+    }
+
     try {
       const res = await axios.post(`${API_URL}/auth/refresh`, { refreshToken: storedAuth.refreshToken });
-      const updated = buildStoredAuth(res.data.accessToken, res.data.refreshToken);
+      const updated = buildStoredAuth(res.data.accessToken, res.data.refreshToken, undefined, storedAuth.loginTimestamp);
       setStoredAuth(updated);
       saveStoredAuth(updated);
     } catch (err: any) {
@@ -146,9 +166,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (err?.response?.status === 401 || err?.response?.status === 403) {
         setStoredAuth(null);
         clearStoredAuth();
+        setShowAuthModal(true);
       }
     }
-  }, [storedAuth?.refreshToken]);
+  }, [storedAuth?.refreshToken, storedAuth?.loginTimestamp]);
+
+  // Proactive 3-day session timeout monitor (checks on mount, interval, and focus)
+  useEffect(() => {
+    if (!storedAuth?.loginTimestamp) return;
+
+    const checkSessionExpiry = () => {
+      const elapsed = Date.now() - storedAuth.loginTimestamp!;
+      if (elapsed >= THREE_DAYS_MS) {
+        setStoredAuth(null);
+        clearStoredAuth();
+        setShowAuthModal(true);
+      }
+    };
+
+    checkSessionExpiry();
+    const interval = setInterval(checkSessionExpiry, 60_000);
+    window.addEventListener('focus', checkSessionExpiry);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkSessionExpiry);
+    };
+  }, [storedAuth?.loginTimestamp]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -231,8 +275,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Stores a local (non-API) user session for guest / demo flows
   const setDemoUser = (demoUser: User) => {
-    setStoredAuth({ user: demoUser, accessToken: '', refreshToken: '' });
-    saveStoredAuth({ user: demoUser, accessToken: '', refreshToken: '' });
+    const demoAuth: StoredAuth = {
+      user: demoUser,
+      accessToken: '',
+      refreshToken: '',
+      loginTimestamp: Date.now(),
+    };
+    setStoredAuth(demoAuth);
+    saveStoredAuth(demoAuth);
     setShowAuthModal(false);
   };
 

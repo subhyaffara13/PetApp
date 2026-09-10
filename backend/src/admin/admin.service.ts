@@ -15,6 +15,7 @@ import {
   CommunityReport,
   CommunityReportDocument,
 } from '../schemas/community.schema';
+import { toSafeString, isSafeObjectId, toSafeObjectId } from '../utils/sanitize';
 
 export interface SystemServiceStatus {
   name: string;
@@ -270,8 +271,12 @@ export class AdminService {
   }
 
   async verifyClaim(id: string, status: 'approved' | 'rejected'): Promise<any> {
+    const safeId = toSafeString(id);
+    if (!isSafeObjectId(safeId)) {
+      throw new NotFoundException('Invalid claim ID format');
+    }
     const claim = await this.claimModel.findByIdAndUpdate(
-      id,
+      toSafeObjectId(safeId),
       { status },
       { new: true },
     );

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
+import { CommunityDmService } from './community-dm.service';
 import {
   Story,
   StorySchema,
@@ -9,6 +10,8 @@ import {
   PostSchema,
   DirectMessage,
   DirectMessageSchema,
+  ConversationThread,
+  ConversationThreadSchema,
   CommunityReport,
   CommunityReportSchema,
 } from '../schemas/community.schema';
@@ -23,6 +26,7 @@ import { SheltersModule } from '../shelters/shelters.module';
       { name: Story.name, schema: StorySchema },
       { name: Post.name, schema: PostSchema },
       { name: DirectMessage.name, schema: DirectMessageSchema },
+      { name: ConversationThread.name, schema: ConversationThreadSchema },
       { name: CommunityReport.name, schema: CommunityReportSchema },
       { name: User.name, schema: UserSchema },
       { name: PetProfile.name, schema: PetProfileSchema },
@@ -31,7 +35,7 @@ import { SheltersModule } from '../shelters/shelters.module';
     SheltersModule,
   ],
   controllers: [CommunityController],
-  providers: [CommunityService],
-  exports: [CommunityService],
+  providers: [CommunityService, CommunityDmService],
+  exports: [CommunityService, CommunityDmService],
 })
 export class CommunityModule {}

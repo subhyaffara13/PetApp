@@ -5,6 +5,7 @@ import { useImageUpload } from '../../../Hooks/useImageUpload';
 import { SPECIES_OPTIONS, getBreedsForSpecies } from '../../../data/petBreeds';
 import { API_URL } from '../../../config/api';
 import type { PetProfile } from '../../../schemas';
+import { sanitizeMediaUrl } from '../../../utils/urlSanitizer';
 
 const PRESET_SAMPLE_PHOTOS = [
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80',
@@ -346,7 +347,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
               <div style={{ position: 'relative', marginBottom: '0.5rem', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
                 {isVideoUrl ? (
                   <video
-                    src={image?.previewUrl || newPostImage}
+                    src={sanitizeMediaUrl(image?.previewUrl || newPostImage)}
                     controls
                     autoPlay
                     muted
@@ -355,7 +356,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
                   />
                 ) : (
                   <img
-                    src={image?.previewUrl || newPostImage}
+                    src={sanitizeMediaUrl(image?.previewUrl || newPostImage)}
                     alt="Preview"
                     style={{ width: '100%', maxHeight: 220, objectFit: 'cover' }}
                   />

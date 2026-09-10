@@ -11,9 +11,11 @@ jest.mock('@google/generative-ai', () => ({
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { ChatService } from './chat.service';
 import { PetProfileService } from '../pet-profile/pet-profile.service';
+import { User } from '../schemas/user.schema';
 
 describe('ChatService — Emergency Triage & AI Guardrails', () => {
   let service: ChatService;
@@ -22,6 +24,15 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
     get: jest.fn().mockImplementation((key: string) => {
       if (key === 'GEMINI_API_KEY') return 'mock-gemini-key';
       return null;
+    }),
+  };
+
+  const mockUserModel = {
+    findById: jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue(null),
+    }),
+    findByIdAndUpdate: jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue(null),
     }),
   };
 
@@ -43,6 +54,7 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
         ChatService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: PetProfileService, useValue: mockPetProfileService },
+        { provide: getModelToken(User.name), useValue: mockUserModel },
       ],
     }).compile();
 

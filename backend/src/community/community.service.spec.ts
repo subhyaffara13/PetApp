@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { CommunityService } from './community.service';
+import { CommunityDmService } from './community-dm.service';
 import {
   Story,
   Post,
   DirectMessage,
+  ConversationThread,
   CommunityReport,
 } from '../schemas/community.schema';
 import { User } from '../schemas/user.schema';
@@ -12,6 +14,38 @@ import { PetProfile } from '../schemas/pet-profile.schema';
 
 describe('CommunityService', () => {
   let service: CommunityService;
+
+  const mockThreadModel: any = {
+    find: jest.fn().mockReturnValue({
+      sort: jest.fn().mockReturnValue({
+        limit: jest.fn().mockReturnValue({
+          lean: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([
+              {
+                conversationId: 'u1_u2',
+                participants: ['u1', 'u2'],
+                participantMeta: {
+                  u1: { name: 'User One', avatar: '' },
+                  u2: { name: 'User Two', avatar: '' },
+                },
+                lastMessage: {
+                  senderId: 'u1',
+                  encryptedPayload: 'enc...',
+                  iv: 'iv...',
+                  sentAt: new Date(),
+                },
+                unreadCounts: { u2: 1, u1: 0 },
+                messageCount: 5,
+                updatedAt: new Date(),
+              },
+            ]),
+          }),
+        }),
+      }),
+    }),
+    findOneAndUpdate: jest.fn().mockResolvedValue({}),
+    updateOne: jest.fn().mockResolvedValue({}),
+  };
 
   const mockPetProfileModel: any = {
     find: jest.fn().mockReturnValue({
@@ -52,17 +86,23 @@ describe('CommunityService', () => {
     save: jest.fn().mockResolvedValue({ _id: 'post-1', ...dto }),
   }));
 
+  const mockPostsList = [
+    {
+      _id: 'post-1',
+      petName: 'Rocky',
+      likesCount: 5,
+      likedBy: [],
+      comments: [],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
   mockPostModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
-      exec: jest.fn().mockResolvedValue([
-        {
-          _id: 'post-1',
-          petName: 'Rocky',
-          likesCount: 5,
-          likedBy: [],
-          comments: [],
-        },
-      ]),
+      limit: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockPostsList),
+      }),
+      exec: jest.fn().mockResolvedValue(mockPostsList),
     }),
   });
 
@@ -92,6 +132,17 @@ describe('CommunityService', () => {
   mockDmModel.find = jest.fn().mockReturnValue({
     sort: jest.fn().mockReturnValue({
       limit: jest.fn().mockReturnValue({
+        lean: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue([
+            {
+              _id: 'dm-1',
+              senderId: 'u1',
+              recipientId: 'u2',
+              encryptedPayload: 'enc...',
+              iv: 'iv...',
+            },
+          ]),
+        }),
         exec: jest.fn().mockResolvedValue([
           {
             _id: 'dm-1',
@@ -105,6 +156,8 @@ describe('CommunityService', () => {
       exec: jest.fn().mockResolvedValue([]),
     }),
   });
+  mockDmModel.countDocuments = jest.fn().mockResolvedValue(10);
+  mockDmModel.updateMany = jest.fn().mockResolvedValue({ modifiedCount: 1 });
 
   const mockReportModel: any = jest.fn().mockImplementation((dto) => ({
     ...dto,
@@ -142,9 +195,14 @@ describe('CommunityService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommunityService,
+        CommunityDmService,
         { provide: getModelToken(Story.name), useValue: mockStoryModel },
         { provide: getModelToken(Post.name), useValue: mockPostModel },
         { provide: getModelToken(DirectMessage.name), useValue: mockDmModel },
+        {
+          provide: getModelToken(ConversationThread.name),
+          useValue: mockThreadModel,
+        },
         {
           provide: getModelToken(CommunityReport.name),
           useValue: mockReportModel,
@@ -184,6 +242,34 @@ describe('CommunityService', () => {
     expect(profile.name).toBe('Subhy');
     expect(profile.postsCount).toBe(3);
     expect(profile.followersCount).toBe(0);
+  });
+
+  it('should get conversations list using optimized thread summaries', async () => {
+    const convos = await service.getConversationsList('u1');
+    expect(Array.isArray(convos)).toBe(true);
+    expect(convos.length).toBe(1);
+    expect(convos[0].conversationId).toBe('u1_u2');
+    expect(convos[0].unreadCount).toBe(0);
+  });
+
+  it('should send an encrypted direct message and upsert thread', async () => {
+    const msg = await service.sendEncryptedMessage({
+      senderId: 'u1',
+      recipientId: 'u2',
+      senderName: 'User One',
+      recipientName: 'User Two',
+      encryptedPayload: 'secret_ciphertext',
+      iv: 'nonce_iv',
+    });
+    expect(msg).toBeDefined();
+    expect(mockThreadModel.findOneAndUpdate).toHaveBeenCalled();
+  });
+
+  it('should mark conversation as read', async () => {
+    const res = await service.markConversationAsRead('u2', 'u1');
+    expect(res.success).toBe(true);
+    expect(mockDmModel.updateMany).toHaveBeenCalled();
+    expect(mockThreadModel.updateOne).toHaveBeenCalled();
   });
 
   it('should submit a safety/harassment report', async () => {

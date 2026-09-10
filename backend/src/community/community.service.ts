@@ -11,13 +11,14 @@ import {
   StoryDocument,
   Post,
   PostDocument,
-  DirectMessage,
   DirectMessageDocument,
   CommunityReport,
   CommunityReportDocument,
 } from '../schemas/community.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
+import { escapeRegex, toSafeString, isSafeObjectId } from '../utils/sanitize';
+import { CommunityDmService } from './community-dm.service';
 
 export interface PublicPetSummary {
   _id: string;
@@ -57,13 +58,12 @@ export class CommunityService implements OnModuleInit {
   constructor(
     @InjectModel(Story.name) private storyModel: Model<StoryDocument>,
     @InjectModel(Post.name) private postModel: Model<PostDocument>,
-    @InjectModel(DirectMessage.name)
-    private dmModel: Model<DirectMessageDocument>,
     @InjectModel(CommunityReport.name)
     private reportModel: Model<CommunityReportDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(PetProfile.name)
     private petProfileModel: Model<PetProfileDocument>,
+    private readonly dmService: CommunityDmService,
   ) {}
 
   async onModuleInit() {
@@ -112,13 +112,130 @@ export class CommunityService implements OnModuleInit {
     return story.save();
   }
 
-  // --- POSTS ---
-  async getFeed(): Promise<PostDocument[]> {
+  // --- POSTS & PERSONALIZED FEED ALGORITHM ---
+  /**
+   * Multi-tiered social personalization feed (Instagram/Facebook model):
+   * 1. Emergency Lost Pet SOS alerts in city (Rank +100)
+   * 2. Direct follow social graph (Rank +50)
+   * 3. Pet breed match relevance (Rank +35)
+   * 4. User interest & past liked categories (Rank +25)
+   * 5. Verified creator/vet authority (Rank +20)
+   * 6. Engagement velocity (likes*2 + comments*3)
+   * 7. Smooth 7-day recency decay
+   */
+  async getPersonalizedFeed(
+    userId?: string,
+    mode: 'for_you' | 'following' | 'saved' = 'for_you',
+    categoryFilter?: string,
+  ): Promise<any[]> {
     try {
-      return await this.postModel.find().sort({ createdAt: -1 }).exec();
-    } catch {
-      return [];
+      let userDoc: UserDocument | null = null;
+      const safeUserId = toSafeString(userId);
+      if (safeUserId && safeUserId !== 'guest-anonymous' && safeUserId !== 'current-user' && isSafeObjectId(safeUserId)) {
+        userDoc = await this.userModel.findById(safeUserId).exec();
+      }
+
+      // If user requested "saved" / bookmarks
+      if (mode === 'saved') {
+        if (!userDoc || !userDoc.bookmarkedPostIds || userDoc.bookmarkedPostIds.length === 0) {
+          return [];
+        }
+        return await this.postModel
+          .find({ _id: { $in: userDoc.bookmarkedPostIds } })
+          .sort({ createdAt: -1 })
+          .exec();
+      }
+
+      // If user requested "following" only
+      if (mode === 'following') {
+        if (!userDoc || !userDoc.following || userDoc.following.length === 0) {
+          return [];
+        }
+        const query: any = { authorId: { $in: userDoc.following } };
+        if (categoryFilter && categoryFilter !== 'all') {
+          query.category = categoryFilter;
+        }
+        return await this.postModel.find(query).sort({ createdAt: -1 }).exec();
+      }
+
+      // --- "FOR YOU" ALGORITHMIC FEED ---
+      const baseQuery: any = {};
+      if (categoryFilter && categoryFilter !== 'all') {
+        baseQuery.category = categoryFilter;
+      }
+      if (userDoc?.blockedUserIds?.length) {
+        baseQuery.authorId = { $nin: userDoc.blockedUserIds };
+      }
+
+      const allPosts = await this.postModel
+        .find(baseQuery)
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .exec();
+
+      if (!userDoc) {
+        // Fallback for guests: Lost & Found SOS first, then highest engagement, then recency
+        return allPosts.sort((a, b) => {
+          if (a.category === 'lost_found' && b.category !== 'lost_found') return -1;
+          if (b.category === 'lost_found' && a.category !== 'lost_found') return 1;
+          const scoreA = (a.likesCount || 0) * 2 + (a.comments?.length || 0) * 3;
+          const scoreB = (b.likesCount || 0) * 2 + (b.comments?.length || 0) * 3;
+          return scoreB - scoreA;
+        });
+      }
+
+      const followingSet = new Set(userDoc.following || []);
+      const breedSet = new Set((userDoc.petBreeds || []).map((b) => b.toLowerCase()));
+      const categorySet = new Set(
+        [...(userDoc.interestedCategories || []), ...(userDoc.likedCategories || [])].map((c) =>
+          c.toLowerCase(),
+        ),
+      );
+
+      const now = Date.now();
+
+      const scored = allPosts.map((post) => {
+        let score = 0;
+        const postBreed = (post.petBreed || '').toLowerCase();
+        const postCat = (post.category || '').toLowerCase();
+
+        // 1. Critical SOS boost (Lost Pet alerts)
+        if (postCat === 'lost_found') score += 100;
+
+        // 2. Following boost (Personal social graph)
+        if (followingSet.has(post.authorId)) score += 50;
+
+        // 3. Pet Breed Affinity (Content relevance)
+        if (postBreed && breedSet.has(postBreed)) score += 35;
+
+        // 4. Topic / Category Affinity
+        if (categorySet.has(postCat)) score += 25;
+
+        // 5. Authority boost (Veterinarians and Shelters)
+        if (post.authorBadge === 'veterinarian' || post.authorBadge === 'vet') score += 20;
+
+        // 6. Social Engagement velocity
+        score += (post.likesCount || 0) * 2 + (post.comments?.length || 0) * 3;
+
+        // 7. Recency decay (7-day window)
+        const ageHours = (now - new Date((post as any).createdAt).getTime()) / (1000 * 60 * 60);
+        const recencyMultiplier = Math.max(0.15, 1 - ageHours / 168);
+        score *= recencyMultiplier;
+
+        return { post, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored.map((s) => s.post);
+    } catch (err) {
+      this.logger.warn('Personalized feed algorithm error:', err);
+      return await this.postModel.find().sort({ createdAt: -1 }).limit(30).exec();
     }
+  }
+
+  /** Backward-compatible getFeed helper */
+  async getFeed(): Promise<PostDocument[]> {
+    return this.getPersonalizedFeed();
   }
 
   async getPostsByUser(userId: string): Promise<PostDocument[]> {
@@ -163,7 +280,63 @@ export class CommunityService implements OnModuleInit {
       post.likedBy = [...(post.likedBy || []), userId];
       post.likesCount = (post.likesCount || 0) + 1;
     }
+
+    // Sync likedPostIds and likedCategories to user profile in Atlas
+    if (userId && userId !== 'guest-anonymous' && userId !== 'current-user') {
+      try {
+        const userUpdate: any = alreadyLiked
+          ? { $pull: { likedPostIds: postId } }
+          : {
+              $addToSet: {
+                likedPostIds: postId,
+                likedCategories: post.category,
+              },
+            };
+        await this.userModel.findByIdAndUpdate(userId, userUpdate).exec();
+      } catch (err) {
+        this.logger.warn('User like sync note:', err);
+      }
+    }
+
     return post.save();
+  }
+
+  async toggleBookmark(
+    postId: string,
+    userId: string,
+  ): Promise<{ bookmarked: boolean; bookmarkedPostIds: string[] }> {
+    if (!userId || userId === 'guest-anonymous') {
+      return { bookmarked: false, bookmarkedPostIds: [] };
+    }
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) throw new NotFoundException('User not found');
+
+    if (!user.bookmarkedPostIds) user.bookmarkedPostIds = [];
+    const isBookmarked = user.bookmarkedPostIds.includes(postId);
+
+    if (isBookmarked) {
+      user.bookmarkedPostIds = user.bookmarkedPostIds.filter((id) => id !== postId);
+    } else {
+      user.bookmarkedPostIds.unshift(postId);
+    }
+
+    await user.save();
+    return {
+      bookmarked: !isBookmarked,
+      bookmarkedPostIds: user.bookmarkedPostIds,
+    };
+  }
+
+  async getBookmarkedPosts(userId: string): Promise<any[]> {
+    if (!userId || userId === 'guest-anonymous') return [];
+    const user = await this.userModel.findById(userId).exec();
+    if (!user || !user.bookmarkedPostIds || user.bookmarkedPostIds.length === 0) {
+      return [];
+    }
+    return await this.postModel
+      .find({ _id: { $in: user.bookmarkedPostIds } })
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async addComment(
@@ -179,14 +352,20 @@ export class CommunityService implements OnModuleInit {
 
   // --- LIVE USER PROFILES (100% Database Powered) ---
   async getUserProfile(
-    targetUserId: string,
+    rawTargetUserId: string,
     currentUserId?: string,
   ): Promise<UserProfileResponse> {
+    const targetUserId = toSafeString(rawTargetUserId);
     let user: UserDocument | null = null;
-    try {
-      user = await this.userModel.findById(targetUserId).exec();
-    } catch {
-      user = await this.userModel.findOne({ email: targetUserId }).exec();
+    if (targetUserId) {
+      try {
+        user = await this.userModel.findById(targetUserId).exec();
+      } catch {}
+    }
+    if (!user && targetUserId) {
+      try {
+        user = await this.userModel.findOne({ email: targetUserId }).exec();
+      } catch {}
     }
 
     if (!user) {
@@ -385,8 +564,10 @@ export class CommunityService implements OnModuleInit {
     query: string,
     currentUserId?: string,
   ): Promise<UserProfileResponse[]> {
-    if (!query.trim()) return [];
-    const regex = new RegExp(query.trim(), 'i');
+    const cleanQuery = toSafeString(query).trim();
+    if (!cleanQuery) return [];
+    const escaped = escapeRegex(cleanQuery);
+    const regex = new RegExp(escaped, 'i');
 
     const users = await this.userModel
       .find({
@@ -538,63 +719,43 @@ export class CommunityService implements OnModuleInit {
     };
   }
 
-  // --- END-TO-END ENCRYPTED DIRECT MESSAGES ---
+  // --- END-TO-END ENCRYPTED DIRECT MESSAGES (DELEGATED TO CommunityDmService) ---
+
+  /** Generates a deterministic conversation ID for two users */
+  getConversationId(u1: string, u2: string): string {
+    return this.dmService.getConversationId(u1, u2);
+  }
+
   async getEncryptedConversation(
     userId1: string,
     userId2: string,
-  ): Promise<DirectMessageDocument[]> {
-    return this.dmModel
-      .find({
-        $or: [
-          { senderId: userId1, recipientId: userId2 },
-          { senderId: userId2, recipientId: userId1 },
-        ],
-      })
-      .sort({ createdAt: 1 })
-      .limit(100)
-      .exec();
+  ): Promise<any[]> {
+    return this.dmService.getEncryptedConversation(userId1, userId2);
   }
 
   async sendEncryptedMessage(dto: {
     senderId: string;
     recipientId: string;
-    senderName: string;
-    senderAvatar: string;
-    recipientName: string;
-    recipientAvatar: string;
+    senderName?: string;
+    senderAvatar?: string;
+    recipientName?: string;
+    recipientAvatar?: string;
     encryptedPayload: string;
     iv: string;
     mediaUrl?: string;
   }): Promise<DirectMessageDocument> {
-    const msg = new this.dmModel(dto);
-    return msg.save();
+    return this.dmService.sendEncryptedMessage(dto);
   }
 
   async getConversationsList(userId: string): Promise<any[]> {
-    const messages = await this.dmModel
-      .find({
-        $or: [{ senderId: userId }, { recipientId: userId }],
-      })
-      .sort({ createdAt: -1 })
-      .exec();
+    return this.dmService.getConversationsList(userId);
+  }
 
-    const partners = new Map<string, any>();
-    for (const m of messages) {
-      const partnerId = m.senderId === userId ? m.recipientId : m.senderId;
-      if (!partners.has(partnerId)) {
-        partners.set(partnerId, {
-          partnerId,
-          partnerName: m.senderId === userId ? m.recipientName : m.senderName,
-          partnerAvatar:
-            m.senderId === userId ? m.recipientAvatar : m.senderAvatar,
-          lastMessageAt: (m as any).createdAt || new Date(),
-          lastEncryptedPayload: m.encryptedPayload,
-          iv: m.iv,
-          isRead: m.isRead,
-        });
-      }
-    }
-    return Array.from(partners.values());
+  async markConversationAsRead(
+    userId: string,
+    partnerId: string,
+  ): Promise<{ success: boolean }> {
+    return this.dmService.markConversationAsRead(userId, partnerId);
   }
 
   // --- HARASSMENT & SAFETY REPORTING ---

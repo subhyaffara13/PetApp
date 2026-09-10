@@ -6,6 +6,7 @@ import { MarketplaceService } from './marketplace.service';
 import { PetShop, PetShopSchema } from '../schemas/pet-shop.schema';
 import { Product, ProductSchema } from '../schemas/product.schema';
 import { Order, OrderSchema } from '../schemas/order.schema';
+import { User, UserSchema } from '../schemas/user.schema';
 import { AuthModule } from '../auth/auth.module';
 import { ReceiptsModule } from '../receipts/receipts.module';
 import { EmailModule } from '../email/email.module';
@@ -17,6 +18,7 @@ import { EmailModule } from '../email/email.module';
       { name: PetShop.name, schema: PetShopSchema },
       { name: Product.name, schema: ProductSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     AuthModule,
     ReceiptsModule,

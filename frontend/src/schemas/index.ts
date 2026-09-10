@@ -74,6 +74,8 @@ export interface PetProfile {
   medications: string[];
   medicalHistory: MedicalEvent[];
   isArchived?: boolean;
+  archivedReason?: string;
+  archivedAt?: string | Date;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -295,6 +297,57 @@ export type VerificationBadge =
   | 'animal_shelter'
   | 'platform_admin';
 
+export interface AiChatMessage {
+  role: 'user' | 'model' | 'assistant' | 'system';
+  content: string;
+  timestamp: string | Date;
+  urgencyLevel?: string;
+}
+
+export interface AiChatSession {
+  sessionId: string;
+  title: string;
+  petId?: string;
+  messages: AiChatMessage[];
+  summary?: string;
+  lastActiveAt: string | Date;
+}
+
+export interface AiPetMemory {
+  preferences?: string[];
+  dietaryRestrictions?: string[];
+  dietaryConstraints?: string[];
+  allergies?: string[];
+  behavioralNotes?: string[];
+  healthNotes?: string[];
+  healthSummary?: string;
+  interactionFacts?: Record<string, any>;
+  customKnowledge?: Record<string, any>;
+  lastUpdated?: string | Date;
+}
+
+export interface UserPurchaseSummary {
+  orderId: string;
+  orderNumber: string;
+  shopId: string;
+  shopName: string;
+  totalAmount: number;
+  itemsCount: number;
+  status: string;
+  purchasedAt: string | Date;
+  receiptUrl?: string;
+}
+
+export interface ArchivedPetSummary {
+  petId: string;
+  name: string;
+  species: string;
+  breed: string;
+  photoUrl?: string;
+  reason: 'passed' | 'rehomed' | 'inactive' | 'other';
+  archivedAt: string | Date;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -306,6 +359,18 @@ export interface User {
   isVerified?: boolean;
   verificationBadge?: VerificationBadge;
   organizationName?: string;
+  followers?: string[];
+  following?: string[];
+  petBreeds?: string[];
+  likedCategories?: string[];
+  bookmarkedPostIds?: string[];
+  likedPostIds?: string[];
+  interestedCategories?: string[];
+  activePetIds?: string[];
+  archivedPets?: ArchivedPetSummary[];
+  pastPurchases?: UserPurchaseSummary[];
+  aiMemory?: AiPetMemory;
+  aiChatSessions?: AiChatSession[];
 }
 
 export interface StoryItem {

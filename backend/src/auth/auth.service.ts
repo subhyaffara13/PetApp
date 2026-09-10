@@ -331,7 +331,7 @@ export class AuthService implements OnModuleInit {
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ||
-        '7d') as any,
+        '3d') as any,
     });
 
     const refreshTokenHash = await bcrypt.hash(refreshToken, 10);

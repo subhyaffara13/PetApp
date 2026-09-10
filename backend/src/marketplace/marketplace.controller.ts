@@ -63,6 +63,12 @@ export class MarketplaceController {
     return this.marketplaceService.createOrder(orderDto);
   }
 
+  @Get('orders/my-purchases')
+  async getMyPurchases(@Req() req: any, @Query('customerId') queryId?: string) {
+    const userId = queryId || req.user?.id || req.user?.sub;
+    return this.marketplaceService.getMyPurchases(userId);
+  }
+
   @Get('orders')
   async listOrders(@Query('customerId') customerId?: string) {
     return this.marketplaceService.getOrders(customerId);

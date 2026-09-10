@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import { PetProfileService } from '../pet-profile/pet-profile.service';
+import { User, UserDocument } from '../schemas/user.schema';
 
 const EMERGENCY_KEYWORDS = [
   'vomiting blood',
@@ -160,6 +163,7 @@ export class ChatService {
   constructor(
     private readonly configService: ConfigService,
     private readonly petProfileService: PetProfileService,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey && apiKey.trim().length > 10) {
@@ -173,10 +177,23 @@ export class ChatService {
 
   async processMessage(
     message: string,
-    history: { role: string; content: string }[],
-    _petProfileId?: string,
+    history: { role: string; content: string }[] = [],
+    petProfileId?: string,
     image?: { data: string; mimeType: string },
-  ): Promise<{ message: string; emergency: boolean }> {
+    userId?: string,
+    sessionId?: string,
+  ): Promise<{
+    message: string;
+    emergency: boolean;
+    sessionId: string;
+    memorySnapshot?: any;
+  }> {
+    const activeSessionId =
+      sessionId ||
+      `sess-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    let responseText = '';
+    let isEmergency = false;
+
     try {
       // 1. Check for emergency keywords
       const lowerMessage = (message || '').toLowerCase();
@@ -185,36 +202,81 @@ export class ChatService {
           this.logger.warn(
             `Emergency keyword detected: "${keyword}" in message: "${message}"`,
           );
+          isEmergency = true;
           const isHebrew = /[\u0590-\u05FF]/.test(message);
           const isArabic = /[\u0600-\u06FF]/.test(message);
-          return {
-            emergency: true,
-            message: isHebrew
-              ? `🚨 זוהה מצב חירום פוטנציאלי הקשור ל-"${keyword}". אנא פנה לבית חולים וטרינרי לחירום באופן מיידי!`
-              : isArabic
-                ? `🚨 تم اكتشاف حالة طوارئ محتملة تتعلق بـ "${keyword}". يرجى الاتصال بمستشفى الطوارئ البيطري فوراً!`
-                : `🚨 Potential emergency detected related to "${keyword}". Please contact an emergency animal hospital immediately!`,
-          };
+          responseText = isHebrew
+            ? `🚨 זוהה מצב חירום פוטנציאלי הקשור ל-"${keyword}". אנא פנה לבית חולים וטרינרי לחירום באופן מיידי!`
+            : isArabic
+              ? `🚨 تم اكتشاف حالة طوارئ محتملة تتعلق بـ "${keyword}". يرجى الاتصال بمستشفى الطوارئ البيطري فوراً!`
+              : `🚨 Potential emergency detected related to "${keyword}". Please contact an emergency animal hospital immediately!`;
+          break;
         }
       }
 
-      // 2. Fetch full platform RAG context: Pets & Medical History
+      // 2. Fetch User & Active Pets & AI Memory Context from Atlas
+      let userDoc: UserDocument | null = null;
       let dynamicRAGContext = '';
+
+      if (userId && userId !== 'guest-anonymous' && userId !== 'current-user') {
+        try {
+          userDoc = await this.userModel.findById(userId).exec();
+        } catch {}
+      }
+
+      // User's Registered Pets Context
       try {
-        const allPets = await this.petProfileService.findAll();
-        if (allPets && allPets.length > 0) {
-          const petSummaries = allPets.map((p) => {
-            return `- Name: ${p.name}, Species: ${p.species}, Breed: ${p.breed}, Age: ${p.age}y, Allergies: ${p.allergies?.join(', ') || 'None'}`;
-          });
-          dynamicRAGContext +=
-            `\n\nUSER'S REGISTERED PETS:\n` + petSummaries.join('\n');
+        const userPets =
+          userId && userId !== 'guest-anonymous'
+            ? await this.petProfileService.findAll(userId)
+            : await this.petProfileService.findAll();
+
+        if (userPets && userPets.length > 0) {
+          const petSummaries = userPets
+            .filter((p) => !p.isArchived)
+            .map((p) => {
+              return `- Name: ${p.name}, Species: ${p.species}, Breed: ${p.breed}, Age: ${p.age}y, Allergies: ${p.allergies?.join(', ') || 'None'}, Meds: ${p.medications?.join(', ') || 'None'}`;
+            });
+          if (petSummaries.length > 0) {
+            dynamicRAGContext +=
+              `\n\nUSER'S REGISTERED PETS (ACTIVE PASSPORTS):\n` +
+              petSummaries.join('\n');
+          }
         }
       } catch {}
 
+      // Injected AI Long-term Memory
+      if (userDoc?.aiMemory) {
+        const mem = userDoc.aiMemory;
+        const memoryLines: string[] = [];
+        if (mem.dietaryRestrictions?.length) {
+          memoryLines.push(
+            `- Dietary Restrictions & Allergies: ${mem.dietaryRestrictions.join(', ')}`,
+          );
+        }
+        if (mem.preferences?.length) {
+          memoryLines.push(`- Pet Preferences: ${mem.preferences.join(', ')}`);
+        }
+        if (mem.behavioralNotes?.length) {
+          memoryLines.push(
+            `- Behavioral & Personality Notes: ${mem.behavioralNotes.join(', ')}`,
+          );
+        }
+        if (mem.healthSummary) {
+          memoryLines.push(`- Chronic Health Summary: ${mem.healthSummary}`);
+        }
+
+        if (memoryLines.length > 0) {
+          dynamicRAGContext +=
+            `\n\nAI PET LONG-TERM MEMORY (PAST CONVERSATIONS):\n` +
+            memoryLines.join('\n');
+        }
+      }
+
       const fullSystemPrompt = SYSTEM_PROMPT + dynamicRAGContext;
 
-      // 3. Try calling Google Gemini AI
-      if (this.genAI) {
+      // 3. Try calling Google Gemini AI (if not emergency)
+      if (!isEmergency && this.genAI) {
         for (const modelName of GEMINI_MODELS) {
           try {
             const model = this.genAI.getGenerativeModel({ model: modelName });
@@ -228,7 +290,7 @@ export class ChatService {
                   role: 'model',
                   parts: [
                     {
-                      text: 'Understood. I will provide helpful veterinary pet care advice.',
+                      text: 'Understood. I will provide helpful, personalized veterinary pet care advice using the pet passport memory context.',
                     },
                   ],
                 },
@@ -250,9 +312,10 @@ export class ChatService {
             }
 
             const result = await chat.sendMessage(parts);
-            const responseText = result.response.text();
-            if (responseText) {
-              return { message: responseText, emergency: false };
+            const generated = result.response.text();
+            if (generated) {
+              responseText = generated;
+              break;
             }
           } catch (err: any) {
             this.logger.warn(
@@ -263,14 +326,178 @@ export class ChatService {
         }
       }
 
-      // 4. Intelligent Rule-Based Diagnostic Response (Zero Failures)
-      return this.generateSmartDiagnosticResponse(message);
+      // 4. Rule-based diagnostic fallback if no Gemini text generated yet
+      if (!responseText) {
+        if (isEmergency) {
+          // Keep emergency message
+        } else {
+          const smartDiag = this.generateSmartDiagnosticResponse(message);
+          responseText = smartDiag.message;
+          isEmergency = smartDiag.emergency;
+        }
+      }
+
+      // 5. Persist Session & AI Memory into MongoDB Atlas
+      if (userDoc) {
+        try {
+          if (!userDoc.aiChatSessions) userDoc.aiChatSessions = [];
+          let session = userDoc.aiChatSessions.find(
+            (s) => s.sessionId === activeSessionId,
+          );
+
+          if (!session) {
+            const title =
+              message.length > 35
+                ? message.substring(0, 35) + '...'
+                : message || 'Pet Care Consultation';
+            session = {
+              sessionId: activeSessionId,
+              title,
+              petId: petProfileId || '',
+              messages: [],
+              lastActiveAt: new Date(),
+            };
+            userDoc.aiChatSessions.unshift(session);
+          }
+
+          session.messages.push({
+            role: 'user',
+            content: message,
+            timestamp: new Date(),
+            urgencyLevel: isEmergency ? 'emergency' : 'routine',
+          });
+
+          session.messages.push({
+            role: 'model',
+            content: responseText,
+            timestamp: new Date(),
+            urgencyLevel: isEmergency ? 'emergency' : 'routine',
+          });
+
+          session.lastActiveAt = new Date();
+
+          // Auto-learn pet memory from turn
+          if (!userDoc.aiMemory) {
+            userDoc.aiMemory = {
+              preferences: [],
+              dietaryRestrictions: [],
+              behavioralNotes: [],
+              healthSummary: '',
+              interactionFacts: {},
+            };
+          }
+
+          const lower = message.toLowerCase();
+          if (
+            (lower.includes('allergic to') || lower.includes('allergy')) &&
+            !userDoc.aiMemory.dietaryRestrictions.includes(message.trim())
+          ) {
+            userDoc.aiMemory.dietaryRestrictions.push(message.trim());
+          }
+          if (
+            (lower.includes('loves') || lower.includes('favorite food')) &&
+            !userDoc.aiMemory.preferences.includes(message.trim())
+          ) {
+            userDoc.aiMemory.preferences.push(message.trim());
+          }
+          if (
+            (lower.includes('afraid of') ||
+              lower.includes('scared of') ||
+              lower.includes('anxious')) &&
+            !userDoc.aiMemory.behavioralNotes.includes(message.trim())
+          ) {
+            userDoc.aiMemory.behavioralNotes.push(message.trim());
+          }
+
+          await userDoc.save();
+        } catch (saveErr: any) {
+          this.logger.warn(
+            'Failed to persist AI chat session/memory:',
+            saveErr?.message,
+          );
+        }
+      }
+
+      return {
+        message: responseText,
+        emergency: isEmergency,
+        sessionId: activeSessionId,
+        memorySnapshot: userDoc?.aiMemory,
+      };
     } catch (err: any) {
       return {
         message:
           '🐾 I am here to help! Please tell me about your pet’s symptoms, age, and breed.',
         emergency: false,
+        sessionId: activeSessionId,
       };
+    }
+  }
+
+  async getUserSessions(userId: string) {
+    if (!userId || userId === 'guest-anonymous') return [];
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      if (!user || !user.aiChatSessions) return [];
+      return user.aiChatSessions.sort(
+        (a, b) =>
+          new Date(b.lastActiveAt).getTime() -
+          new Date(a.lastActiveAt).getTime(),
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async getSessionMessages(userId: string, sessionId: string) {
+    if (!userId || userId === 'guest-anonymous') return null;
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      const session = user?.aiChatSessions?.find(
+        (s) => s.sessionId === sessionId,
+      );
+      return session || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async deleteSession(userId: string, sessionId: string) {
+    if (!userId || userId === 'guest-anonymous') return { success: false };
+    try {
+      await this.userModel.updateOne(
+        { _id: userId },
+        { $pull: { aiChatSessions: { sessionId } } },
+      );
+      return { success: true };
+    } catch {
+      return { success: false };
+    }
+  }
+
+  async getPetMemory(userId: string) {
+    if (!userId || userId === 'guest-anonymous') return null;
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      return user?.aiMemory || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async updatePetMemory(userId: string, memoryUpdate: any) {
+    if (!userId || userId === 'guest-anonymous') return null;
+    try {
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) return null;
+      user.aiMemory = {
+        ...user.aiMemory,
+        ...memoryUpdate,
+      };
+      await user.save();
+      return user.aiMemory;
+    } catch {
+      return null;
     }
   }
 

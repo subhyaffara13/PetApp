@@ -8,6 +8,7 @@ import {
   GroomingServiceItemDocument,
 } from '../schemas/grooming.schema';
 import { ReceiptsService } from '../receipts/receipts.service';
+import { toSafeString, isSafeObjectId, toSafeObjectId } from '../utils/sanitize';
 
 const INITIAL_GROOMING_SERVICES = [
   {
@@ -120,8 +121,10 @@ export class GroomingService {
     groomerId = 'default-groomer',
     date?: string,
   ): Promise<GroomingAppointment[]> {
+    const safeGroomerId = toSafeString(groomerId);
     const filter: any = {};
-    if (date) filter.appointmentDate = date;
+    if (safeGroomerId) filter.groomerId = safeGroomerId;
+    if (date) filter.appointmentDate = toSafeString(date);
 
     try {
       const appointments = await this.appointmentModel
@@ -138,13 +141,14 @@ export class GroomingService {
    * Retrieves appointments for a specific user
    */
   async getUserAppointments(userId: string): Promise<GroomingAppointment[]> {
+    const safeUserId = toSafeString(userId);
     try {
       return await this.appointmentModel
-        .find({ userId })
+        .find({ userId: safeUserId })
         .sort({ createdAt: -1 })
         .exec();
     } catch {
-      return this.inMemoryAppointments.filter((a) => a.userId === userId);
+      return this.inMemoryAppointments.filter((a) => a.userId === safeUserId);
     }
   }
 
@@ -160,13 +164,13 @@ export class GroomingService {
 
     const payload = {
       ...dto,
-      groomerId: dto.groomerId || 'default-groomer',
+      groomerId: toSafeString(dto.groomerId) || 'default-groomer',
       totalPrice,
-      status: dto.status || 'confirmed',
+      status: toSafeString(dto.status) || 'confirmed',
       appointmentDate:
-        dto.appointmentDate || new Date().toISOString().split('T')[0],
-      timeSlot: dto.timeSlot || '10:00 AM',
-      coatConditionNotes: dto.coatConditionNotes || '',
+        toSafeString(dto.appointmentDate) || new Date().toISOString().split('T')[0],
+      timeSlot: toSafeString(dto.timeSlot) || '10:00 AM',
+      coatConditionNotes: toSafeString(dto.coatConditionNotes) || '',
       paymentStatus: 'pending',
     };
 
@@ -192,19 +196,22 @@ export class GroomingService {
     coatConditionNotes?: string,
     afterPhotoUrl?: string,
   ): Promise<GroomingAppointment> {
-    const updates: any = { status };
+    const safeId = toSafeString(id);
+    const updates: any = { status: toSafeString(status) };
     if (coatConditionNotes !== undefined)
-      updates.coatConditionNotes = coatConditionNotes;
-    if (afterPhotoUrl) updates.afterPhotoUrl = afterPhotoUrl;
+      updates.coatConditionNotes = toSafeString(coatConditionNotes);
+    if (afterPhotoUrl) updates.afterPhotoUrl = toSafeString(afterPhotoUrl);
 
-    try {
-      const doc = await this.appointmentModel
-        .findByIdAndUpdate(id, { $set: updates }, { new: true })
-        .exec();
-      if (doc) return doc;
-    } catch {}
+    if (isSafeObjectId(safeId)) {
+      try {
+        const doc = await this.appointmentModel
+          .findByIdAndUpdate(toSafeObjectId(safeId), { $set: updates }, { new: true })
+          .exec();
+        if (doc) return doc;
+      } catch {}
+    }
 
-    const idx = this.inMemoryAppointments.findIndex((a) => a._id === id);
+    const idx = this.inMemoryAppointments.findIndex((a) => a._id === safeId);
     if (idx !== -1) {
       this.inMemoryAppointments[idx] = {
         ...this.inMemoryAppointments[idx],
@@ -220,13 +227,16 @@ export class GroomingService {
    * Issues an official itemized receipt for a completed grooming session
    */
   async issueAppointmentInvoice(id: string): Promise<any> {
+    const safeId = toSafeString(id);
     let appt: any;
-    try {
-      appt = await this.appointmentModel.findById(id).exec();
-    } catch {}
+    if (isSafeObjectId(safeId)) {
+      try {
+        appt = await this.appointmentModel.findById(toSafeObjectId(safeId)).exec();
+      } catch {}
+    }
 
     if (!appt) {
-      appt = this.inMemoryAppointments.find((a) => a._id === id);
+      appt = this.inMemoryAppointments.find((a) => a._id === safeId);
     }
 
     if (!appt) {

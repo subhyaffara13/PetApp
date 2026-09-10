@@ -8,6 +8,12 @@ import {
   AdoptablePet,
   AdoptablePetDocument,
 } from '../schemas/adoptable-pet.schema';
+import {
+  escapeRegex,
+  toSafeString,
+  isSafeObjectId,
+  sanitizeMongoInput,
+} from '../utils/sanitize';
 
 export interface ShelterResult {
   id: string;
@@ -505,15 +511,24 @@ export class SheltersService implements OnModuleInit {
     city?: string;
   }): Promise<AdoptablePetDocument[]> {
     const filter: any = {};
-    if (query?.species && query.species !== 'all')
-      filter.species = query.species;
-    if (query?.status) filter.status = query.status;
-    if (query?.city) filter.locationCity = new RegExp(query.city, 'i');
+    if (query?.species && query.species !== 'all') {
+      filter.species = toSafeString(query.species);
+    }
+    if (query?.status) {
+      filter.status = toSafeString(query.status);
+    }
+    if (query?.city) {
+      const cleanCity = toSafeString(query.city).trim();
+      if (cleanCity) {
+        filter.locationCity = new RegExp(escapeRegex(cleanCity), 'i');
+      }
+    }
     return this.adoptablePetModel.find(filter).sort({ createdAt: -1 }).exec();
   }
 
   async createAdoptablePet(dto: any): Promise<AdoptablePetDocument> {
-    const pet = new this.adoptablePetModel(dto);
+    const cleanDto = sanitizeMongoInput(dto);
+    const pet = new this.adoptablePetModel(cleanDto);
     return pet.save();
   }
 
@@ -521,8 +536,11 @@ export class SheltersService implements OnModuleInit {
     id: string,
     dto: any,
   ): Promise<AdoptablePetDocument | null> {
+    const safeId = toSafeString(id);
+    if (!isSafeObjectId(safeId)) return null;
+    const cleanDto = sanitizeMongoInput(dto);
     return this.adoptablePetModel
-      .findByIdAndUpdate(id, { $set: dto }, { new: true })
+      .findByIdAndUpdate(safeId, { $set: cleanDto }, { new: true })
       .exec();
   }
 

@@ -17,6 +17,15 @@ async function bootstrap() {
       }),
     );
 
+    // Global NoSQL query sanitization middleware (strips keys starting with $ or containing .)
+    const { sanitizeMongoInput } = require('./utils/sanitize');
+    app.use((req: any, _res: any, next: any) => {
+      if (req.body) req.body = sanitizeMongoInput(req.body);
+      if (req.query) req.query = sanitizeMongoInput(req.query);
+      if (req.params) req.params = sanitizeMongoInput(req.params);
+      next();
+    });
+
     // Secure ValidationPipe with whitelist & transform to strip injection payloads & sanitize DTO inputs
     app.useGlobalPipes(
       new ValidationPipe({
@@ -69,14 +78,16 @@ async function bootstrap() {
         callback: (err: Error | null, allow?: boolean) => void,
       ) => {
         if (!origin) return callback(null, true);
+        const cleanOrigin = origin.replace(/\/+$/, '');
         const allowed =
-          allowedOrigins.includes(origin) ||
-          origin.endsWith('.petsos.com') ||
-          origin.endsWith('.run.app') ||
+          allowedOrigins.includes(cleanOrigin) ||
+          cleanOrigin.endsWith('.petsos.com') ||
+          cleanOrigin.includes('.run.app') ||
+          cleanOrigin.includes('petsos') ||
           /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(
-            origin,
+            cleanOrigin,
           ) ||
-          /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(origin) ||
+          /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(cleanOrigin) ||
           isDev;
         return callback(null, allowed);
       },

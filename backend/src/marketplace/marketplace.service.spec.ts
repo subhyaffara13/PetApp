@@ -19,9 +19,19 @@ import { PetShop } from '../schemas/pet-shop.schema';
 import { Product } from '../schemas/product.schema';
 import { Order } from '../schemas/order.schema';
 import { ReceiptsService } from '../receipts/receipts.service';
+import { User } from '../schemas/user.schema';
 
 describe('MarketplaceService', () => {
   let service: MarketplaceService;
+
+  const mockUserModel: any = {
+    findById: jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue(null),
+    }),
+    findByIdAndUpdate: jest.fn().mockReturnValue({
+      exec: jest.fn().mockResolvedValue(null),
+    }),
+  };
 
   const mockShopModel: any = {
     countDocuments: jest.fn().mockResolvedValue(1),
@@ -131,6 +141,7 @@ describe('MarketplaceService', () => {
         { provide: getModelToken(PetShop.name), useValue: mockShopModel },
         { provide: getModelToken(Product.name), useValue: mockProductModel },
         { provide: getModelToken(Order.name), useValue: mockOrderModel },
+        { provide: getModelToken(User.name), useValue: mockUserModel },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: ReceiptsService, useValue: mockReceiptsService },
