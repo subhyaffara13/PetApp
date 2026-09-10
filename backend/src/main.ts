@@ -20,10 +20,12 @@ async function bootstrap() {
     // Global NoSQL query sanitization middleware (strips keys starting with $ or containing .)
     const { sanitizeMongoInput, sanitizeObjectInPlace } = require('./utils/sanitize');
     app.use((req: any, _res: any, next: any) => {
-      if (req.body) req.body = sanitizeMongoInput(req.body);
-      // req.query is a read-only getter in Express 5 / NestJS 11+ — sanitize in-place
-      if (req.query) sanitizeObjectInPlace(req.query);
-      if (req.params) sanitizeObjectInPlace(req.params);
+      try {
+        if (req.body) req.body = sanitizeMongoInput(req.body);
+        // req.query is a read-only getter in Express 5 / NestJS 11+ — sanitize in-place
+        if (req.query) sanitizeObjectInPlace(req.query);
+        if (req.params) sanitizeObjectInPlace(req.params);
+      } catch {}
       next();
     });
 
