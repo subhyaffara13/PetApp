@@ -14,10 +14,12 @@ import {
 } from '../schemas/co-parent-request.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { EmailService } from '../email/email.service';
+import { randomInt } from 'crypto';
 import {
   escapeRegex,
   toSafeString,
   isSafeObjectId,
+  toSafeObjectId,
   sanitizeMongoInput,
 } from '../utils/sanitize';
 
@@ -28,11 +30,11 @@ function generateUniquePetId(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let randomPart1 = '';
   for (let i = 0; i < 4; i++) {
-    randomPart1 += Math.floor(Math.random() * 10).toString();
+    randomPart1 += randomInt(0, 10).toString();
   }
   let randomPart2 = '';
   for (let i = 0; i < 2; i++) {
-    randomPart2 += chars.charAt(Math.floor(Math.random() * chars.length));
+    randomPart2 += chars.charAt(randomInt(0, chars.length));
   }
   return `PET-${randomPart1}-${randomPart2}`;
 }
@@ -313,11 +315,37 @@ export class PetProfileService {
     const safeId = toSafeString(id);
     const existing = await this.findOne(safeId, userId);
     const cleanData = sanitizeMongoInput(data);
+    const allowedKeys = [
+      'name',
+      'species',
+      'breed',
+      'birthDate',
+      'age',
+      'weightKg',
+      'gender',
+      'avatarUrl',
+      'microchipNumber',
+      'rabiesVaccineDate',
+      'bloodType',
+      'medicalHistory',
+      'allergies',
+      'medications',
+      'notes',
+      'isPublic',
+      'coParents',
+      'emergencyContacts',
+    ];
+    const updateDoc: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      if (cleanData && cleanData[key] !== undefined) {
+        updateDoc[key] = cleanData[key];
+      }
+    }
 
     try {
       if (isSafeObjectId(safeId)) {
         const updated = await this.petProfileModel
-          .findByIdAndUpdate(safeId, { $set: cleanData }, { new: true })
+          .findByIdAndUpdate(toSafeObjectId(safeId), { $set: updateDoc }, { new: true })
           .exec();
         if (updated) return updated;
       }
@@ -327,7 +355,7 @@ export class PetProfileService {
       (p) => p._id === safeId || p.petId === safeId,
     );
     if (idx === -1) throw new NotFoundException(`Pet profile ${safeId} not found`);
-    this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], ...cleanData };
+    this.inMemoryStore[idx] = { ...this.inMemoryStore[idx], ...updateDoc };
     return this.inMemoryStore[idx];
   }
 
@@ -446,9 +474,13 @@ export class PetProfileService {
     }
 
     // 2. Lookup recipient
+    const safeToUserId = toSafeString(toUserId);
+    if (!isSafeObjectId(safeToUserId)) {
+      throw new NotFoundException('Selected user not found.');
+    }
     let targetUser: any;
     try {
-      targetUser = await this.userModel.findById(toUserId).exec();
+      targetUser = await this.userModel.findById(toSafeObjectId(safeToUserId)).exec();
     } catch {}
 
     if (!targetUser) {

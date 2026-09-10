@@ -18,6 +18,7 @@ import {
 } from './schemas/store-product.schema';
 import { AdminClaim, AdminClaimDocument } from '../admin/admin.schema';
 import { toSafeString, isSafeObjectId } from '../utils/sanitize';
+import { randomInt } from 'crypto';
 
 @Injectable()
 export class DeliveryService {
@@ -327,7 +328,7 @@ export class DeliveryService {
     message: string;
   }): Promise<any> {
     return {
-      ticketId: `TICKET-${Math.floor(1000 + Math.random() * 9000)}`,
+      ticketId: `TICKET-${randomInt(1000, 10000)}`,
       status: 'received',
       receivedAt: new Date(),
       ...dto,

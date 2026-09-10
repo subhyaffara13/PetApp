@@ -275,9 +275,11 @@ export class AdminService {
     if (!isSafeObjectId(safeId)) {
       throw new NotFoundException('Invalid claim ID format');
     }
+    const safeStatus: 'approved' | 'rejected' =
+      status === 'approved' ? 'approved' : 'rejected';
     const claim = await this.claimModel.findByIdAndUpdate(
       toSafeObjectId(safeId),
-      { status },
+      { $set: { status: safeStatus } },
       { new: true },
     );
     if (!claim) throw new NotFoundException('Claim not found');

@@ -7,6 +7,7 @@ import {
   ConversationThread,
   ConversationThreadDocument,
 } from '../schemas/community.schema';
+import { toSafeString } from '../utils/sanitize';
 
 @Injectable()
 export class CommunityDmService {
@@ -139,10 +140,12 @@ export class CommunityDmService {
   }
 
   async getConversationsList(userId: string): Promise<any[]> {
+    const safeUserId = toSafeString(userId);
+    if (!safeUserId) return [];
     // 1. Fast O(1) fetch from ConversationThread summaries
     try {
       const threads = await this.threadModel
-        .find({ participants: userId })
+        .find({ participants: safeUserId })
         .sort({ updatedAt: -1 })
         .limit(40)
         .lean()
@@ -150,12 +153,12 @@ export class CommunityDmService {
 
       if (threads && threads.length > 0) {
         return threads.map((t) => {
-          const partnerId = t.participants.find((p) => p !== userId) || userId;
+          const partnerId = t.participants.find((p) => p !== safeUserId) || safeUserId;
           const partnerMeta = t.participantMeta?.[partnerId] || {
             name: 'Pet Parent',
             avatar: '',
           };
-          const unreadCount = t.unreadCounts?.[userId] || 0;
+          const unreadCount = t.unreadCounts?.[safeUserId] || 0;
 
           return {
             conversationId: t.conversationId,
@@ -211,16 +214,19 @@ export class CommunityDmService {
     userId: string,
     partnerId: string,
   ): Promise<{ success: boolean }> {
-    const conversationId = this.getConversationId(userId, partnerId);
+    const safeUserId = toSafeString(userId);
+    const safePartnerId = toSafeString(partnerId);
+    if (!safeUserId || !safePartnerId) return { success: false };
+    const conversationId = this.getConversationId(safeUserId, safePartnerId);
     try {
       await Promise.all([
         this.dmModel.updateMany(
-          { conversationId, recipientId: userId, isRead: false },
+          { conversationId, recipientId: safeUserId, isRead: false },
           { $set: { isRead: true } },
         ),
         this.threadModel.updateOne(
           { conversationId },
-          { $set: { [`unreadCounts.${userId}`]: 0 } },
+          { $set: { [`unreadCounts.${safeUserId}`]: 0 } },
         ),
       ]);
     } catch (err) {

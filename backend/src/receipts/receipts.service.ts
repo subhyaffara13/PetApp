@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { randomInt } from 'crypto';
 import { Receipt, ReceiptDocument } from '../schemas/receipt.schema';
 import { EmailService } from '../email/email.service';
 
@@ -18,7 +19,7 @@ export class ReceiptsService {
    */
   async createReceipt(data: Partial<Receipt>): Promise<Receipt> {
     const year = new Date().getFullYear();
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const randomSuffix = randomInt(10000, 100000);
     const receiptNumber = data.receiptNumber || `REC-${year}-${randomSuffix}`;
 
     const items = data.items || [];

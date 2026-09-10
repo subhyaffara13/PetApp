@@ -16,8 +16,6 @@ export interface SavedCard {
   holderName: string;
 }
 
-const SAVED_CARDS_KEY = 'petsos_saved_cards_v1';
-
 export const OwnerProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { user, updateUserProfile } = useAuth();
   const [name, setName] = useState(user?.name || '');
@@ -29,13 +27,16 @@ export const OwnerProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClos
 
   const { image, isUploading, handleFileChange, clearImage } = useImageUpload('avatars');
 
-  const [savedCards, setSavedCards] = useState<SavedCard[]>(() => {
-    try {
-      const saved = localStorage.getItem(SAVED_CARDS_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([
+    {
+      id: 'card_default_1',
+      brand: 'visa',
+      last4: '4242',
+      expMonth: '12',
+      expYear: '28',
+      holderName: user?.name || 'Pet Parent',
+    },
+  ]);
 
   const [showAddCard, setShowAddCard] = useState(false);
   const [newCardNumber, setNewCardNumber] = useState('');
@@ -52,31 +53,11 @@ export const OwnerProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClos
     if (user?.email) setEmail(user.email);
   }, [user]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('petsos_owner_profile_data');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.name) setName(parsed.name);
-        if (parsed.email) setEmail(parsed.email);
-        if (parsed.phone) setPhone(parsed.phone);
-        if (parsed.city) setCity(parsed.city);
-        if (parsed.preferredVet) setPreferredVet(parsed.preferredVet);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(SAVED_CARDS_KEY, JSON.stringify(savedCards));
-  }, [savedCards]);
-
   if (!isOpen) return null;
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedData = { name, email, phone, city, preferredVet };
-    localStorage.setItem('petsos_owner_profile_data', JSON.stringify(updatedData));
-    await updateUserProfile({ name });
+    await updateUserProfile({ name, email } as any);
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);

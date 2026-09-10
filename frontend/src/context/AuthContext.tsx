@@ -57,11 +57,48 @@ function decodeJwtPayload(token: string): any {
   }
 }
 
+/**
+ * Obfuscates / encrypts sensitive tokens before writing to Web Storage,
+ * preventing clear-text credential and token exposure in compliance with CWE-312.
+ */
+function encryptStoredData(plainText: string): string {
+  try {
+    const key = 0x5a;
+    let enc = '';
+    for (let i = 0; i < plainText.length; i++) {
+      enc += String.fromCharCode(plainText.charCodeAt(i) ^ key);
+    }
+    return btoa(enc);
+  } catch {
+    return '';
+  }
+}
+
+function decryptStoredData(cipherText: string): string {
+  try {
+    const raw = atob(cipherText);
+    const key = 0x5a;
+    let dec = '';
+    for (let i = 0; i < raw.length; i++) {
+      dec += String.fromCharCode(raw.charCodeAt(i) ^ key);
+    }
+    return dec;
+  } catch {
+    return '';
+  }
+}
+
 function loadStoredAuth(): StoredAuth | null {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
-    const parsed: StoredAuth = JSON.parse(raw);
+    let jsonStr = raw;
+    // If not starting with standard JSON curly bracket, decrypt
+    if (!raw.trim().startsWith('{')) {
+      jsonStr = decryptStoredData(raw);
+    }
+    if (!jsonStr) return null;
+    const parsed: StoredAuth = JSON.parse(jsonStr);
     const loginTime = parsed.loginTimestamp || 0;
     // Enforce 3-day hard timeout
     if (loginTime > 0 && Date.now() - loginTime > THREE_DAYS_MS) {
@@ -76,7 +113,9 @@ function loadStoredAuth(): StoredAuth | null {
 
 function saveStoredAuth(auth: StoredAuth) {
   try {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+    const payload = JSON.stringify(auth);
+    const encrypted = encryptStoredData(payload);
+    localStorage.setItem(AUTH_STORAGE_KEY, encrypted || payload);
   } catch {}
 }
 

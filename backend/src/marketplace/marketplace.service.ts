@@ -17,7 +17,7 @@ import { ReceiptsService } from '../receipts/receipts.service';
 
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { toSafeString, isSafeObjectId, sanitizeMongoInput } from '../utils/sanitize';
+import { toSafeString, isSafeObjectId, toSafeObjectId, sanitizeMongoInput } from '../utils/sanitize';
 
 const SERVICE_FEE_RATE = 0.025; // 2.5%
 
@@ -70,8 +70,27 @@ export class MarketplaceService implements OnModuleInit {
     const safeProductId = toSafeString(productId);
     if (!isSafeObjectId(safeProductId)) return null;
     const cleanDto = sanitizeMongoInput(dto);
+    const allowedKeys = [
+      'name',
+      'price',
+      'description',
+      'category',
+      'imageUrl',
+      'stock',
+      'rating',
+      'storeId',
+      'currency',
+      'badges',
+      'inStock',
+    ];
+    const updateDoc: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      if (cleanDto && cleanDto[key] !== undefined) {
+        updateDoc[key] = cleanDto[key];
+      }
+    }
     return this.productModel
-      .findByIdAndUpdate(safeProductId, { $set: cleanDto }, { new: true })
+      .findByIdAndUpdate(toSafeObjectId(safeProductId), { $set: updateDoc }, { new: true })
       .exec();
   }
 
@@ -534,19 +553,23 @@ export class MarketplaceService implements OnModuleInit {
    * Retrieves past purchase history for the user from User.pastPurchases in Atlas
    */
   async getMyPurchases(customerId?: string): Promise<any[]> {
-    if (!customerId || customerId === 'guest-anonymous') return [];
+    const safeCustomerId = toSafeString(customerId);
+    if (!safeCustomerId || safeCustomerId === 'guest-anonymous') return [];
     try {
-      const user = await this.userModel.findById(customerId).exec();
-      if (user && user.pastPurchases && user.pastPurchases.length > 0) {
-        return user.pastPurchases;
+      if (isSafeObjectId(safeCustomerId)) {
+        const user = await this.userModel.findById(toSafeObjectId(safeCustomerId)).exec();
+        if (user && user.pastPurchases && user.pastPurchases.length > 0) {
+          return user.pastPurchases;
+        }
       }
     } catch {}
-    return this.getOrders(customerId);
+    return this.getOrders(safeCustomerId);
   }
 
   async getOrders(customerId?: string): Promise<any[]> {
+    const safeCustomerId = toSafeString(customerId);
     try {
-      const query = customerId ? { customerId } : {};
+      const query = safeCustomerId ? { customerId: safeCustomerId } : {};
       const orders = await this.orderModel
         .find(query)
         .sort({ createdAt: -1 })
@@ -556,8 +579,8 @@ export class MarketplaceService implements OnModuleInit {
     } catch (err) {
       // Fallback
     }
-    const filtered = customerId
-      ? this.inMemoryOrders.filter((o) => o.customerId === customerId)
+    const filtered = safeCustomerId
+      ? this.inMemoryOrders.filter((o) => o.customerId === safeCustomerId)
       : this.inMemoryOrders;
     return filtered;
   }

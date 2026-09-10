@@ -12,6 +12,7 @@ import {
   escapeRegex,
   toSafeString,
   isSafeObjectId,
+  toSafeObjectId,
   sanitizeMongoInput,
 } from '../utils/sanitize';
 
@@ -539,8 +540,34 @@ export class SheltersService implements OnModuleInit {
     const safeId = toSafeString(id);
     if (!isSafeObjectId(safeId)) return null;
     const cleanDto = sanitizeMongoInput(dto);
+    const allowedKeys = [
+      'name',
+      'species',
+      'breed',
+      'age',
+      'gender',
+      'size',
+      'description',
+      'photos',
+      'status',
+      'medicalNeeds',
+      'vaccinated',
+      'spayedNeutered',
+      'goodWithDogs',
+      'goodWithCats',
+      'goodWithKids',
+      'shelterId',
+      'contactEmail',
+      'contactPhone',
+    ];
+    const updateDoc: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      if (cleanDto && cleanDto[key] !== undefined) {
+        updateDoc[key] = cleanDto[key];
+      }
+    }
     return this.adoptablePetModel
-      .findByIdAndUpdate(safeId, { $set: cleanDto }, { new: true })
+      .findByIdAndUpdate(toSafeObjectId(safeId), { $set: updateDoc }, { new: true })
       .exec();
   }
 

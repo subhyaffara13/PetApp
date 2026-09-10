@@ -17,7 +17,13 @@ import {
 } from '../schemas/community.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 import { PetProfile, PetProfileDocument } from '../schemas/pet-profile.schema';
-import { escapeRegex, toSafeString, isSafeObjectId } from '../utils/sanitize';
+import {
+  escapeRegex,
+  toSafeString,
+  isSafeObjectId,
+  toSafeObjectId,
+  sanitizeMongoInput,
+} from '../utils/sanitize';
 import { CommunityDmService } from './community-dm.service';
 
 export interface PublicPetSummary {
@@ -146,22 +152,24 @@ export class CommunityService implements OnModuleInit {
           .exec();
       }
 
+      const safeCategory = toSafeString(categoryFilter).trim();
+
       // If user requested "following" only
       if (mode === 'following') {
         if (!userDoc || !userDoc.following || userDoc.following.length === 0) {
           return [];
         }
         const query: any = { authorId: { $in: userDoc.following } };
-        if (categoryFilter && categoryFilter !== 'all') {
-          query.category = categoryFilter;
+        if (safeCategory && safeCategory !== 'all') {
+          query.category = safeCategory;
         }
         return await this.postModel.find(query).sort({ createdAt: -1 }).exec();
       }
 
       // --- "FOR YOU" ALGORITHMIC FEED ---
       const baseQuery: any = {};
-      if (categoryFilter && categoryFilter !== 'all') {
-        baseQuery.category = categoryFilter;
+      if (safeCategory && safeCategory !== 'all') {
+        baseQuery.category = safeCategory;
       }
       if (userDoc?.blockedUserIds?.length) {
         baseQuery.authorId = { $nin: userDoc.blockedUserIds };
@@ -254,10 +262,12 @@ export class CommunityService implements OnModuleInit {
     const saved = await post.save();
 
     // Increment user's liked category preferences if available
-    if (dto.authorId && dto.category) {
+    const authorId = toSafeString(dto.authorId);
+    const category = toSafeString(dto.category);
+    if (isSafeObjectId(authorId) && category) {
       await this.userModel
-        .findByIdAndUpdate(dto.authorId, {
-          $addToSet: { likedCategories: dto.category },
+        .findByIdAndUpdate(toSafeObjectId(authorId), {
+          $addToSet: { likedCategories: category },
         })
         .exec();
     }
@@ -265,34 +275,43 @@ export class CommunityService implements OnModuleInit {
   }
 
   async deletePost(id: string): Promise<any> {
-    return this.postModel.findByIdAndDelete(id).exec();
+    const safeId = toSafeString(id);
+    if (!isSafeObjectId(safeId)) return null;
+    return this.postModel.findByIdAndDelete(toSafeObjectId(safeId)).exec();
   }
 
   async toggleLike(postId: string, userId: string): Promise<any> {
-    const post = await this.postModel.findById(postId).exec();
+    const safePostId = toSafeString(postId);
+    const safeUserId = toSafeString(userId);
+    if (!isSafeObjectId(safePostId)) throw new NotFoundException('Post not found');
+    const post = await this.postModel.findById(toSafeObjectId(safePostId)).exec();
     if (!post) throw new NotFoundException('Post not found');
 
-    const alreadyLiked = post.likedBy?.includes(userId);
+    const alreadyLiked = post.likedBy?.includes(safeUserId);
     if (alreadyLiked) {
-      post.likedBy = post.likedBy.filter((id) => id !== userId);
+      post.likedBy = post.likedBy.filter((id) => id !== safeUserId);
       post.likesCount = Math.max(0, post.likesCount - 1);
     } else {
-      post.likedBy = [...(post.likedBy || []), userId];
+      post.likedBy = [...(post.likedBy || []), safeUserId];
       post.likesCount = (post.likesCount || 0) + 1;
     }
 
     // Sync likedPostIds and likedCategories to user profile in Atlas
-    if (userId && userId !== 'guest-anonymous' && userId !== 'current-user') {
+    if (
+      isSafeObjectId(safeUserId) &&
+      safeUserId !== 'guest-anonymous' &&
+      safeUserId !== 'current-user'
+    ) {
       try {
         const userUpdate: any = alreadyLiked
-          ? { $pull: { likedPostIds: postId } }
+          ? { $pull: { likedPostIds: safePostId } }
           : {
               $addToSet: {
-                likedPostIds: postId,
+                likedPostIds: safePostId,
                 likedCategories: post.category,
               },
             };
-        await this.userModel.findByIdAndUpdate(userId, userUpdate).exec();
+        await this.userModel.findByIdAndUpdate(toSafeObjectId(safeUserId), userUpdate).exec();
       } catch (err) {
         this.logger.warn('User like sync note:', err);
       }
@@ -552,11 +571,32 @@ export class CommunityService implements OnModuleInit {
       dto.handle = avail.handle;
     }
 
+    const safeUserId = toSafeString(userId);
+    if (!isSafeObjectId(safeUserId)) throw new NotFoundException('User not found');
+
+    const cleanDto = sanitizeMongoInput(dto);
+    const allowedKeys = [
+      'name',
+      'handle',
+      'bio',
+      'avatar',
+      'coverPhoto',
+      'petBreeds',
+      'city',
+      'country',
+    ];
+    const updateDoc: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      if (cleanDto && cleanDto[key] !== undefined) {
+        updateDoc[key] = cleanDto[key];
+      }
+    }
+
     const updated = await this.userModel
-      .findByIdAndUpdate(userId, { $set: dto }, { new: true })
+      .findByIdAndUpdate(toSafeObjectId(safeUserId), { $set: updateDoc }, { new: true })
       .exec();
     if (!updated) throw new NotFoundException('User not found');
-    return this.getUserProfile(userId);
+    return this.getUserProfile(safeUserId);
   }
 
   // --- SEARCH USERS ---

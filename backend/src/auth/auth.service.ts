@@ -162,7 +162,7 @@ export class AuthService implements OnModuleInit {
     });
     if (!user) {
       const dummyHash = await bcrypt.hash(
-        `oauth-${Date.now()}-${Math.random()}`,
+        `oauth-${Date.now()}-${crypto.randomBytes(16).toString('hex')}`,
         10,
       );
       user = await this.userModel.create({

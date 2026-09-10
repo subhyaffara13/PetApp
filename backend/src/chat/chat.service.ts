@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { randomBytes } from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import { PetProfileService } from '../pet-profile/pet-profile.service';
@@ -190,7 +191,7 @@ export class ChatService {
   }> {
     const activeSessionId =
       sessionId ||
-      `sess-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      `sess-${Date.now()}-${randomBytes(4).toString('hex')}`;
     let responseText = '';
     let isEmergency = false;
 

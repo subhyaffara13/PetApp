@@ -30,8 +30,10 @@
   "overrides": {
     "tar": "7.5.22",
     "uuid": "11.1.1",
-    "postcss": "8.5.3",
-    "@xmldom/xmldom": "0.9.12"
+    "postcss": "8.5.28",
+    "@xmldom/xmldom": "0.9.12",
+    "image-size": "1.2.1",
+    "decode-uri-component": "0.5.0"
   },
   "private": true
 }
