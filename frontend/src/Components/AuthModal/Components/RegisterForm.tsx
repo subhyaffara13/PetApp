@@ -108,6 +108,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             <CheckCircle2 size={18} color="#10b981" style={{ marginRight: '10px' }} />
           )}
         </div>
+        {confirmPassword.length > 0 && !isMatching && (
+          <span style={{ color: '#fca5a5', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
+            Passwords do not match
+          </span>
+        )}
       </div>
 
       <button

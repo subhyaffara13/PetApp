@@ -154,15 +154,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <span>Always 100% free for pet owners. Takes 15 seconds.</span>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary protected-gate__btn"
-          onClick={() => openAuthModal()}
-          id="protected-gate-sign-in-btn"
-        >
-          <span>Create Free Account / Sign In</span>
-          <ArrowRight size={18} />
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <button
+            type="button"
+            className="btn btn-primary protected-gate__btn"
+            onClick={() => openAuthModal(undefined, 'register')}
+            id="protected-gate-register-btn"
+          >
+            <span>Create Free Account</span>
+            <ArrowRight size={18} />
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => openAuthModal(undefined, 'login')}
+            id="protected-gate-sign-in-btn"
+            style={{ color: '#94a3b8', fontSize: '0.88rem' }}
+          >
+            Already have an account? <strong style={{ color: '#f8fafc', marginLeft: '4px' }}>Sign In</strong>
+          </button>
+        </div>
       </div>
     </div>
   );

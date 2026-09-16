@@ -9,3 +9,7 @@ export const API_URL: string =
 export const SOCKET_URL: string =
   import.meta.env.VITE_SOCKET_URL || (isCloudRun ? CLOUD_RUN_BACKEND : '');
 
+export const GOOGLE_CLIENT_ID: string =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '837846168269-2vcne5mpb3rgilrrmaqj2cgivucp94ps.apps.googleusercontent.com';
+

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { API_URL } from '../../config/api';
+import { API_URL, GOOGLE_CLIENT_ID } from '../../config/api';
 import { LoginForm } from './Components/LoginForm';
 import { RegisterForm } from './Components/RegisterForm';
 import { ForgotResetForm } from './Components/ForgotResetForm';
@@ -12,10 +12,10 @@ import './AuthModal.css';
 type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
 
 export const AuthModal = () => {
-  const { showAuthModal, openAuthModal, closeAuthModal, login, register, oauthLogin, redirectPath } = useAuth();
+  const { showAuthModal, authModalInitialMode, openAuthModal, closeAuthModal, login, register, oauthLogin, redirectPath } = useAuth();
   const { showToast } = useToast();
 
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [mode, setMode] = useState<AuthMode>(authModalInitialMode || 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,7 +25,16 @@ export const AuthModal = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const googleClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
+  const googleClientId = GOOGLE_CLIENT_ID;
+
+  // Sync mode when modal is triggered with a specific initialMode
+  useEffect(() => {
+    if (showAuthModal && authModalInitialMode) {
+      setMode(authModalInitialMode);
+      setError(null);
+      setSuccessMessage(null);
+    }
+  }, [showAuthModal, authModalInitialMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,8 +57,10 @@ export const AuthModal = () => {
   const isMatching = confirmPassword.length > 0 && password === confirmPassword;
 
   const handleGoogleSignIn = () => {
+    setError(null);
+    setSuccessMessage(null);
     if (!googleClientId) {
-      setError('Google Client ID is not configured in .env');
+      setError('Google Client ID is not configured.');
       return;
     }
     if ((window as any).google?.accounts?.oauth2) {
@@ -66,20 +77,29 @@ export const AuthModal = () => {
                 });
                 const { name: gName, email: gEmail, picture: gAvatar } = res.data;
                 await oauthLogin(gName || 'Google User', gEmail, gAvatar || '', 'customer');
-                closeAuthModal();
-                showToast(`Welcome back, ${gName || 'Pet Parent'}!`, 'success', '👋 Signed In');
-              } catch {
-                setError('Failed to authenticate Google user.');
+                setSuccessMessage(`Google Authentication Successful! Welcome, ${gName || 'Pet Parent'}.`);
+                setTimeout(() => {
+                  closeAuthModal();
+                  showToast(`Welcome back, ${gName || 'Pet Parent'}!`, 'success', '👋 Signed In');
+                }, 1200);
+              } catch (oauthErr: any) {
+                const rawMsg = oauthErr?.response?.data?.message || oauthErr?.message || 'Failed to authenticate Google user.';
+                const msg = Array.isArray(rawMsg) ? rawMsg.join('. ') : rawMsg;
+                setError(`Google Sign-In Failed: ${msg}`);
               } finally {
                 setIsLoading(false);
               }
+            } else if (tokenResponse?.error) {
+              setError(`Google Sign-In Error: ${tokenResponse.error_description || tokenResponse.error}`);
             }
           },
         });
         client.requestAccessToken({ prompt: 'select_account' });
-      } catch {
-        setError('Failed to initialize Google Sign-In.');
+      } catch (err: any) {
+        setError(err?.message || 'Failed to initialize Google Sign-In.');
       }
+    } else {
+      setError('Google Identity Services SDK is loading or blocked. Please check your browser popup blocker.');
     }
   };
 
@@ -87,12 +107,15 @@ export const AuthModal = () => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       await login(email, password);
       closeAuthModal();
       showToast('Signed in successfully!', 'success', '🐾 Welcome');
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Invalid email or password.');
+      const rawMsg = err?.response?.data?.message || err?.message || 'Invalid email or password.';
+      const msg = Array.isArray(rawMsg) ? rawMsg.join('. ') : rawMsg;
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -102,12 +125,18 @@ export const AuthModal = () => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       await register(name, email, password, 'customer');
-      closeAuthModal();
-      showToast('Account created successfully! Welcome to PetSOS.', 'success', '🎉 Welcome');
+      setSuccessMessage('🎉 User account created successfully! Saved to PetSOS Atlas database. Logging you in...');
+      setTimeout(() => {
+        closeAuthModal();
+        showToast('Account created successfully! Welcome to PetSOS.', 'success', '🎉 Welcome');
+      }, 1600);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Registration failed.');
+      const rawMsg = err?.response?.data?.message || err?.message || 'Registration failed.';
+      const msg = Array.isArray(rawMsg) ? rawMsg.join('. ') : rawMsg;
+      setError(`Registration Failed: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -169,14 +198,38 @@ export const AuthModal = () => {
 
         {error && (
           <div className="auth-error-banner">
-            <AlertCircle size={16} />
-            <span>{error}</span>
+            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+              <span>{error}</span>
+              {mode === 'login' && error.toLowerCase().includes('register') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('register');
+                    setError(null);
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '5px 12px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    alignSelf: 'flex-start',
+                    fontWeight: 600,
+                  }}
+                >
+                  Create Account with this email →
+                </button>
+              )}
+            </div>
           </div>
         )}
 
         {successMessage && (
           <div className="auth-success-banner">
-            <CheckCircle2 size={16} />
+            <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
             <span>{successMessage}</span>
           </div>
         )}

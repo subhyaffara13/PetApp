@@ -26,7 +26,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   setDemoUser: (user: User) => void;
   showAuthModal: boolean;
-  openAuthModal: (redirectPath?: string) => void;
+  authModalInitialMode: 'login' | 'register';
+  openAuthModal: (redirectPath?: string, initialMode?: 'login' | 'register') => void;
   closeAuthModal: () => void;
   redirectPath: string | null;
 }
@@ -129,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [storedAuth, setStoredAuth] = useState<StoredAuth | null>(loadStoredAuth);
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'login' | 'register'>('login');
   const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   const user = storedAuth?.user ?? null;
@@ -253,7 +255,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const auth = buildStoredAuth(res.data.accessToken, res.data.refreshToken);
       setStoredAuth(auth);
       saveStoredAuth(auth);
-      setShowAuthModal(false);
     } finally {
       setIsLoading(false);
     }
@@ -266,7 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const auth = buildStoredAuth(res.data.accessToken, res.data.refreshToken);
       setStoredAuth(auth);
       saveStoredAuth(auth);
-      setShowAuthModal(false);
     } finally {
       setIsLoading(false);
     }
@@ -305,8 +305,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearStoredAuth();
   };
 
-  const openAuthModal = (path?: string) => {
+  const openAuthModal = (path?: string, initialMode: 'login' | 'register' = 'login') => {
     if (path) setRedirectPath(path);
+    setAuthModalInitialMode(initialMode);
     setShowAuthModal(true);
   };
 
@@ -338,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       setDemoUser,
       showAuthModal,
+      authModalInitialMode,
       openAuthModal,
       closeAuthModal,
       redirectPath,
