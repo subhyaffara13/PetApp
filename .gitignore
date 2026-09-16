@@ -33,3 +33,6 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+
+# Test Credentials
+testusers.md
