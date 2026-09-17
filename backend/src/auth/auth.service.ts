@@ -27,6 +27,7 @@ export interface AuthUserPayload {
   name: string;
   avatar?: string;
   role: UserRole;
+  phone?: string;
 }
 
 export function validatePasswordComplexity(password: string): {
@@ -86,6 +87,7 @@ export class AuthService implements OnModuleInit {
     organizationName?: string,
     licenseNumber?: string,
     practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none',
+    phone?: string,
   ): Promise<AuthTokens> {
     const complexity = validatePasswordComplexity(password);
     if (!complexity.isValid) {
@@ -123,6 +125,7 @@ export class AuthService implements OnModuleInit {
       email: email.toLowerCase().trim(),
       passwordHash,
       role,
+      phone: phone || '',
       isVerified,
       verificationBadge,
       organizationName: organizationName || '',
@@ -280,6 +283,7 @@ export class AuthService implements OnModuleInit {
 
     if (data.name) user.name = data.name;
     if (data.avatar !== undefined) user.avatar = data.avatar;
+    if (data.phone !== undefined) user.phone = data.phone;
     await user.save();
     return user;
   }
@@ -320,6 +324,7 @@ export class AuthService implements OnModuleInit {
       name: user.name,
       avatar: user.avatar || '',
       role: user.role,
+      phone: user.phone || '',
     };
 
     const accessToken = this.jwtService.sign(payload, {

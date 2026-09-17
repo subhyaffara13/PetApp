@@ -20,6 +20,7 @@ export const AuthModal = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export const AuthModal = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      await register(name, email, password, 'customer');
+      await register(name, email, password, 'customer', phone);
       setSuccessMessage('🎉 User account created successfully! Saved to PetSOS Atlas database. Logging you in...');
       setTimeout(() => {
         closeAuthModal();
@@ -263,6 +264,8 @@ export const AuthModal = () => {
             setName={setName}
             email={email}
             setEmail={setEmail}
+            phone={phone}
+            setPhone={setPhone}
             password={password}
             setPassword={setPassword}
             confirmPassword={confirmPassword}

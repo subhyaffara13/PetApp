@@ -26,6 +26,7 @@ export class AuthController {
       organizationName?: string;
       licenseNumber?: string;
       practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
+      phone?: string;
     },
   ) {
     return this.authService.register(
@@ -36,6 +37,7 @@ export class AuthController {
       body.organizationName,
       body.licenseNumber,
       body.practiceType,
+      body.phone,
     );
   }
 

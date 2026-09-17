@@ -1,5 +1,5 @@
-import React from 'react';
-import { Mail, Lock, KeyRound, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Lock, KeyRound, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 interface ForgotResetFormProps {
@@ -41,6 +41,8 @@ export const ForgotResetForm: React.FC<ForgotResetFormProps> = ({
   onResetSubmit,
   onBackToLogin,
 }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   if (mode === 'forgot') {
     return (
       <form onSubmit={onForgotSubmit} className="auth-modal-form">
@@ -97,13 +99,22 @@ export const ForgotResetForm: React.FC<ForgotResetFormProps> = ({
         <div className="auth-input-wrapper">
           <Lock size={18} className="auth-input-icon" />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="Min. 8 chars, 1 number, 1 symbol"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoFocus
           />
+          <button
+            type="button"
+            className="auth-eye-btn"
+            onClick={() => setShowPassword((prev) => !prev)}
+            tabIndex={-1}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
       </div>
 
@@ -121,12 +132,22 @@ export const ForgotResetForm: React.FC<ForgotResetFormProps> = ({
         <div className="auth-input-wrapper">
           <Lock size={18} className="auth-input-icon" />
           <input
-            type="password"
+            type={showConfirmPassword ? 'text' : 'password'}
             placeholder="Re-enter new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
+          <button
+            type="button"
+            className="auth-eye-btn"
+            onClick={() => setShowConfirmPassword((prev) => !prev)}
+            tabIndex={-1}
+            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            style={isMatching ? { right: '36px' } : undefined}
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
           {isMatching && (
             <CheckCircle2 size={18} color="#10b981" style={{ marginRight: '10px' }} />
           )}

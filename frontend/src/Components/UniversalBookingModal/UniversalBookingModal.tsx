@@ -37,7 +37,7 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
 }) => {
   if (!isOpen || !provider) return null;
 
-  const { user } = useAuth();
+  const { user, accessToken, openAuthModal } = useAuth();
   const { showToast } = useToast();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string>('');
@@ -50,21 +50,30 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
   });
   const [selectedSlot, setSelectedSlot] = useState('10:30 AM');
   const [ownerName, setOwnerName] = useState(user?.name || '');
-  const [ownerPhone, setOwnerPhone] = useState(() => localStorage.getItem('petsos_user_phone') || '054-123-4567');
+  const [ownerEmail, setOwnerEmail] = useState(user?.email || '');
+  const [ownerPhone, setOwnerPhone] = useState(() => (user as any)?.phone || localStorage.getItem('petsos_user_phone') || '');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   useEffect(() => {
-    axios.get<PetProfile[]>(`${API_URL}/pet-profile`)
-      .then((res) => {
-        if (res.data?.length > 0) {
-          setPets(res.data);
-          setSelectedPetId(res.data[0]._id || res.data[0].petId || '');
-        }
-      })
-      .catch(() => {});
-  }, []);
+    if (user) {
+      if (user.name) setOwnerName(user.name);
+      if (user.email) setOwnerEmail(user.email);
+      const phone = (user as any).phone || localStorage.getItem('petsos_user_phone') || '';
+      if (phone) setOwnerPhone(phone);
+
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      axios.get<PetProfile[]>(`${API_URL}/pet-profile`, { headers })
+        .then((res) => {
+          if (res.data?.length > 0) {
+            setPets(res.data);
+            setSelectedPetId(res.data[0]._id || res.data[0].petId || '');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user, accessToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +85,7 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
     setIsSubmitting(true);
     try {
       await axios.post(`${API_URL}/schedule/appointments/book`, {
-        petId: activePet ? activePet._id : 'general',
+        petId: activePet ? (activePet._id || activePet.petId) : 'guest-pet',
         petPassportId: activePet?.petId,
         petName: finalPetName,
         petSpecies: activePet?.species || 'dog',
@@ -90,10 +99,17 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
         price: selectedService.price,
         appointmentDate: selectedDate,
         timeSlot: selectedSlot,
+        ownerId: user?.id || 'guest',
         ownerName,
+        ownerEmail,
         ownerPhone,
         notes,
       });
+
+      // Cache phone in localStorage for future convenience if provided
+      if (ownerPhone) {
+        try { localStorage.setItem('petsos_user_phone', ownerPhone); } catch {}
+      }
 
       setIsConfirmed(true);
       showToast('Appointment booked & added to your Pet Care Calendar!', 'success');
@@ -147,6 +163,7 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
           />
 
           <BookingPetForm
+            isLoggedIn={!!user}
             pets={pets}
             selectedPetId={selectedPetId}
             setSelectedPetId={setSelectedPetId}
@@ -154,10 +171,13 @@ export const UniversalBookingModal: React.FC<UniversalBookingModalProps> = ({
             setGuestPetName={setGuestPetName}
             ownerName={ownerName}
             setOwnerName={setOwnerName}
+            ownerEmail={ownerEmail}
+            setOwnerEmail={setOwnerEmail}
             ownerPhone={ownerPhone}
             setOwnerPhone={setOwnerPhone}
             notes={notes}
             setNotes={setNotes}
+            onOpenLogin={() => openAuthModal()}
           />
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>

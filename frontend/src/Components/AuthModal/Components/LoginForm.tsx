@@ -1,5 +1,5 @@
-import React from 'react';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormProps {
   email: string;
@@ -20,6 +20,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   onForgotPassword,
 }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <form onSubmit={onSubmit} className="auth-modal-form">
       <div className="auth-field">
@@ -51,12 +53,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <div className="auth-input-wrapper">
           <Lock size={18} className="auth-input-icon" />
           <input
-            type="password"
-            placeholder="••••••••"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <button
+            type="button"
+            className="auth-eye-btn"
+            onClick={() => setShowPassword((prev) => !prev)}
+            tabIndex={-1}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
       </div>
 

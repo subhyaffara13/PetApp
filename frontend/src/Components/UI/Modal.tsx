@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import './UI.css';
@@ -32,7 +33,12 @@ export const Modal: React.FC<ModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const content = (
     <AnimatePresence>
       {isOpen && (
         <div className="ui-modal-overlay" onClick={onClose}>
@@ -69,4 +75,7 @@ export const Modal: React.FC<ModalProps> = ({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted || typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import type { Clinic, PetProfile } from '../../schemas';
 import { useAuth } from '../../context/AuthContext';
@@ -26,7 +27,7 @@ export const EmergencyDispatchModal = ({ clinic, isOpen = true, onClose }: Emerg
   const [symptoms, setSymptoms] = useState<string>('');
   const [etaMinutes, setEtaMinutes] = useState<number>(15);
   const [ownerName, setOwnerName] = useState<string>(user?.name || '');
-  const [ownerPhone, setOwnerPhone] = useState<string>(() => localStorage.getItem('petsos_user_phone') || '054-123-4567');
+  const [ownerPhone, setOwnerPhone] = useState<string>(() => (user as any)?.phone || localStorage.getItem('petsos_user_phone') || '');
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [sendError, setSendError] = useState('');
@@ -84,7 +85,7 @@ export const EmergencyDispatchModal = ({ clinic, isOpen = true, onClose }: Emerg
     }
   };
 
-  return (
+  const modalContent = (
     <div className="dispatch-modal-overlay" onClick={onClose}>
       <div className="dispatch-modal-card animate-scale-up" onClick={(e) => e.stopPropagation()}>
         <div className="dispatch-modal-header">
@@ -134,4 +135,7 @@ export const EmergencyDispatchModal = ({ clinic, isOpen = true, onClose }: Emerg
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 };

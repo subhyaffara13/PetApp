@@ -59,6 +59,9 @@ export class User {
   verificationBadge: VerificationBadge;
 
   @Prop({ default: '' })
+  phone?: string;
+
+  @Prop({ default: '' })
   organizationName?: string;
 
   @Prop({ default: '' })

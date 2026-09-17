@@ -20,7 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<void>;
   oauthLogin: (name: string, email: string, avatar?: string, role?: UserRole) => Promise<void>;
   updateUserProfile: (data: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
@@ -160,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: payload.email || fallbackUser?.email || '',
       avatar: payload.avatar || fallbackUser?.avatar || '',
       role: payload.role || fallbackUser?.role || 'customer',
+      phone: payload.phone || fallbackUser?.phone || localStorage.getItem('petsos_user_phone') || '',
     };
     return {
       user,
@@ -248,11 +249,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: UserRole = 'customer') => {
+  const register = async (name: string, email: string, password: string, role: UserRole = 'customer', phone?: string) => {
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/register`, { name, email, password, role });
-      const auth = buildStoredAuth(res.data.accessToken, res.data.refreshToken);
+      if (phone) {
+        try { localStorage.setItem('petsos_user_phone', phone); } catch {}
+      }
+      const res = await axios.post(`${API_URL}/auth/register`, { name, email, password, role, phone });
+      const auth = buildStoredAuth(res.data.accessToken, res.data.refreshToken, { phone });
       setStoredAuth(auth);
       saveStoredAuth(auth);
     } finally {
@@ -275,6 +279,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserProfile = async (data: Partial<User>) => {
     if (!storedAuth?.user) return;
     try {
+      if (data.phone) {
+        try { localStorage.setItem('petsos_user_phone', data.phone); } catch {}
+      }
       if (storedAuth.accessToken) {
         await axios.patch(`${API_URL}/auth/profile`, data, {
           headers: { Authorization: `Bearer ${storedAuth.accessToken}` },

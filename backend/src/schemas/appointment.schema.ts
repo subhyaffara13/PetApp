@@ -20,8 +20,11 @@ export class Appointment {
   @Prop({ default: '#f97316' })
   petColor: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ default: 'guest', index: true })
   ownerId: string;
+
+  @Prop({ default: '' })
+  ownerEmail?: string;
 
   @Prop({ type: [String], default: [] })
   coParentIds: string[];
