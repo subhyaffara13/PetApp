@@ -15,6 +15,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
   REGION: ${{ secrets.GCP_REGION || 'europe-west1' }} # Default region: europe-west1
   GAR_REPO: petsos-repo
+  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node24"
 
 concurrency:
   group: production
@@ -85,23 +86,33 @@ jobs:
 
       - name: Ensure Artifact Registry Repository Exists
         if: steps.auth.outcome == 'success'
+        continue-on-error: true
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
+          set +e
+          echo "=== GCP Auth State ==="
+          gcloud auth list || true
           PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
           [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
           [ -z "$PROJ" ] && PROJ="$(gcloud config get-value project 2>/dev/null || true)"
           [ -z "$PROJ" ] && PROJ="petapp-837846168269"
-          if [ -n "$PROJ" ]; then
-            gcloud config set project "$PROJ" --quiet || true
-          fi
+          echo "Active project: $PROJ"
+          gcloud config set project "$PROJ" --quiet || true
 
-          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --quiet >/dev/null 2>&1 || \
-          gcloud artifacts repositories create ${{ env.GAR_REPO }} \
-            --repository-format=docker \
-            --location=${{ env.REGION }} \
-            --description="PetSOS Production Docker Images" \
-            --quiet || true
+          echo "Verifying Artifact Registry repository ${{ env.GAR_REPO }}..."
+          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --quiet 2>&1
+          if [ $? -ne 0 ]; then
+            echo "Repository not found or error encountered; creating repository..."
+            gcloud artifacts repositories create ${{ env.GAR_REPO }} \
+              --repository-format=docker \
+              --location=${{ env.REGION }} \
+              --description="PetSOS Production Docker Images" \
+              --quiet 2>&1 || true
+          else
+            echo "Repository ${{ env.GAR_REPO }} is ready."
+          fi
+          exit 0
 
       - name: Authorize Docker to Artifact Registry
         if: steps.auth.outcome == 'success'
