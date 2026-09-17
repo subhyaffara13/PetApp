@@ -117,7 +117,14 @@ jobs:
       - name: Authorize Docker to Artifact Registry
         if: steps.auth.outcome == 'success'
         run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          set +e
+          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
+          if [ $? -ne 0 ]; then
+            echo "Falling back to direct oauth2accesstoken login..."
+            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
+          fi
+          exit 0
 
       - name: Build & Push Backend Container Image
         if: steps.auth.outcome == 'success'
@@ -207,11 +214,18 @@ jobs:
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
+          set +e
           PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
           [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
           [ -z "$PROJ" ] && PROJ="petapp-837846168269"
           gcloud config set project "$PROJ" --quiet || true
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
+          if [ $? -ne 0 ]; then
+            echo "Falling back to direct oauth2accesstoken login..."
+            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
+          fi
+          exit 0
 
       - name: Build & Push Frontend Image with Backend URL
         if: steps.auth.outcome == 'success'
@@ -281,11 +295,18 @@ jobs:
         env:
           PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
+          set +e
           PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
           [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
           [ -z "$PROJ" ] && PROJ="petapp-837846168269"
           gcloud config set project "$PROJ" --quiet || true
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
+          if [ $? -ne 0 ]; then
+            echo "Falling back to direct oauth2accesstoken login..."
+            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
+          fi
+          exit 0
 
       # 4a. Clinic Portal
       - name: Build & Deploy Clinic Portal
