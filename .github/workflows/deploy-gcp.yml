@@ -263,7 +263,6 @@ jobs:
             --port=8080
           env_vars: |
             NODE_ENV=production
-            PORT=8080
             USE_ATLAS=true
             MONGO_DB_CONNECTION_STRING=${{ secrets.MONGO_DB_CONNECTION_STRING }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
