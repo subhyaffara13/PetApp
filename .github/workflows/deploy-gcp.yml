@@ -80,7 +80,7 @@ jobs:
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Detect GCP Project ID
+      - name: Detect GCP Project ID and Repo Region
         id: detect-project
         if: steps.auth.outcome == 'success'
         run: |
@@ -95,9 +95,7 @@ jobs:
               try {
                 const cred = JSON.parse(fs.readFileSync(credPath, "utf8"));
                 proj = cred.project_id || cred.quota_project_id || "";
-              } catch (e) {
-                console.error("Credentials parse error:", e.message);
-              }
+              } catch (e) {}
             }
 
             // 2. Fallback to auth action output
@@ -130,73 +128,100 @@ jobs:
               if (sec && sec !== "(unset)") proj = sec;
             }
 
-            console.log("=========================================");
             console.log("DETECTED GCP PROJECT ID:", proj);
-            console.log("=========================================");
-
             if (!proj || proj === "(unset)") {
               console.error("::error::Could not determine GCP Project ID from service account credentials!");
               process.exit(1);
             }
 
+            // Detect existing Artifact Registry location for petsos-repo
+            let garRegion = "";
+            try {
+              const listOut = cp.execSync("gcloud artifacts repositories list --project=" + proj + " --format=\"value(name,LOCATION)\"", { encoding: "utf8" }).trim();
+              console.log("Existing Repositories:\n" + listOut);
+              const lines = listOut.split("\n");
+              for (const line of lines) {
+                if (line.includes("petsos-repo")) {
+                  const parts = line.trim().split(/\s+/);
+                  if (parts.length >= 2) {
+                    garRegion = parts[parts.length - 1];
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              console.log("Repo search notice:", e.message);
+            }
+
+            if (!garRegion) {
+              garRegion = "${{ env.REGION }}";
+            }
+            console.log("TARGET GAR REGION:", garRegion);
+
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "project_id=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "gar_region=" + garRegion + "\n");
             fs.appendFileSync(process.env.GITHUB_ENV, "GCP_PROJECT_ID=" + proj + "\n");
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "### Detected GCP Project ID: `" + proj + "`\n");
-            console.log("::notice title=Detected Project ID::" + proj);
+            fs.appendFileSync(process.env.GITHUB_ENV, "GAR_REGION=" + garRegion + "\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "### Detected GCP Project ID: `" + proj + "`\n### Target Artifact Registry Region: `" + garRegion + "`\n");
             try { cp.execSync("gcloud config set project " + proj, { stdio: "inherit" }); } catch (e) {}
           '
 
       - name: Ensure Artifact Registry Repository Exists
         if: steps.auth.outcome == 'success'
-        continue-on-error: true
         run: |
+          set +e
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
-          echo "Active project: $PROJ"
-          echo "::notice title=Active Project::$PROJ"
-          REPOS=$(gcloud artifacts repositories list --project="$PROJ" --format='value(name)' 2>&1 | tr '\n' ', ' || true)
-          echo "::notice title=Existing Repositories::$REPOS"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
 
-          echo "Verifying Artifact Registry repository ${{ env.GAR_REPO }} in ${{ env.REGION }}..."
-          DESC_OUT=$(gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --project="$PROJ" 2>&1)
+          echo "Verifying Artifact Registry repository ${{ env.GAR_REPO }} in location $REG..."
+          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location="$REG" --project="$PROJ" 2>&1
           if [ $? -ne 0 ]; then
-            echo "::notice title=Creating Repo::$DESC_OUT"
-            echo "Creating repository ${{ env.GAR_REPO }} in ${{ env.REGION }}..."
-            CREATE_OUT=$(gcloud artifacts repositories create ${{ env.GAR_REPO }} \
+            echo "Creating repository ${{ env.GAR_REPO }} in $REG..."
+            gcloud artifacts repositories create ${{ env.GAR_REPO }} \
               --repository-format=docker \
-              --location=${{ env.REGION }} \
+              --location="$REG" \
               --project="$PROJ" \
-              --description="PetSOS Production Docker Images" 2>&1 || true)
-            echo "::notice title=Create Result::$CREATE_OUT"
+              --description="PetSOS Production Docker Images" 2>&1 || true
           else
-            echo "::notice title=Repo Status::Repository ${{ env.GAR_REPO }} exists"
+            echo "Repository ${{ env.GAR_REPO }} already exists in $REG."
           fi
           exit 0
 
       - name: Authorize Docker to Artifact Registry
         if: steps.auth.outcome == 'success'
         run: |
-          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1 || true
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+          echo "Configuring Docker auth for $REG-docker.pkg.dev..."
+          gcloud auth configure-docker "$REG-docker.pkg.dev" --quiet 2>&1 || true
           TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
           if [ -n "$TOKEN" ]; then
-            AUTH_RES=$(echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" 2>&1 || true)
-            echo "::notice title=Docker Login::$AUTH_RES"
+            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://$REG-docker.pkg.dev" || true
           fi
           exit 0
 
       - name: Build & Push Backend Container Image
+        id: build-backend
         if: steps.auth.outcome == 'success'
         run: |
           set +e
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+
           if [ -z "$PROJ" ] || [ "$PROJ" = "true" ] || [ "$PROJ" = "(unset)" ]; then
             echo "::error::Project ID is unset or invalid: '$PROJ'"
             exit 1
           fi
-          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}"
-          LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:latest"
+
+          IMAGE_TAG="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}"
+          LATEST_TAG="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:latest"
           echo "Target image tag: $IMAGE_TAG"
 
           docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend 2>&1 | tee /tmp/build_backend.log
@@ -217,6 +242,7 @@ jobs:
           fi
 
           docker push "$LATEST_TAG" || true
+          echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "Backend container built and pushed successfully!"
           exit 0
 
@@ -226,7 +252,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petapp
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
+          image: ${{ steps.build-backend.outputs.image }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -286,7 +312,7 @@ jobs:
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Detect GCP Project ID
+      - name: Detect GCP Project ID and Repo Region
         id: detect-project
         if: steps.auth.outcome == 'success'
         run: |
@@ -329,28 +355,50 @@ jobs:
               if (sec && sec !== "(unset)") proj = sec;
             }
 
-            console.log("DETECTED GCP PROJECT ID:", proj);
             if (!proj || proj === "(unset)") {
               console.error("::error::Could not determine GCP Project ID!");
               process.exit(1);
             }
 
+            let garRegion = "";
+            try {
+              const listOut = cp.execSync("gcloud artifacts repositories list --project=" + proj + " --format=\"value(name,LOCATION)\"", { encoding: "utf8" }).trim();
+              const lines = listOut.split("\n");
+              for (const line of lines) {
+                if (line.includes("petsos-repo")) {
+                  const parts = line.trim().split(/\s+/);
+                  if (parts.length >= 2) {
+                    garRegion = parts[parts.length - 1];
+                    break;
+                  }
+                }
+              }
+            } catch (e) {}
+
+            if (!garRegion) garRegion = "${{ env.REGION }}";
+
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "project_id=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "gar_region=" + garRegion + "\n");
             fs.appendFileSync(process.env.GITHUB_ENV, "GCP_PROJECT_ID=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_ENV, "GAR_REGION=" + garRegion + "\n");
             try { cp.execSync("gcloud config set project " + proj, { stdio: "inherit" }); } catch (e) {}
           '
 
       - name: Authorize Docker to Artifact Registry
         if: steps.auth.outcome == 'success'
         run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1 || true
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+          gcloud auth configure-docker "$REG-docker.pkg.dev" --quiet 2>&1 || true
           TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
           if [ -n "$TOKEN" ]; then
-            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
+            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://$REG-docker.pkg.dev" || true
           fi
           exit 0
 
       - name: Build & Push Frontend Image with Backend URL
+        id: build-frontend
         if: steps.auth.outcome == 'success'
         env:
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
@@ -359,8 +407,12 @@ jobs:
         run: |
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
-          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}"
-          LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:latest"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+
+          IMAGE_TAG="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}"
+          LATEST_TAG="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:latest"
           
           # Inject production build-time env variables
           echo "VITE_API_URL=${VITE_API_URL}" >> ./frontend/.env
@@ -371,13 +423,14 @@ jobs:
           docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./frontend
           docker push "$IMAGE_TAG"
           docker push "$LATEST_TAG"
+          echo "image=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Deploy Frontend to Google Cloud Run
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petsos
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
+          image: ${{ steps.build-frontend.outputs.image }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -408,7 +461,7 @@ jobs:
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Detect GCP Project ID
+      - name: Detect GCP Project ID and Repo Region
         id: detect-project
         if: steps.auth.outcome == 'success'
         run: |
@@ -451,24 +504,45 @@ jobs:
               if (sec && sec !== "(unset)") proj = sec;
             }
 
-            console.log("DETECTED GCP PROJECT ID:", proj);
             if (!proj || proj === "(unset)") {
               console.error("::error::Could not determine GCP Project ID!");
               process.exit(1);
             }
 
+            let garRegion = "";
+            try {
+              const listOut = cp.execSync("gcloud artifacts repositories list --project=" + proj + " --format=\"value(name,LOCATION)\"", { encoding: "utf8" }).trim();
+              const lines = listOut.split("\n");
+              for (const line of lines) {
+                if (line.includes("petsos-repo")) {
+                  const parts = line.trim().split(/\s+/);
+                  if (parts.length >= 2) {
+                    garRegion = parts[parts.length - 1];
+                    break;
+                  }
+                }
+              }
+            } catch (e) {}
+
+            if (!garRegion) garRegion = "${{ env.REGION }}";
+
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "project_id=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "gar_region=" + garRegion + "\n");
             fs.appendFileSync(process.env.GITHUB_ENV, "GCP_PROJECT_ID=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_ENV, "GAR_REGION=" + garRegion + "\n");
             try { cp.execSync("gcloud config set project " + proj, { stdio: "inherit" }); } catch (e) {}
           '
 
       - name: Authorize Docker
         if: steps.auth.outcome == 'success'
         run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1 || true
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+          gcloud auth configure-docker "$REG-docker.pkg.dev" --quiet 2>&1 || true
           TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
           if [ -n "$TOKEN" ]; then
-            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
+            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://$REG-docker.pkg.dev" || true
           fi
           exit 0
 
@@ -480,8 +554,12 @@ jobs:
         run: |
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+
           echo "VITE_API_URL=${VITE_API_URL}" >> ./clinic-portal/.env
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-clinic-portal:${{ github.sha }}"
+          IMAGE="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-clinic-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./clinic-portal
           docker push "$IMAGE"
           gcloud run deploy petsos-clinic-portal \
@@ -500,8 +578,12 @@ jobs:
         run: |
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+
           echo "VITE_API_URL=${VITE_API_URL}" >> ./store-portal/.env
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-store-portal:${{ github.sha }}"
+          IMAGE="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-store-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./store-portal
           docker push "$IMAGE"
           gcloud run deploy petsos-store-portal \
@@ -520,8 +602,12 @@ jobs:
         run: |
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
+          REG="${{ steps.detect-project.outputs.gar_region }}"
+          [ -z "$REG" ] && REG="$GAR_REGION"
+          [ -z "$REG" ] && REG="${{ env.REGION }}"
+
           echo "VITE_API_URL=${VITE_API_URL}" >> ./Admin-Portal/.env
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-admin-portal:${{ github.sha }}"
+          IMAGE="$REG-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-admin-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./Admin-Portal
           docker push "$IMAGE"
           gcloud run deploy petsos-admin-portal \
