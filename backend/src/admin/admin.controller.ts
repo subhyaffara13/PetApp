@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './admin-auth.guard';
 
@@ -33,6 +33,11 @@ export class AdminController {
     @Body() body: { action: 'block' | 'unblock' | 'archive' },
   ) {
     return this.adminService.updateUserStatus(id, body.action);
+  }
+
+  @Patch('users/:id')
+  updateUser(@Param('id') id: string, @Body() body: any) {
+    return this.adminService.updateUser(id, body);
   }
 
   @Get('claims')
