@@ -12,7 +12,6 @@ on:
         default: true
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
   REGION: ${{ secrets.GCP_REGION || 'europe-west1' }} # Default region: europe-west1
   GAR_REPO: petsos-repo
   ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node24"
@@ -76,37 +75,55 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
 
       - name: Set up Cloud SDK
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
+
+      - name: Detect GCP Project ID
+        id: detect-project
+        if: steps.auth.outcome == 'success'
+        run: |
+          PROJ="${{ steps.auth.outputs.project_id }}"
+          if [ -z "$PROJ" ]; then
+            SA_EMAIL="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | head -n1)"
+            [ -z "$SA_EMAIL" ] && SA_EMAIL="$(gcloud auth list --format='value(account)' | head -n1)"
+            if [[ "$SA_EMAIL" =~ @(.*)\.iam\.gserviceaccount\.com ]]; then
+              PROJ="${BASH_REMATCH[1]}"
+            fi
+          fi
+          [ -z "$PROJ" ] && PROJ="$(gcloud config get-value project 2>/dev/null || true)"
+          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
+          
+          echo "================================================="
+          echo "Discovered GCP Project ID: '$PROJ'"
+          echo "================================================="
+          
+          if [ -z "$PROJ" ]; then
+            echo "::error::Could not determine GCP Project ID from service account credentials!"
+            exit 1
+          fi
+          
+          echo "project_id=$PROJ" >> $GITHUB_OUTPUT
+          gcloud config set project "$PROJ"
 
       - name: Ensure Artifact Registry Repository Exists
         if: steps.auth.outcome == 'success'
         continue-on-error: true
-        env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
           set +e
-          echo "=== GCP Auth State ==="
-          gcloud auth list || true
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="$(gcloud config get-value project 2>/dev/null || true)"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           echo "Active project: $PROJ"
           gcloud config set project "$PROJ" --quiet || true
 
           echo "Verifying Artifact Registry repository ${{ env.GAR_REPO }}..."
-          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --quiet 2>&1
+          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --project="$PROJ" --quiet 2>&1
           if [ $? -ne 0 ]; then
             echo "Repository not found or error encountered; creating repository..."
             gcloud artifacts repositories create ${{ env.GAR_REPO }} \
               --repository-format=docker \
               --location=${{ env.REGION }} \
+              --project="$PROJ" \
               --description="PetSOS Production Docker Images" \
               --quiet 2>&1 || true
           else
@@ -120,24 +137,21 @@ jobs:
           set +e
           echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
-          if [ $? -ne 0 ]; then
-            echo "Falling back to direct oauth2accesstoken login..."
-            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
-          fi
+          echo "Direct oauth2accesstoken login fallback..."
+          gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
           exit 0
 
       - name: Build & Push Backend Container Image
         if: steps.auth.outcome == 'success'
-        env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}"
           LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:latest"
+          echo "Building backend Docker image: $IMAGE_TAG..."
           docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend
+          echo "Pushing $IMAGE_TAG..."
           docker push "$IMAGE_TAG"
+          echo "Pushing $LATEST_TAG..."
           docker push "$LATEST_TAG"
 
       - name: Deploy Backend to Google Cloud Run
@@ -146,7 +160,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petapp
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -201,43 +215,46 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
 
       - name: Set up Cloud SDK
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
+
+      - name: Detect GCP Project ID
+        id: detect-project
+        if: steps.auth.outcome == 'success'
+        run: |
+          PROJ="${{ steps.auth.outputs.project_id }}"
+          if [ -z "$PROJ" ]; then
+            SA_EMAIL="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | head -n1)"
+            [ -z "$SA_EMAIL" ] && SA_EMAIL="$(gcloud auth list --format='value(account)' | head -n1)"
+            if [[ "$SA_EMAIL" =~ @(.*)\.iam\.gserviceaccount\.com ]]; then
+              PROJ="${BASH_REMATCH[1]}"
+            fi
+          fi
+          [ -z "$PROJ" ] && PROJ="$(gcloud config get-value project 2>/dev/null || true)"
+          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
+          
+          echo "Discovered GCP Project ID: '$PROJ'"
+          echo "project_id=$PROJ" >> $GITHUB_OUTPUT
+          gcloud config set project "$PROJ"
 
       - name: Authorize Docker to Artifact Registry
         if: steps.auth.outcome == 'success'
-        env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
           set +e
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
-          gcloud config set project "$PROJ" --quiet || true
-          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
-          if [ $? -ne 0 ]; then
-            echo "Falling back to direct oauth2accesstoken login..."
-            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
-          fi
+          gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
           exit 0
 
       - name: Build & Push Frontend Image with Backend URL
         if: steps.auth.outcome == 'success'
         env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}"
           LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:latest"
           
@@ -256,7 +273,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petsos
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -282,42 +299,45 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
 
       - name: Set up Cloud SDK
         if: steps.auth.outcome == 'success'
         uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
+
+      - name: Detect GCP Project ID
+        id: detect-project
+        if: steps.auth.outcome == 'success'
+        run: |
+          PROJ="${{ steps.auth.outputs.project_id }}"
+          if [ -z "$PROJ" ]; then
+            SA_EMAIL="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | head -n1)"
+            [ -z "$SA_EMAIL" ] && SA_EMAIL="$(gcloud auth list --format='value(account)' | head -n1)"
+            if [[ "$SA_EMAIL" =~ @(.*)\.iam\.gserviceaccount\.com ]]; then
+              PROJ="${BASH_REMATCH[1]}"
+            fi
+          fi
+          [ -z "$PROJ" ] && PROJ="$(gcloud config get-value project 2>/dev/null || true)"
+          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
+          
+          echo "Discovered GCP Project ID: '$PROJ'"
+          echo "project_id=$PROJ" >> $GITHUB_OUTPUT
+          gcloud config set project "$PROJ"
 
       - name: Authorize Docker
         if: steps.auth.outcome == 'success'
-        env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
         run: |
           set +e
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
-          gcloud config set project "$PROJ" --quiet || true
-          echo "Configuring Docker auth for ${{ env.REGION }}-docker.pkg.dev..."
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1
-          if [ $? -ne 0 ]; then
-            echo "Falling back to direct oauth2accesstoken login..."
-            gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev"
-          fi
+          gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
           exit 0
 
       # 4a. Clinic Portal
       - name: Build & Deploy Clinic Portal
         if: steps.auth.outcome == 'success'
         env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./clinic-portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-clinic-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./clinic-portal
@@ -325,6 +345,7 @@ jobs:
           gcloud run deploy petsos-clinic-portal \
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
+            --project "$PROJ" \
             --platform managed \
             --allow-unauthenticated \
             --port 80
@@ -333,12 +354,9 @@ jobs:
       - name: Build & Deploy Store Portal
         if: steps.auth.outcome == 'success'
         env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./store-portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-store-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./store-portal
@@ -346,6 +364,7 @@ jobs:
           gcloud run deploy petsos-store-portal \
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
+            --project "$PROJ" \
             --platform managed \
             --allow-unauthenticated \
             --port 80
@@ -354,12 +373,9 @@ jobs:
       - name: Build & Deploy Admin Portal
         if: steps.auth.outcome == 'success'
         env:
-          PROJECT_ID: ${{ steps.auth.outputs.project_id || secrets.GCP_PROJECT_ID || 'petapp-837846168269' }}
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${PROJECT_ID:-${{ steps.auth.outputs.project_id }}}"
-          [ -z "$PROJ" ] && PROJ="${{ secrets.GCP_PROJECT_ID }}"
-          [ -z "$PROJ" ] && PROJ="petapp-837846168269"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./Admin-Portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-admin-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./Admin-Portal
@@ -367,6 +383,7 @@ jobs:
           gcloud run deploy petsos-admin-portal \
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
+            --project "$PROJ" \
             --platform managed \
             --allow-unauthenticated \
             --port 80
