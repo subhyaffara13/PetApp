@@ -138,6 +138,7 @@ export const ChatPage = () => {
         timestamp: Date.now(),
         isEmergency: isEmerg,
         petCreated: res.data?.petCreated,
+        petDraft: res.data?.petDraft,
       };
       if (isEmerg) {
         setEmergencyTriggered(true);

@@ -172,3 +172,115 @@
   filter: brightness(1.1);
   transform: translateX(2px);
 }
+
+/* Chat Pet In-Progress Live Form Card */
+.chat-pet-draft-card {
+  margin-top: 14px;
+  background: var(--color-bg-card);
+  border: 1.5px dashed var(--color-accent-coral);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  max-width: 440px;
+}
+
+.chat-pet-draft__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-pet-draft__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-pet-draft__pulse {
+  font-size: 1.4rem;
+  animation: spinSlow 4s linear infinite;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.chat-pet-draft__title h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.chat-pet-draft__title p {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.chat-pet-draft__pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-accent-coral);
+  border: 1px solid var(--color-accent-coral-glow);
+}
+
+.chat-pet-draft__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.draft-field-item {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.draft-field-item.is-filled {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.draft-field-item.is-pending {
+  border-style: dashed;
+}
+
+.draft-field-item .field-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.draft-field-item .field-value {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+.draft-field-item.is-filled .field-value {
+  color: var(--color-status-open);
+}
+
+.draft-field-item.is-pending .field-value {
+  color: var(--color-accent-coral);
+  font-style: italic;
+}

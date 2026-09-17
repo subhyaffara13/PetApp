@@ -61,6 +61,40 @@ export const ChatBubble = ({ message }: ChatBubbleProps) => {
             </div>
           </div>
         )}
+
+        {!pet && message.petDraft && (
+          <div className="chat-pet-draft-card animate-scale-up">
+            <div className="chat-pet-draft__header">
+              <div className="chat-pet-draft__title">
+                <span className="chat-pet-draft__pulse">⏳</span>
+                <div>
+                  <h4>{message.petDraft.name ? `Setting up ${message.petDraft.name}'s Passport` : 'Setting up Pet Passport'}</h4>
+                  <p>Filling out fields conversationally...</p>
+                </div>
+              </div>
+              <span className="chat-pet-draft__pill">In Progress</span>
+            </div>
+
+            <div className="chat-pet-draft__fields">
+              <div className={`draft-field-item ${message.petDraft.name ? 'is-filled' : 'is-pending'}`}>
+                <span className="field-label">Name</span>
+                <span className="field-value">{message.petDraft.name || 'Asking...'}</span>
+              </div>
+              <div className={`draft-field-item ${message.petDraft.species ? 'is-filled' : 'is-pending'}`}>
+                <span className="field-label">Species</span>
+                <span className="field-value">{message.petDraft.species ? message.petDraft.species : 'Asking...'}</span>
+              </div>
+              <div className={`draft-field-item ${message.petDraft.breed && message.petDraft.breed !== 'Mixed' && message.petDraft.breed !== 'Mixed Breed' ? 'is-filled' : 'is-pending'}`}>
+                <span className="field-label">Breed</span>
+                <span className="field-value">{message.petDraft.breed && message.petDraft.breed !== 'Mixed' && message.petDraft.breed !== 'Mixed Breed' ? message.petDraft.breed : 'Asking...'}</span>
+              </div>
+              <div className={`draft-field-item ${message.petDraft.age !== undefined && message.petDraft.age !== null ? 'is-filled' : 'is-pending'}`}>
+                <span className="field-label">Age</span>
+                <span className="field-value">{message.petDraft.age !== undefined && message.petDraft.age !== null ? `${message.petDraft.age} ${message.petDraft.age === 1 ? 'yr' : 'yrs'}` : 'Asking...'}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

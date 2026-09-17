@@ -228,6 +228,7 @@ export class User {
           },
         ],
         summary: { type: String, default: '' },
+        petDraft: { type: Object, default: null },
         lastActiveAt: { type: Date, default: Date.now },
       },
     ],
@@ -237,6 +238,7 @@ export class User {
     sessionId: string;
     title: string;
     petId?: string;
+    petDraft?: Record<string, any>;
     messages: {
       role: string;
       content: string;

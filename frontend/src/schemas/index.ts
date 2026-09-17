@@ -144,6 +144,7 @@ export interface ChatMessage {
   timestamp: number;
   isEmergency?: boolean;
   petCreated?: any;
+  petDraft?: any;
 }
 
 export interface ChatThread {

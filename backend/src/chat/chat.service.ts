@@ -181,6 +181,7 @@ const GEMINI_MODELS = [
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
   private genAI?: GoogleGenerativeAI;
+  private sessionPetDrafts = new Map<string, any>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -197,6 +198,91 @@ export class ChatService {
     }
   }
 
+  private extractPetInfoFromText(text: string, currentDraft: any = {}): any {
+    const lower = text.toLowerCase().trim();
+    const draft = { ...currentDraft };
+
+    // Species detection
+    if (/(?:dog|puppy|pup|canine|hound|כלב|גור כלבים|כלבה)/i.test(lower)) {
+      draft.species = 'dog';
+    } else if (/(?:cat|kitten|kitty|feline|חתול|חתולה|גור חתולים)/i.test(lower)) {
+      draft.species = 'cat';
+    } else if (/(?:rabbit|bunny|ארנב|ארנבת)/i.test(lower)) {
+      draft.species = 'rabbit';
+    } else if (/(?:bird|parrot|תוכי)/i.test(lower)) {
+      draft.species = 'bird';
+    } else if (/(?:hamster|אוגר)/i.test(lower)) {
+      draft.species = 'hamster';
+    }
+
+    // Common Breeds
+    const knownBreeds = [
+      'Golden Retriever', 'Labrador', 'German Shepherd', 'French Bulldog', 'Bulldog',
+      'Poodle', 'Beagle', 'Rottweiler', 'Husky', 'Siberian Husky', 'Pomeranian',
+      'Chihuahua', 'Shih Tzu', 'Boxer', 'Dachshund', 'Border Collie', 'Corgi',
+      'Doberman', 'Great Dane', 'Pitbull', 'Maltese', 'Pug', 'Mastiff',
+      'Australian Shepherd', 'Cavalier', 'Bernese Mountain', 'Akita', 'Samoyed',
+      'Cane Corso', 'Maine Coon', 'Persian', 'Siamese', 'Bengal', 'Ragdoll',
+      'British Shorthair', 'Scottish Fold', 'Sphynx', 'Abyssinian', 'Russian Blue',
+      'Burmese', 'Norwegian Forest', 'Devon Rex', 'Tabby', 'Calico', 'Tuxedo', 'Mixed Breed'
+    ];
+    for (const b of knownBreeds) {
+      if (lower.includes(b.toLowerCase())) {
+        draft.breed = b;
+        if (!draft.species) {
+          draft.species = ['Maine Coon', 'Persian', 'Siamese', 'Bengal', 'Ragdoll', 'British Shorthair', 'Scottish Fold', 'Sphynx', 'Abyssinian', 'Russian Blue', 'Burmese', 'Norwegian Forest', 'Devon Rex', 'Tabby', 'Calico', 'Tuxedo'].includes(b) ? 'cat' : 'dog';
+        }
+        break;
+      }
+    }
+
+    // Name extraction
+    const nameMatch =
+      text.match(/(?:named|called|name is|name's|call (?:him|her)|שמו|שמה|קוראים לו|קוראים לה)\s+([A-Za-z\u0590-\u05FF]+)/i) ||
+      text.match(/(?:my (?:dog|cat|pet|puppy|kitten)|הכלב שלי|החתול שלי)\s+([A-Za-z\u0590-\u05FF]+)/i);
+
+    if (nameMatch && nameMatch[1]) {
+      const candidate = nameMatch[1].trim();
+      const forbidden = ['a', 'an', 'the', 'my', 'pet', 'dog', 'cat', 'puppy', 'kitten', 'good', 'boy', 'girl', 'great', 'new'];
+      if (!forbidden.includes(candidate.toLowerCase())) {
+        draft.name = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+      }
+    } else if (!draft.name && /^[A-Za-z\u0590-\u05FF]{2,15}$/.test(text.trim())) {
+      const candidate = text.trim();
+      const forbidden = ['dog', 'cat', 'pet', 'yes', 'no', 'male', 'female', 'boy', 'girl', 'puppy', 'kitten', 'none', 'hello', 'hi', 'hey', 'כלב', 'חתול', 'כן', 'לא'];
+      if (!forbidden.includes(candidate.toLowerCase())) {
+        draft.name = candidate.charAt(0).toUpperCase() + candidate.slice(1);
+      }
+    }
+
+    // Age extraction
+    const ageMatch =
+      text.match(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?|yr|y\.?o\.?|שנים|שנה)/i) ||
+      text.match(/(?:age|aged|בן|בת|age is)\s*(\d+)/i) ||
+      text.match(/(?:he is|she is|he's|she's|is)\s+(\d+)\b/i);
+    if (ageMatch && ageMatch[1]) {
+      draft.age = parseFloat(ageMatch[1]);
+    } else if (draft.age === undefined && /^\d+$/.test(text.trim())) {
+      const val = parseInt(text.trim(), 10);
+      if (val > 0 && val < 30) draft.age = val;
+    }
+
+    // Gender
+    if (/(?:male|boy|good boy|זכר|ילד)/i.test(lower)) {
+      draft.gender = 'male';
+    } else if (/(?:female|girl|good girl|נקבה|ילדה)/i.test(lower)) {
+      draft.gender = 'female';
+    }
+
+    // Weight
+    const weightMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|lbs?|ק"ג|קילו)/i);
+    if (weightMatch && weightMatch[1]) {
+      draft.weight = parseFloat(weightMatch[1]);
+    }
+
+    return draft;
+  }
+
   async processMessage(
     message: string,
     history: { role: string; content: string }[] = [],
@@ -211,6 +297,7 @@ export class ChatService {
     sessionId: string;
     memorySnapshot?: any;
     petCreated?: any;
+    petDraft?: any;
   }> {
     const activeSessionId =
       sessionId ||
@@ -319,7 +406,7 @@ export class ChatService {
                   role: 'model',
                   parts: [
                     {
-                      text: 'Understood. I will provide helpful, personalized veterinary pet care advice using the pet passport memory context.',
+                      text: 'Hey! Got it completely. I am your chill, friendly pet companion. I will chat warmly and naturally, help fill out pet profiles conversationally, never play doctor or diagnose illnesses, and only flag true life-threatening emergencies.',
                     },
                   ],
                 },
@@ -355,6 +442,8 @@ export class ChatService {
         }
       }
 
+      let petDraft: any = null;
+
       // 4. Extract pet setup JSON action if generated by Gemini
       const petSetupRegex =
         /```(?:json:pet_setup|pet_setup|json)?\s*(\{\s*"action"\s*:\s*"create_pet"[\s\S]*?\})\s*```/i;
@@ -377,6 +466,8 @@ export class ChatService {
               isArchived: false,
             };
           }
+          this.sessionPetDrafts.delete(activeSessionId);
+          petDraft = { ...petData, isComplete: true };
         } catch (err: any) {
           this.logger.warn(
             'Failed to parse or create pet from chat action:',
@@ -385,13 +476,102 @@ export class ChatService {
         }
       }
 
-      // 5. Rule-based diagnostic fallback if no Gemini text generated yet
-      if (!responseText) {
-        if (isEmergency) {
-          // Keep emergency message
-        } else {
+      // Extract in-progress pet draft if returned by Gemini
+      const draftMatch = responseText.match(
+        /```(?:json:pet_draft|pet_draft|json)?\s*(\{\s*"name"[\s\S]*?\})\s*```/i,
+      );
+      if (draftMatch && !petCreated) {
+        try {
+          petDraft = JSON.parse(draftMatch[1]);
+          responseText = responseText.replace(draftMatch[0], '').trim();
+          this.sessionPetDrafts.set(activeSessionId, petDraft);
+        } catch {}
+      }
+
+      // 5. Robust multi-turn conversational pet onboarding engine (runs when Gemini is offline or did not format)
+      if (!isEmergency) {
+        let draft =
+          this.sessionPetDrafts.get(activeSessionId) ||
+          userDoc?.aiChatSessions?.find((s) => s.sessionId === activeSessionId)
+            ?.petDraft ||
+          null;
+
+        const isHebrew = /[\u0590-\u05FF]/.test(message);
+        const isPetOnboardingTrigger =
+          /(?:setup (?:my|a) pet|add (?:my|a) pet|new pet|new dog|new cat|new puppy|new kitten|got a (?:new )?(?:dog|cat|puppy|kitten|pet)|adopted|register my pet|register a pet|להוסיף (?:כלב|חתול|חיה)|פתחתי כרטיס|חיה חדשה|אימצתי|גור חדש)/i.test(
+            message,
+          );
+
+        if (!petCreated && (isPetOnboardingTrigger || (draft && !draft.isComplete))) {
+          draft = this.extractPetInfoFromText(message, draft || {});
+          petDraft = draft;
+          this.sessionPetDrafts.set(activeSessionId, draft);
+
+          const hasName = Boolean(draft.name && draft.name.trim().length > 1);
+          const hasSpecies = Boolean(draft.species);
+          const hasAge = draft.age !== undefined && draft.age !== null;
+          const hasBreed = Boolean(
+            draft.breed &&
+              draft.breed !== 'Mixed' &&
+              draft.breed !== 'Mixed Breed',
+          );
+
+          if (!hasName) {
+            responseText = isHebrew
+              ? `איזה כיף! אשמח לעזור לך להקים את כרטיס הבריאות שלו ב-PetSOS 🐾 איך קוראים לו או לה?`
+              : `Aww, that's exciting! I'd love to help set up their official PetSOS Passport right here in our chat 🐾 What's their name?`;
+          } else if (!hasSpecies || (!hasBreed && draft.species === 'dog')) {
+            responseText = isHebrew
+              ? `איזה שם מקסים! ${draft.name} הוא כלב, חתול או חיה אחרת? ואיזה גזע הוא? 🐾`
+              : `Aww, ${draft.name} is such an awesome name! Are they a dog, a cat, or another furry buddy? And what breed are they? 🐾`;
+          } else if (!hasAge) {
+            responseText = isHebrew
+              ? `מגניב לגמרי! ובן כמה ${draft.name}? 🎂`
+              : `Love that! And how old is ${draft.name}? 🎂`;
+          } else {
+            // All essentials present! Create pet!
+            const petData = {
+              name: draft.name,
+              species: draft.species || 'dog',
+              breed: draft.breed || 'Mixed Breed',
+              age: draft.age,
+              weight: draft.weight || (draft.species === 'cat' ? 4 : 15),
+              gender: draft.gender || 'unknown',
+              allergies: draft.allergies || [],
+              medications: draft.medications || [],
+            };
+
+            try {
+              if (userId && userId !== 'guest-anonymous') {
+                petCreated = await this.petProfileService.create(
+                  petData,
+                  userId,
+                  userDoc?.name || 'Pet Parent',
+                );
+              } else {
+                petCreated = {
+                  ...petData,
+                  _id: `pet-preview-${Date.now()}`,
+                  petId: `PET-${Date.now().toString().slice(-6)}`,
+                  isArchived: false,
+                };
+              }
+              draft.isComplete = true;
+              petDraft = draft;
+              this.sessionPetDrafts.delete(activeSessionId);
+
+              responseText = isHebrew
+                ? `איזה כיף להכיר את ${draft.name}! 🐾\nהקמתי עבורכם את דרכון הבריאות הרשמי של ${draft.name} ב-PetSOS. תוכל לראות את הכרטיס שלו ממש כאן למטה, ולעדכן תמונות, חיסונים או משקל בכל עת דרך הפרופיל. איך ${draft.name} מרגיש היום?`
+                : `Aww, so wonderful to meet ${draft.name}! 🐾\nI've officially set up ${draft.name}'s PetSOS Passport for you! You can check out their interactive passport card right below, and manage vaccines, photos, or checkups anytime in your profile. How is ${draft.name} doing today?`;
+            } catch (createErr: any) {
+              this.logger.warn(
+                'Could not create pet in multi-turn onboarding:',
+                createErr?.message,
+              );
+            }
+          }
+        } else if (!responseText) {
           const lower = (message || '').toLowerCase();
-          const isHebrew = /[\u0590-\u05FF]/.test(message);
           const mentionsPetInfo =
             lower.includes('my pet') ||
             lower.includes('my cat') ||
@@ -401,76 +581,10 @@ export class ChatService {
             lower.includes('cats info') ||
             lower.includes('dogs info');
 
-          // Check if user is introducing or asking to set up their pet
-          const isPetSetupIntent =
-            /(?:my pet|my dog|my cat|i have a|add my|setup my|new pet|adopt|got a|כלב|חתול|חיה חדשה|להוסיף|פתחתי)/i.test(message);
-
-          if (isPetSetupIntent && !petCreated) {
-            let detectedSpecies = 'dog';
-            if (/(?:cat|kitten|חתול|חתולה)/i.test(message)) detectedSpecies = 'cat';
-            else if (/(?:rabbit|bunny|ארנב)/i.test(message)) detectedSpecies = 'rabbit';
-            else if (/(?:bird|parrot|תוכי)/i.test(message)) detectedSpecies = 'bird';
-
-            // Extract name if pattern matches "named <Name>", "called <Name>", "name is <Name>"
-            const nameMatch =
-              message.match(/(?:named|called|name is|שמו|שמה|קוראים לו|קוראים לה)\s+([A-Za-z\u0590-\u05FF]+)/i) ||
-              message.match(/(?:my (?:dog|cat|pet)|הכלב שלי|החתול שלי)\s+([A-Za-z\u0590-\u05FF]+)/i);
-            const petName = nameMatch ? nameMatch[1].trim() : '';
-
-            // Extract age if pattern matches "2 years old", "3 months", "age 4", etc.
-            const ageMatch = message.match(/(\d+)\s*(?:years?|yrs?|months?|שנים|חודשים|שנה)/i);
-            const petAge = ageMatch ? parseInt(ageMatch[1], 10) : 2;
-
-            // Extract breed if common breed mentioned
-            let petBreed = 'Mixed';
-            const breeds = ['Golden Retriever', 'Labrador', 'German Shepherd', 'Bulldog', 'Poodle', 'Beagle', 'Husky', 'Maine Coon', 'Persian', 'Siamese', 'Ragdoll', 'Bengal', 'British Shorthair', 'Sphynx'];
-            for (const b of breeds) {
-              if (lower.includes(b.toLowerCase())) {
-                petBreed = b;
-                break;
-              }
-            }
-
-            if (petName) {
-              try {
-                const petData = {
-                  name: petName,
-                  species: detectedSpecies,
-                  breed: petBreed,
-                  age: petAge,
-                  weight: detectedSpecies === 'cat' ? 4 : 16,
-                  gender: 'unknown',
-                  allergies: [],
-                  medications: [],
-                };
-                if (userId && userId !== 'guest-anonymous') {
-                  petCreated = await this.petProfileService.create(
-                    petData,
-                    userId,
-                    userDoc?.name || 'Pet Parent',
-                  );
-                } else {
-                  petCreated = {
-                    ...petData,
-                    _id: `pet-preview-${Date.now()}`,
-                    petId: `PET-${Date.now().toString().slice(-6)}`,
-                    isArchived: false,
-                  };
-                }
-
-                responseText = isHebrew
-                  ? `איזה כיף להכיר את ${petName}! 🐾\nהקמתי עבורכם את דרכון הבריאות הרשמי של ${petName} ב-PetSOS. תוכל לראות את הכרטיס שלו ממש כאן למטה, ולעדכן תמונות, חיסונים או משקל בכל עת דרך הפרופיל. איך ${petName} מרגיש היום?`
-                  : `Aww, so wonderful to meet ${petName}! 🐾\nI've officially set up ${petName}'s PetSOS Passport for you! You can check out their interactive passport card right below, and manage vaccines, photos, or checkups anytime in your profile. How is ${petName} doing today?`;
-              } catch (e: any) {
-                this.logger.warn('Could not auto-create pet from conversational prompt:', e?.message);
-              }
-            } else {
-              responseText = isHebrew
-                ? `איזה יופי! אשמח לעזור לך לפתוח עבורו כרטיס בריאות ב-PetSOS 🐾\nאיך קוראים לו, ואיזה גזע ובן כמה הוא? פשוט ספר לי ואני אדאג לרשום הכל!`
-                : `Aww that's exciting! I'd love to help set up their official PetSOS Passport right here in our chat 🐾\nWhat's their name, and what breed and age are they? Just tell me and I'll fill in the details!`;
-            }
-          } else if (mentionsPetInfo && dynamicRAGContext.length > 0) {
-            const cleanInfo = dynamicRAGContext.replace(/USER'S.*:\n/g, '').trim();
+          if (mentionsPetInfo && dynamicRAGContext.length > 0) {
+            const cleanInfo = dynamicRAGContext
+              .replace(/USER'S.*:\n/g, '')
+              .trim();
             responseText = `🐾 **Yes, I can see your pet's information!**\n\nHere is what I have registered in your pet profile:\n${cleanInfo}\n\nHow can I help you take care of them today?`;
           } else {
             const smartDiag = this.generateSmartDiagnosticResponse(message);
@@ -518,6 +632,7 @@ export class ChatService {
           });
 
           session.lastActiveAt = new Date();
+          session.petDraft = petDraft || null;
 
           // Auto-learn pet memory from turn
           if (!userDoc.aiMemory) {
@@ -567,6 +682,7 @@ export class ChatService {
         sessionId: activeSessionId,
         memorySnapshot: userDoc?.aiMemory,
         petCreated,
+        petDraft,
       };
     } catch (err: any) {
       return {
