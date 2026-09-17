@@ -142,6 +142,7 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "project_id=" + proj + "\n");
             fs.appendFileSync(process.env.GITHUB_ENV, "GCP_PROJECT_ID=" + proj + "\n");
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "### Detected GCP Project ID: `" + proj + "`\n");
+            console.log("::notice title=Detected Project ID::" + proj);
             try { cp.execSync("gcloud config set project " + proj, { stdio: "inherit" }); } catch (e) {}
           '
 
@@ -152,19 +153,23 @@ jobs:
           PROJ="${{ steps.detect-project.outputs.project_id }}"
           [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           echo "Active project: $PROJ"
-          echo "Existing repositories in project $PROJ:"
-          gcloud artifacts repositories list --project="$PROJ" || true
+          echo "::notice title=Active Project::$PROJ"
+          REPOS=$(gcloud artifacts repositories list --project="$PROJ" --format='value(name)' 2>&1 | tr '\n' ', ' || true)
+          echo "::notice title=Existing Repositories::$REPOS"
 
           echo "Verifying Artifact Registry repository ${{ env.GAR_REPO }} in ${{ env.REGION }}..."
-          gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --project="$PROJ" --quiet 2>&1
+          DESC_OUT=$(gcloud artifacts repositories describe ${{ env.GAR_REPO }} --location=${{ env.REGION }} --project="$PROJ" 2>&1)
           if [ $? -ne 0 ]; then
+            echo "::notice title=Creating Repo::$DESC_OUT"
             echo "Creating repository ${{ env.GAR_REPO }} in ${{ env.REGION }}..."
-            gcloud artifacts repositories create ${{ env.GAR_REPO }} \
+            CREATE_OUT=$(gcloud artifacts repositories create ${{ env.GAR_REPO }} \
               --repository-format=docker \
               --location=${{ env.REGION }} \
               --project="$PROJ" \
-              --description="PetSOS Production Docker Images" \
-              --quiet 2>&1 || true
+              --description="PetSOS Production Docker Images" 2>&1 || true)
+            echo "::notice title=Create Result::$CREATE_OUT"
+          else
+            echo "::notice title=Repo Status::Repository ${{ env.GAR_REPO }} exists"
           fi
           exit 0
 
@@ -175,7 +180,8 @@ jobs:
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet 2>&1 || true
           TOKEN="$(gcloud auth print-access-token 2>/dev/null || true)"
           if [ -n "$TOKEN" ]; then
-            echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" || true
+            AUTH_RES=$(echo "$TOKEN" | docker login -u oauth2accesstoken --password-stdin "https://${{ env.REGION }}-docker.pkg.dev" 2>&1 || true)
+            echo "::notice title=Docker Login::$AUTH_RES"
           fi
           exit 0
 
@@ -196,11 +202,8 @@ jobs:
           docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend 2>&1 | tee /tmp/build_backend.log
           BUILD_CODE=${PIPESTATUS[0]}
           if [ $BUILD_CODE -ne 0 ]; then
-            echo "::error::Docker build failed with code $BUILD_CODE"
-            echo "### Docker Build Failed" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/build_backend.log | tail -n 60 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            BUILD_ERR=$(tail -n 5 /tmp/build_backend.log | tr '\n' ' | ')
+            echo "::error title=Docker Build Failed::$BUILD_ERR"
             exit $BUILD_CODE
           fi
 
@@ -208,11 +211,8 @@ jobs:
           docker push "$IMAGE_TAG" 2>&1 | tee /tmp/push_backend.log
           PUSH_CODE=${PIPESTATUS[0]}
           if [ $PUSH_CODE -ne 0 ]; then
-            echo "::error::Docker push failed with code $PUSH_CODE"
-            echo "### Docker Push Failed" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/push_backend.log | tail -n 60 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            PUSH_ERR=$(tail -n 8 /tmp/push_backend.log | tr '\n' ' | ')
+            echo "::error title=Docker Push Failed::$PUSH_ERR"
             exit $PUSH_CODE
           fi
 
