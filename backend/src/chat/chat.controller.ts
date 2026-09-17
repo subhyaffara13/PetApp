@@ -17,6 +17,8 @@ export class ChatMessageDto {
   history?: { role: string; content: string }[];
   petProfileId?: string;
   sessionId?: string;
+  petContext?: string;
+  userId?: string;
   image?: {
     data: string; // base64 string
     mimeType: string;
@@ -28,17 +30,25 @@ export class ChatMessageDto {
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post('message')
+  @Post(['message', ''])
   async sendMessage(@Body() dto: ChatMessageDto, @Req() req: any) {
-    const userId = req.user?.id || req.user?.sub;
-    return this.chatService.processMessage(
+    const userId = req.user?.id || req.user?.sub || dto.userId;
+    const result = await this.chatService.processMessage(
       dto.message,
       dto.history || [],
       dto.petProfileId,
       dto.image,
       userId,
       dto.sessionId,
+      dto.petContext,
     );
+
+    return {
+      ...result,
+      reply: result.message,
+      isEmergency: result.emergency,
+      memory: result.memorySnapshot,
+    };
   }
 
   @Get('sessions')

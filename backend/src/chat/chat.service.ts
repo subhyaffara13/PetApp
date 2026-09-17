@@ -183,6 +183,7 @@ export class ChatService {
     image?: { data: string; mimeType: string },
     userId?: string,
     sessionId?: string,
+    petContext?: string,
   ): Promise<{
     message: string;
     emergency: boolean;
@@ -274,6 +275,10 @@ export class ChatService {
         }
       }
 
+      if (petContext) {
+        dynamicRAGContext += `\n\nUSER'S ACTIVE PET CONTEXT:\n${petContext}`;
+      }
+
       const fullSystemPrompt = SYSTEM_PROMPT + dynamicRAGContext;
 
       // 3. Try calling Google Gemini AI (if not emergency)
@@ -332,9 +337,24 @@ export class ChatService {
         if (isEmergency) {
           // Keep emergency message
         } else {
-          const smartDiag = this.generateSmartDiagnosticResponse(message);
-          responseText = smartDiag.message;
-          isEmergency = smartDiag.emergency;
+          const lower = (message || '').toLowerCase();
+          const mentionsPetInfo =
+            lower.includes('my pet') ||
+            lower.includes('my cat') ||
+            lower.includes('my dog') ||
+            lower.includes('see my') ||
+            lower.includes('pet info') ||
+            lower.includes('cats info') ||
+            lower.includes('dogs info');
+
+          if (mentionsPetInfo && dynamicRAGContext.length > 0) {
+            const cleanInfo = dynamicRAGContext.replace(/USER'S.*:\n/g, '').trim();
+            responseText = `🐾 **Yes, I can see your pet's information!**\n\nHere is what I have registered in your pet profile:\n${cleanInfo}\n\nHow can I help you take care of them today?`;
+          } else {
+            const smartDiag = this.generateSmartDiagnosticResponse(message);
+            responseText = smartDiag.message;
+            isEmergency = smartDiag.emergency;
+          }
         }
       }
 

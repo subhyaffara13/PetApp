@@ -104,21 +104,49 @@ export const ChatPage = () => {
 
     try {
       const petContext = userPets.length > 0 ? userPets.map((p) => `${p.name} (${p.species}, ${p.breed}, ${p.age}y)`).join('; ') : undefined;
-      const res = await axios.post(`${API_URL}/chat`, {
+      const payload = {
         message: text,
         history: messages,
         petContext,
         sessionId: currentThreadId,
         userId: user?.id,
-      });
+        image: attachment ? { data: attachment.url.split(',')[1] || attachment.url, mimeType: attachment.type } : undefined,
+      };
 
-      if (res.data?.memory) {
-        setAiMemory(res.data.memory);
+      let res;
+      try {
+        res = await axios.post(`${API_URL}/chat/message`, payload);
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          res = await axios.post(`${API_URL}/chat`, payload);
+        } else {
+          throw err;
+        }
       }
 
-      const botMsg: ChatMessage = { id: `bot-${Date.now()}`, role: 'assistant', content: res.data.reply, timestamp: Date.now(), isEmergency: res.data.isEmergency };
-      if (res.data.isEmergency) { setEmergencyTriggered(true); setEmergencyMessage(text); }
-      setThreads((prev) => prev.map((t) => (t.id === currentThreadId ? { ...t, updatedAt: Date.now(), messages: [...t.messages, botMsg] } : t)));
+      if (res.data?.memory || res.data?.memorySnapshot) {
+        setAiMemory(res.data.memory || res.data.memorySnapshot);
+      }
+
+      const reply = res.data?.reply || res.data?.message || "I am here to help!";
+      const isEmerg = !!(res.data?.isEmergency || res.data?.emergency);
+
+      const botMsg: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        role: 'assistant',
+        content: reply,
+        timestamp: Date.now(),
+        isEmergency: isEmerg,
+      };
+      if (isEmerg) {
+        setEmergencyTriggered(true);
+        setEmergencyMessage(text);
+      }
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === currentThreadId ? { ...t, updatedAt: Date.now(), messages: [...t.messages, botMsg] } : t
+        )
+      );
     } catch {
       const fallback: ChatMessage = { id: `err-${Date.now()}`, role: 'assistant', content: "I'm having trouble connecting to PetSOS AI right now. Please seek a vet if urgent.", timestamp: Date.now() };
       setThreads((prev) => prev.map((t) => (t.id === currentThreadId ? { ...t, updatedAt: Date.now(), messages: [...t.messages, fallback] } : t)));
