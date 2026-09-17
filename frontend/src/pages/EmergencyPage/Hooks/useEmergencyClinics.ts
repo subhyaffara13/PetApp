@@ -21,16 +21,36 @@ export function useEmergencyClinics(currentLang: string, cityName: string) {
         });
 
         if (response.data && Array.isArray(response.data)) {
-          const transformed: Clinic[] = response.data.map((item) => {
-            const openingHours = item.openingHours || item.hours || (item.isOpenNow ? 'Open 24/7' : 'Hours Unavailable');
+          const transformed = response.data.map((item: any) => {
+            const nameLower = (item.name || '').toLowerCase();
+            const is24HourER =
+              Boolean(item.is24HourER) ||
+              nameLower.includes('emergency') ||
+              nameLower.includes('er') ||
+              nameLower.includes('24/7') ||
+              nameLower.includes('24 שעות') ||
+              nameLower.includes('מיון') ||
+              nameLower.includes('חירום') ||
+              nameLower.includes('בית חולים');
+
             const openNow = isPlaceOpenNow({
-              openingHours,
+              openingHours: item.openingHours,
               isOpenNow: item.isOpenNow,
               isDeclaredOpen: item.isDeclaredOpen,
               portalStatusOverride: item.portalStatusOverride,
               capacityStatus: item.capacityStatus,
               isClaimed: item.isClaimed,
+              is24HourER,
+              name: item.name,
             });
+
+            const openingHours =
+              item.openingHours ||
+              (is24HourER
+                ? 'Open 24/7 Emergency Care'
+                : openNow
+                  ? 'Sun-Thu 08:30-19:30 • Open Now'
+                  : 'Sun-Thu 08:30-19:30 • Closed Tonight');
 
             return {
               id: String(item.id || item._id),

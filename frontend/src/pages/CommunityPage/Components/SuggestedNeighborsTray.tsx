@@ -20,8 +20,29 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
   const fetchSuggestions = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get<UserProfileData[]>(`${API_URL}/community/suggestions`);
-      setSuggestions(res.data || []);
+      const res = await axios.get<UserProfileData[]>(`${API_URL}/community/suggestions`, {
+        params: { userId: authUser?.id },
+      });
+      const currentUserId = authUser?.id || (authUser as any)?._id || '';
+      const currentUserEmail = (authUser?.email || '').toLowerCase();
+      const currentUserName = (authUser?.name || '').toLowerCase();
+      const currentUserHandle = (authUser?.handle || (authUser?.email ? `@${authUser.email.split('@')[0]}` : '')).toLowerCase().replace(/^@/, '');
+
+      const filtered = (res.data || []).filter((u) => {
+        const uId = String(u.id || (u as any)._id || '');
+        const uEmail = ((u as any).email || (u as any).userEmail || '').toLowerCase();
+        const uName = (u.name || '').toLowerCase();
+        const uHandle = (u.handle || '').toLowerCase().replace(/^@/, '');
+
+        const isSelf = Boolean(
+          (currentUserId && uId === currentUserId) ||
+          (currentUserEmail && uEmail && currentUserEmail === uEmail) ||
+          (currentUserName && uName && currentUserName === uName) ||
+          (currentUserHandle && uHandle && currentUserHandle === uHandle)
+        );
+        return !isSelf;
+      });
+      setSuggestions(filtered);
     } catch (err) {
       console.error('Failed to load suggestions', err);
     } finally {
@@ -38,6 +59,12 @@ export const SuggestedNeighborsTray: React.FC<SuggestedNeighborsTrayProps> = ({ 
     if (!isAuthenticated) {
       showToast('Please sign in to follow neighbors', 'info', '🔒 Sign In Required');
       openAuthModal('/community');
+      return;
+    }
+
+    const currentUserId = authUser?.id || (authUser as any)?._id || '';
+    if (user.id === currentUserId || user.name.toLowerCase() === (authUser?.name || '').toLowerCase()) {
+      showToast('You cannot follow yourself.', 'info', 'Notice');
       return;
     }
 

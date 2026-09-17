@@ -137,6 +137,7 @@ export const ChatPage = () => {
         content: reply,
         timestamp: Date.now(),
         isEmergency: isEmerg,
+        petCreated: res.data?.petCreated,
       };
       if (isEmerg) {
         setEmergencyTriggered(true);

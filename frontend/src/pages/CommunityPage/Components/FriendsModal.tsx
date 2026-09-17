@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserCheck, UserPlus } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 import type { UserProfileData } from './SocialProfileBar';
 
 interface FriendsModalProps {
@@ -15,7 +16,11 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
   onClose,
   onToggleFollow,
 }) => {
+  const { user: authUser } = useAuth();
   if (!isOpen) return null;
+
+  const currentUserId = authUser?.id || (authUser as any)?._id || '';
+  const currentUserName = (authUser?.name || '').toLowerCase();
 
   return (
     <div className="modal-overlay animate-fade-in" onClick={onClose}>
@@ -29,7 +34,9 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
             Connect with local dog walkers, cat parents, and veterinary professionals in Haifa.
           </p>
           <div className="friends-list">
-            {users.filter((u) => u.id !== 'current-user').map((user) => (
+            {users
+              .filter((u) => u.id !== 'current-user' && u.id !== currentUserId && u.name.toLowerCase() !== currentUserName)
+              .map((user) => (
               <div key={user.id} className="friend-card-row">
                 <div className="friend-left-info">
                   <img src={user.avatar} alt={user.name} className="friend-avatar" />

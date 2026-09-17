@@ -5,6 +5,9 @@ export interface PlaceOpenStatusInput {
   portalStatusOverride?: 'open' | 'closed' | 'schedule';
   capacityStatus?: string;
   isClaimed?: boolean;
+  is24HourER?: boolean;
+  name?: string;
+  isShop?: boolean;
 }
 
 const DAY_MAP: Record<string, number> = {
@@ -177,9 +180,38 @@ export function isPlaceOpenNow(
     return false;
   }
 
-  if (place.openingHours) {
+  const currentHour = referenceDate.getHours();
+  const isNightTime = currentHour >= 20 || currentHour < 8;
+
+  if (place.isShop && isNightTime) {
+    return false;
+  }
+
+  const lowerHours = (place.openingHours || '').toLowerCase();
+  const lowerName = (place.name || '').toLowerCase();
+
+  const is24HourEmergency =
+    place.is24HourER ||
+    lowerHours.includes('24/7') ||
+    lowerHours.includes('24 hours') ||
+    lowerName.includes('emergency') ||
+    lowerName.includes('24/7') ||
+    lowerName.includes('מיון') ||
+    lowerName.includes('חירום') ||
+    lowerName.includes('בית חולים') ||
+    lowerName.includes('hospital');
+
+  if (is24HourEmergency) {
+    return true;
+  }
+
+  if (place.openingHours && !lowerHours.includes('open 24/7')) {
     return isWithinWorkingHours(place.openingHours, referenceDate);
   }
 
-  return place.isOpenNow ?? true;
+  if (isNightTime) {
+    return false;
+  }
+
+  return place.isOpenNow ?? false;
 }

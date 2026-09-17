@@ -99,7 +99,7 @@ export class CommunityController {
     @Query('lon') lon?: string,
     @Req() req?: any,
   ) {
-    const currentUserId = req?.user?.id;
+    const currentUserId = req?.user?.id || req?.query?.userId;
     return this.communityService.getSuggestedUsers(
       currentUserId,
       lat ? parseFloat(lat) : 32.8012,

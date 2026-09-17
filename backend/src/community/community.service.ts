@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -698,6 +699,10 @@ export class CommunityService {
     targetUser: UserProfileResponse;
     currentUser: UserProfileResponse;
   }> {
+    if (targetUserId === currentUserId) {
+      throw new BadRequestException('You cannot follow your own profile');
+    }
+
     const target = await this.userModel.findById(targetUserId).exec();
     const curr = await this.userModel.findById(currentUserId).exec();
 

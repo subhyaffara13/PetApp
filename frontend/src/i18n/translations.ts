@@ -126,6 +126,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Pickup Only',
     'market.info_only': 'ℹ️ Info Only',
     'market.cart': 'Cart',
+    'market.call_shop': 'Call Shop',
   },
   he: {
     'nav.emergency': 'חירום',
@@ -226,6 +227,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'איסוף בלבד',
     'market.info_only': 'ℹ️ למידע בלבד',
     'market.cart': 'עגלת קניות',
+    'market.call_shop': 'חייג לחנות',
   },
   ar: {
     'nav.emergency': 'الطوارئ',
@@ -326,6 +328,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'استلام فقط',
     'market.info_only': 'ℹ️ للعلم فقط',
     'market.cart': 'سلة المشتريات',
+    'market.call_shop': 'اتصال بالمتجر',
   },
   ru: {
     'nav.emergency': 'Экстренно',
@@ -426,6 +429,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Только самовывоз',
     'market.info_only': 'ℹ️ Только справка',
     'market.cart': 'Корзина',
+    'market.call_shop': 'Позвонить в магазин',
   },
   fr: {
     'nav.emergency': 'Urgences',
@@ -526,6 +530,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Retrait uniquement',
     'market.info_only': 'ℹ️ Info uniquement',
     'market.cart': 'Panier',
+    'market.call_shop': 'Appeler la boutique',
   },
   es: {
     'nav.emergency': 'Urgencias',
@@ -626,6 +631,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Solo recogida',
     'market.info_only': 'ℹ️ Solo información',
     'market.cart': 'Carrito',
+    'market.call_shop': 'Llamar a la tienda',
   },
   de: {
     'nav.emergency': 'Notfall',
@@ -726,6 +732,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Nur Abholung',
     'market.info_only': 'ℹ️ Nur Info',
     'market.cart': 'Warenkorb',
+    'market.call_shop': 'Geschäft anrufen',
   },
   it: {
     'nav.emergency': 'Emergenza',
@@ -826,6 +833,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Solo ritiro',
     'market.info_only': 'ℹ️ Solo info',
     'market.cart': 'Carrello',
+    'market.call_shop': 'Chiama negozio',
   },
   pt: {
     'nav.emergency': 'Emergência',
@@ -926,5 +934,6 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'market.tag_pickup_only': 'Apenas retirada',
     'market.info_only': 'ℹ️ Apenas informativo',
     'market.cart': 'Carrinho',
+    'market.call_shop': 'Ligar para loja',
   },
 };

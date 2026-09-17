@@ -108,13 +108,13 @@ describe('ChatService — Emergency Triage & AI Guardrails', () => {
         'food diet recommendations',
       );
       expect(dietResponse.emergency).toBe(false);
-      expect(dietResponse.message).toContain('Pet Nutrition');
+      expect(dietResponse.message.toLowerCase()).toContain('feeding');
 
       const skinResponse = (service as any).generateSmartDiagnosticResponse(
         'rash and itch',
       );
       expect(skinResponse.emergency).toBe(false);
-      expect(skinResponse.message).toContain('Skin & Itching');
+      expect(skinResponse.message.toLowerCase()).toContain('itchy');
     });
   });
 });

@@ -143,6 +143,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   isEmergency?: boolean;
+  petCreated?: any;
 }
 
 export interface ChatThread {
@@ -166,6 +167,7 @@ export interface PetShop {
   rating?: number;
   isRegistered: boolean; // true = monetized partner, false = API backfill
   isClaimed?: boolean;
+  hasPortalUser?: boolean;
   isOpen?: boolean;
   deliveryAvailable: boolean;
   pickupOnly: boolean;

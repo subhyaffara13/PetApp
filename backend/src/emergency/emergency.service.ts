@@ -329,9 +329,27 @@ export class EmergencyService {
 
                 // Only include if within 60km of searched location
                 if (distKm <= 60) {
-                  const isOpen = place.opening_hours
-                    ? place.opening_hours.open_now
-                    : true;
+                  const nameLower = (place.name || '').toLowerCase();
+                  const is24HourER =
+                    nameLower.includes('emergency') ||
+                    nameLower.includes('er') ||
+                    nameLower.includes('24/7') ||
+                    nameLower.includes('24 שעות') ||
+                    nameLower.includes('מיון') ||
+                    nameLower.includes('חירום') ||
+                    nameLower.includes('בית חולים') ||
+                    nameLower.includes('hospital');
+
+                  const currentHour = new Date().getHours();
+                  const isNight = currentHour >= 20 || currentHour < 8;
+                  const isOpen = is24HourER
+                    ? true
+                    : isNight
+                      ? false
+                      : place.opening_hours
+                        ? place.opening_hours.open_now
+                        : true;
+
                   placesMap.set(place.place_id, {
                     id: place.place_id,
                     name: place.name,
@@ -340,9 +358,12 @@ export class EmergencyService {
                       place.formatted_address ||
                       `${country || 'City'} Veterinary Service`,
                     isOpenNow: isOpen,
-                    openingHours: isOpen
+                    is24HourER,
+                    openingHours: is24HourER
                       ? 'Open 24/7 Emergency Care'
-                      : 'Check Open Hours',
+                      : isOpen
+                        ? 'Sun-Thu 08:30-19:30 • Open Now'
+                        : 'Sun-Thu 08:30-19:30 • Closed Tonight',
                     location: placeLoc,
                     phone: null,
                     tier:

@@ -5,6 +5,7 @@ import {
   Sparkles, Heart, MessageSquare, Video, Loader2
 } from 'lucide-react';
 import { API_URL } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 import { VerificationBadge } from '../VerificationBadge/VerificationBadge';
 import './PublicUserProfileModal.css';
 
@@ -64,10 +65,20 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
   onOpenDirectMessage,
   onSelectPost,
 }) => {
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [selectedPet, setSelectedPet] = useState<PublicPetSummary | null>(null);
+
+  const isSelf = Boolean(
+    currentUser &&
+    (userId === currentUser.id ||
+     userId === (currentUser as any)._id ||
+     (profile?.id && profile.id === currentUser.id) ||
+     (profile?.name && profile.name.toLowerCase() === currentUser.name?.toLowerCase()) ||
+     (profile?.handle && currentUser.handle && profile.handle.toLowerCase().replace(/^@/, '') === currentUser.handle.toLowerCase().replace(/^@/, '')))
+  );
 
   useEffect(() => {
     if (!isOpen || !userId) return;
@@ -214,33 +225,54 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
 
               {/* Action Buttons */}
               <div className="profile-actions-row">
-                <button
-                  type="button"
-                  className={`profile-btn-follow ${isFollowing ? 'profile-btn-follow--following' : ''}`}
-                  onClick={handleToggleFollow}
-                >
-                  {isFollowing ? (
-                    <>
-                      <UserCheck size={16} /> Following
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={16} /> Follow
-                    </>
-                  )}
-                </button>
-
-                {onOpenDirectMessage && (
-                  <button
-                    type="button"
-                    className="profile-btn-dm"
-                    onClick={() => {
-                      onOpenDirectMessage(userId, displayName);
-                      onClose();
+                {isSelf ? (
+                  <span
+                    style={{
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      padding: '0.45rem 1.25rem',
+                      borderRadius: '999px',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
                     }}
                   >
-                    <MessageCircle size={16} /> Message
-                  </button>
+                    🐾 Your Profile
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={`profile-btn-follow ${isFollowing ? 'profile-btn-follow--following' : ''}`}
+                      onClick={handleToggleFollow}
+                    >
+                      {isFollowing ? (
+                        <>
+                          <UserCheck size={16} /> Following
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus size={16} /> Follow
+                        </>
+                      )}
+                    </button>
+
+                    {onOpenDirectMessage && (
+                      <button
+                        type="button"
+                        className="profile-btn-dm"
+                        onClick={() => {
+                          onOpenDirectMessage(userId, displayName);
+                          onClose();
+                        }}
+                      >
+                        <MessageCircle size={16} /> Message
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 

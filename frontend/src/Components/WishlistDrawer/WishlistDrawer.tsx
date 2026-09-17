@@ -65,30 +65,61 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
           ) : (
             <div className="wishlist-stores-list">
               {Object.values(groupedByStore).map((group) => (
-                <div key={group.shopId} className="wishlist-store-group card" style={{ marginBottom: '1rem', padding: '0.75rem' }}>
+                <div key={group.shopId} className="wishlist-store-group card" style={{ marginBottom: '1.25rem', padding: '0.85rem', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+                  {/* Prominent Store Header Divider */}
                   <div
                     className="wishlist-store-header"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      borderBottom: '1px solid var(--color-border)',
-                      paddingBottom: '0.5rem',
-                      marginBottom: '0.65rem',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      marginBottom: '0.85rem',
                       cursor: 'pointer',
                     }}
                     onClick={() => {
                       onClose();
                       onSelectShop?.(group.shopId);
                     }}
+                    title={`View ${group.shopName} in shop directory`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Store size={15} color="var(--color-primary)" />
-                      <strong style={{ fontSize: '0.85rem' }}>{group.shopName}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: 26, height: 26, borderRadius: '6px', background: 'rgba(56, 189, 248, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Store size={14} color="var(--color-primary, #38bdf8)" />
+                      </div>
+                      <div>
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--color-text-primary)' }}>{group.shopName}</strong>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginLeft: '0.4rem' }}>
+                          ({group.items.length} {group.items.length === 1 ? 'item' : 'items'})
+                        </span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <button
+                      type="button"
+                      style={{
+                        background: 'var(--color-primary, #2563eb)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                        onSelectShop?.(group.shopId);
+                      }}
+                    >
                       Visit Shop <ArrowRight size={12} />
-                    </span>
+                    </button>
                   </div>
 
                   <div className="wishlist-items-list">

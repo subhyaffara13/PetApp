@@ -10,26 +10,26 @@ export const CoParentRoleSelector: React.FC<CoParentRoleSelectorProps> = ({
   setSelectedRole,
 }) => {
   return (
-    <div className="role-selection-group">
-      <label>Care Role & Access Level</label>
-      <div className="role-pills-row">
+    <div className="invite-field-group">
+      <label className="invite-field-label">Care Role & Access Level</label>
+      <div className="invite-role-selector">
         <button
           type="button"
-          className={`role-pill-btn ${selectedRole === 'co_parent' ? 'active' : ''}`}
+          className={`role-choice-pill ${selectedRole === 'co_parent' ? 'active' : ''}`}
           onClick={() => setSelectedRole('co_parent')}
         >
           🤝 Co-Parent (Full Access)
         </button>
         <button
           type="button"
-          className={`role-pill-btn ${selectedRole === 'family_member' ? 'active' : ''}`}
+          className={`role-choice-pill ${selectedRole === 'family_member' ? 'active' : ''}`}
           onClick={() => setSelectedRole('family_member')}
         >
           🏡 Family Household
         </button>
         <button
           type="button"
-          className={`role-pill-btn ${selectedRole === 'caretaker' ? 'active' : ''}`}
+          className={`role-choice-pill ${selectedRole === 'caretaker' ? 'active' : ''}`}
           onClick={() => setSelectedRole('caretaker')}
         >
           🐕 Sitter / Caretaker

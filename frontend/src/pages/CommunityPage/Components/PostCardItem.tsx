@@ -52,13 +52,25 @@ export const PostCardItem: React.FC<PostCardItemProps> = ({
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  const currentUserId = user?.id || 'current-user';
+  const currentUserId = user?.id || (user as any)?._id || '';
+  const currentUserEmail = (user?.email || '').toLowerCase();
+  const currentUserName = (user?.name || '').toLowerCase();
+  const currentUserHandle = (user?.handle || (user?.email ? `@${user.email.split('@')[0]}` : '')).toLowerCase().replace(/^@/, '');
+
   const isLiked = post.likedBy?.includes(currentUserId) || (user?.id ? post.likedBy?.includes(user.id) : false);
-  const authorId = (post as any).authorId || post._id;
-  const isOwnPost = authorId === currentUserId || !post.likedBy;
-  const authorName = (post as any).authorName || 'Pet Parent';
+  const authorId = String((post as any).authorId || (post as any).author?._id || (post as any).author?.id || post._id || '');
+  const authorName = (post as any).authorName || (post as any).author?.name || 'Pet Parent';
+  const authorEmail = ((post as any).authorEmail || (post as any).author?.email || '').toLowerCase();
+  const authorHandle = ((post as any).authorHandle || (post as any).author?.handle || authorName).toLowerCase().replace(/^@/, '');
   const authorAvatar = (post as any).authorAvatar || post.petAvatar;
   const isFollowing = (post as any).isFollowing;
+
+  const isOwnPost = Boolean(
+    (currentUserId && (authorId === currentUserId || authorId === (user as any)?._id)) ||
+    (currentUserEmail && authorEmail && currentUserEmail === authorEmail) ||
+    (currentUserName && authorName && currentUserName === authorName.toLowerCase()) ||
+    (currentUserHandle && authorHandle && currentUserHandle === authorHandle)
+  );
 
   return (
     <article className="feed-post-card card animate-slide-up" id={`post-${post._id}`}>

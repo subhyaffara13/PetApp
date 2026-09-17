@@ -14,6 +14,7 @@ export interface EmergencyClinicResult {
   portalStatusOverride?: 'open' | 'closed' | 'schedule';
   practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
   isMobileVet?: boolean;
+  is24HourER?: boolean;
   isLiveLocation?: boolean;
   heading?: number;
   speed?: number;

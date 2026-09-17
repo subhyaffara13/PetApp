@@ -209,7 +209,8 @@ export const MarketplacePage = () => {
               name: item.name,
               price: item.price,
               category: item.category || 'General',
-              shopId: item.shopId,
+              shopId: item.shopId || activeCatalogShop._id || activeCatalogShop.id,
+              shopName: activeCatalogShop.name,
             };
             setWishlist((prev) =>
               prev.some((w) => w._id === wItem._id)
@@ -254,6 +255,15 @@ export const MarketplacePage = () => {
             };
             setCartItems((prev) => [...prev, { product, quantity: 1 }]);
             showToast(`Added ${item.name} to cart!`, 'success');
+          }}
+          onSelectShop={(shopId: string) => {
+            const foundShop = shops.find((s) => (s._id || s.id) === shopId);
+            if (foundShop) {
+              setSelectedShop(foundShop);
+              if (foundShop.hasPortalUser || (foundShop.isClaimed && foundShop.isRegistered)) {
+                setActiveCatalogShop(foundShop);
+              }
+            }
           }}
         />
       )}

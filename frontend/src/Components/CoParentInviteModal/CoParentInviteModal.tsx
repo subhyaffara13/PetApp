@@ -88,47 +88,53 @@ export const CoParentInviteModal: React.FC<CoParentInviteModalProps> = ({
       <div className="invite-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="invite-modal-header">
           <div className="invite-title-group">
-            <UserPlus size={20} color="#38bdf8" />
+            <div className="invite-header-icon">
+              <UserPlus size={20} color="#38bdf8" />
+            </div>
             <div>
-              <h3>Invite Co-Parent or Household</h3>
-              <p className="invite-subtitle">Share <strong>{pet.name}</strong>'s health passport & emergency access</p>
+              <h3 className="invite-heading">Invite Co-Parent or Household</h3>
+              <p className="invite-subheading">Share <strong>{pet.name}</strong>'s health passport & emergency access</p>
             </div>
           </div>
-          <button className="btn-close-modal" onClick={onClose}><X size={18} /></button>
+          <button className="invite-close-btn" onClick={onClose} aria-label="Close modal"><X size={18} /></button>
         </div>
 
-        <div className="invite-rules-banner">
-          <Clock size={15} color="#38bdf8" />
-          <span>Invitations expire after <strong>24 hours</strong>. Max 15 invites per day to prevent spam.</span>
-        </div>
+        <div className="invite-modal-body">
+          <div className="invite-rules-banner" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', color: 'var(--color-text-secondary, #94a3b8)' }}>
+            <Clock size={15} color="#38bdf8" />
+            <span>Invitations expire after <strong style={{ color: '#38bdf8' }}>24 hours</strong>. Max 15 invites per day to prevent spam.</span>
+          </div>
 
-        {errorMessage && <div className="invite-error-box"><AlertTriangle size={15} /><span>{errorMessage}</span></div>}
-        {successMessage && <div className="invite-success-box"><Check size={15} /><span>{successMessage}</span></div>}
+          {errorMessage && <div className="invite-error-banner"><AlertTriangle size={15} /><span>{errorMessage}</span></div>}
+          {successMessage && <div className="invite-success-banner"><Check size={15} /><span>{successMessage}</span></div>}
 
-        <div className="invite-search-section">
-          <label>Search Registered Users</label>
-          <div className="search-input-wrapper">
-            <Search size={16} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by name, handle, or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
+          <div className="invite-field-group">
+            <label className="invite-field-label">Search Registered Users</label>
+            <div className="invite-search-wrapper">
+              <Search size={16} className="invite-search-icon" />
+              <input
+                type="text"
+                className="invite-search-input"
+                placeholder="Search by name, handle, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {isSearching && <div className="invite-search-spinner" />}
+            </div>
+            <UserSearchResultsList
+              searchResults={searchResults}
+              selectedUser={selectedUser}
+              isSearching={isSearching}
+              searchQuery={searchQuery}
+              onSelectUser={setSelectedUser}
             />
           </div>
-          <UserSearchResultsList
-            searchResults={searchResults}
-            selectedUser={selectedUser}
-            isSearching={isSearching}
-            searchQuery={searchQuery}
-            onSelectUser={setSelectedUser}
-          />
+
+          <CoParentRoleSelector selectedRole={selectedRole} setSelectedRole={setSelectedRole} />
         </div>
 
-        <CoParentRoleSelector selectedRole={selectedRole} setSelectedRole={setSelectedRole} />
-
-        <div className="invite-modal-footer">
+        <div className="invite-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 22px', borderTop: '1px solid rgba(148, 163, 184, 0.12)', background: 'var(--color-bg-elevated, rgba(15, 23, 42, 0.4))' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="btn btn-primary" onClick={handleSendInvite} disabled={!selectedUser || isSending}>
             {isSending ? 'Sending Request...' : 'Send 24h Invitation'}

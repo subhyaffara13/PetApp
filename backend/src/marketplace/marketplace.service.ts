@@ -130,6 +130,7 @@ export class MarketplaceService implements OnModuleInit {
             _id: id,
             isClaimed: true,
             isRegistered: true,
+            hasPortalUser: true,
             isOpen: shop.isOpen ?? true,
             deliveryAvailable: shop.deliveryAvailable ?? true,
             distanceKm,
@@ -183,10 +184,13 @@ export class MarketplaceService implements OnModuleInit {
                 const shopLng = place.geometry?.location?.lng || lon;
                 const distanceKm = getDistanceKm(lat, lon, shopLat, shopLng);
 
-                if (distanceKm <= 60) {
-                  const isOpen = place.opening_hours
-                    ? place.opening_hours.open_now
-                    : true;
+                  const currentHour = new Date().getHours();
+                  const isNight = currentHour >= 20 || currentHour < 8;
+                  const isOpen = isNight
+                    ? false
+                    : place.opening_hours
+                      ? place.opening_hours.open_now
+                      : true;
                   shopsMap.set(placeId, {
                     _id: placeId,
                     name: place.name,
@@ -202,45 +206,20 @@ export class MarketplaceService implements OnModuleInit {
                       'Google Verified',
                     ],
                     rating: place.rating || 4.7,
-                    isRegistered: true,
+                    isRegistered: false,
                     isClaimed: false,
+                    hasPortalUser: false,
                     isOpen,
-                    deliveryAvailable: true,
-                    pickupOnly: false,
+                    deliveryAvailable: false,
+                    pickupOnly: true,
                     distanceKm,
-                    products: [
-                      {
-                        _id: `prod-${placeId}-1`,
-                        name: 'Premium Grain-Free Pet Nutrition (12kg)',
-                        price: 189,
-                        category: 'Food',
-                        inStock: true,
-                        shopId: placeId,
-                      },
-                      {
-                        _id: `prod-${placeId}-2`,
-                        name: 'Veterinary Dental Chew Bones (Pack of 7)',
-                        price: 45,
-                        category: 'Health',
-                        inStock: true,
-                        shopId: placeId,
-                      },
-                      {
-                        _id: `prod-${placeId}-3`,
-                        name: 'Orthopedic Memory Foam Pet Bed',
-                        price: 249,
-                        category: 'Toys',
-                        inStock: true,
-                        shopId: placeId,
-                      },
-                    ],
+                    products: [],
                   });
                 }
               }
             }
           }
-        }
-      } catch (placesErr: any) {
+        } catch (placesErr: any) {
         this.logger.warn(
           'Google Places pet stores query warning:',
           placesErr?.message,

@@ -26,8 +26,10 @@ export const MarketplaceStoreCard: React.FC<MarketplaceStoreCardProps> = ({
     ? shop.distanceKm
     : haversine(userLocation.lat, userLocation.lon, shop.location.lat, shop.location.lng);
 
-  const isPartner = Boolean(shop.isRegistered || shop.isClaimed);
-  const isOpen = shop.isOpen ?? true;
+  const isPartner = Boolean(shop.hasPortalUser || (shop.isClaimed && shop.isRegistered));
+  const currentHour = new Date().getHours();
+  const isNight = currentHour >= 20 || currentHour < 8;
+  const isOpen = isNight ? false : (shop.isOpen ?? true);
 
   const photo = shop.imageUrl || shop.photoUrl || (
     (shop._id || shop.id) === 'shop-haifa-2'
@@ -95,8 +97,12 @@ export const MarketplaceStoreCard: React.FC<MarketplaceStoreCardProps> = ({
 
       <div className="market-bottom-sheet__actions" onClick={(e) => e.stopPropagation()}>
         {shop.phone && (
-          <a href={`tel:${shop.phone}`} className="btn btn-secondary btn-sm">
-            <Phone size={13} /> {t('action.call', 'Call')}
+          <a
+            href={`tel:${shop.phone}`}
+            className="btn btn-secondary btn-sm"
+            aria-label={`${t('market.call_shop', 'Call Shop')}: ${shop.name}`}
+          >
+            <Phone size={13} /> {t('market.call_shop', 'Call Shop')}
           </a>
         )}
 
