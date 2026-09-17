@@ -12,7 +12,7 @@ on:
         default: true
 
 env:
-  REGION: ${{ secrets.GCP_REGION || 'europe-west1' }} # Default region: europe-west1
+  REGION: europe-west1
   GAR_REPO: petsos-repo
   ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node24"
 
@@ -141,6 +141,7 @@ jobs:
 
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "project_id=" + proj + "\n");
             fs.appendFileSync(process.env.GITHUB_ENV, "GCP_PROJECT_ID=" + proj + "\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "### Detected GCP Project ID: `" + proj + "`\n");
             try { cp.execSync("gcloud config set project " + proj, { stdio: "inherit" }); } catch (e) {}
           '
 
@@ -148,7 +149,8 @@ jobs:
         if: steps.auth.outcome == 'success'
         continue-on-error: true
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           echo "Active project: $PROJ"
           echo "Existing repositories in project $PROJ:"
           gcloud artifacts repositories list --project="$PROJ" || true
@@ -180,17 +182,43 @@ jobs:
       - name: Build & Push Backend Container Image
         if: steps.auth.outcome == 'success'
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
-          if [ -z "$PROJ" ] || [ "$PROJ" = "(unset)" ]; then
+          set +e
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
+          if [ -z "$PROJ" ] || [ "$PROJ" = "true" ] || [ "$PROJ" = "(unset)" ]; then
             echo "::error::Project ID is unset or invalid: '$PROJ'"
             exit 1
           fi
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}"
           LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-api:latest"
           echo "Target image tag: $IMAGE_TAG"
-          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend
-          docker push "$IMAGE_TAG"
-          docker push "$LATEST_TAG"
+
+          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" ./backend 2>&1 | tee /tmp/build_backend.log
+          BUILD_CODE=${PIPESTATUS[0]}
+          if [ $BUILD_CODE -ne 0 ]; then
+            echo "::error::Docker build failed with code $BUILD_CODE"
+            echo "### Docker Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/build_backend.log | tail -n 60 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit $BUILD_CODE
+          fi
+
+          echo "Pushing $IMAGE_TAG..."
+          docker push "$IMAGE_TAG" 2>&1 | tee /tmp/push_backend.log
+          PUSH_CODE=${PIPESTATUS[0]}
+          if [ $PUSH_CODE -ne 0 ]; then
+            echo "::error::Docker push failed with code $PUSH_CODE"
+            echo "### Docker Push Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/push_backend.log | tail -n 60 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit $PUSH_CODE
+          fi
+
+          docker push "$LATEST_TAG" || true
+          echo "Backend container built and pushed successfully!"
+          exit 0
 
       - name: Deploy Backend to Google Cloud Run
         id: deploy-backend
@@ -198,7 +226,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petapp
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-api:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -329,7 +357,8 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}"
           LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-frontend:latest"
           
@@ -348,7 +377,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: petsos
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ steps.detect-project.outputs.project_id }}/${{ env.GAR_REPO }}/petsos-frontend:${{ github.sha }}
           region: ${{ env.REGION }}
           flags: |
             --allow-unauthenticated
@@ -449,7 +478,8 @@ jobs:
         env:
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./clinic-portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-clinic-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./clinic-portal
@@ -468,7 +498,8 @@ jobs:
         env:
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./store-portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-store-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./store-portal
@@ -487,7 +518,8 @@ jobs:
         env:
           VITE_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
         run: |
-          PROJ="${{ steps.detect-project.outputs.project_id || env.GCP_PROJECT_ID }}"
+          PROJ="${{ steps.detect-project.outputs.project_id }}"
+          [ -z "$PROJ" ] && PROJ="$GCP_PROJECT_ID"
           echo "VITE_API_URL=${VITE_API_URL}" >> ./Admin-Portal/.env
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJ}/${{ env.GAR_REPO }}/petsos-admin-portal:${{ github.sha }}"
           docker build -t "$IMAGE" ./Admin-Portal
