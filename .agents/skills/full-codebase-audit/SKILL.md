@@ -1,234 +1,127 @@
 ---
 name: full-codebase-audit
 description: >-
-  Performs a comprehensive, read-only codebase audit using two parallel subagents
-  that inspect files in batches of 20. Produces a structured audit report and an
-  actionable coding-phase prompt listing every issue with its location, severity,
-  and recommended fix. This skill NEVER edits or deletes any file.
+  Performs an enterprise-grade, comprehensive, read-only codebase audit using two
+  parallel subagents that inspect cohesive domain batches of 20 files with persistent
+  on-disk checkpoint journaling. Generates an OWASP/CVSS-aligned audit report, health
+  scorecard, and an actionable remediation prompt ready for audit-remediation-runner.
+  This skill NEVER edits or deletes any repository file.
 ---
 
-# Full Codebase Audit — Orchestration Skill
+# Full Codebase Audit — Enterprise Orchestration Skill
 
-> **CARDINAL RULE**: This skill is **READ-ONLY**. No file may be created,
-> edited, overwritten, or deleted inside the audited repository. The only
-> outputs are artifact markdown files written to the conversation's artifact
-> directory.
-
----
-
-## 1. Purpose
-
-Run a thorough, multi-dimensional audit of an entire codebase and produce two
-deliverables:
-
-1. **Audit Report** — A structured markdown artifact covering every audit
-   dimension (architecture, security, performance, code quality, DRY/duplication,
-   error handling, accessibility, testing, dependency health, and more).
-2. **Coding-Phase Action Prompt** — A prioritized, copy-paste-ready prompt that
-   lists every finding with its exact file path, line range, severity, category,
-   and a concise recommended fix so the next agent (or human) can start coding
-   immediately.
+> **CARDINAL RULE**: This skill is **STRICTLY READ-ONLY**. No file inside the audited repository
+> may be modified, created, or deleted. All intermediate findings and output artifacts are
+> written exclusively to the conversation's persistent artifact and scratch directory.
 
 ---
 
-## 2. Audit Dimensions (Checklist)
+## 1. Purpose & Deliverables
 
-Every file batch must be evaluated against **all** of the following:
+Run a thorough, multi-dimensional audit of an entire codebase and produce two gold-standard deliverables:
 
-| #  | Dimension                        | What to look for                                                                                                                        |
-|----|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| 1  | **Architecture & Module Design** | Circular dependencies, god modules/files, leaky abstractions, improper layering (controller → service → repo).                          |
-| 2  | **Security**                     | Hardcoded secrets/keys, missing input validation, XSS vectors, SQL/NoSQL injection, insecure auth flows, CORS misconfig, unsafe `eval`. |
-| 3  | **Performance**                  | N+1 queries, missing indexes, unbounded loops, memory leaks (event listeners, subscriptions), large bundle imports.                     |
-| 4  | **Error Handling & Resilience**  | Swallowed errors, missing try/catch, unhandled promise rejections, no fallback UI, missing HTTP error codes.                            |
-| 5  | **Code Duplication (DRY)**       | Copy-pasted logic across files/modules, duplicated utility functions, repeated API call patterns.                                       |
-| 6  | **Type Safety**                  | `any` types, missing return types, untyped function parameters, inconsistent DTO usage.                                                 |
-| 7  | **API Contract Consistency**     | Mismatched frontend fetch calls vs backend endpoints, inconsistent naming, missing DTOs.                                                |
-| 8  | **State Management**             | Prop drilling, stale closures, missing dependency arrays in hooks, race conditions in async state.                                      |
-| 9  | **Accessibility (a11y)**         | Missing ARIA labels, no keyboard navigation, insufficient color contrast, missing alt text.                                             |
-| 10 | **Testing Coverage Gaps**        | Untested critical paths, missing edge-case tests, no integration tests for key flows.                                                  |
-| 11 | **Dependency & Config Health**   | Outdated packages, unused dependencies, missing env validation, inconsistent config patterns.                                           |
-| 12 | **CSS & Styling**                | Unused styles, inconsistent units, missing responsive breakpoints, z-index conflicts, duplicated style rules.                           |
-| 13 | **Real-Time / WebSocket**        | Missing reconnection logic, no heartbeat, unclean socket teardown, missing room management.                                            |
-| 14 | **DevOps & Deployment**          | Missing health checks, no graceful shutdown, hardcoded URLs, missing Docker optimizations.                                              |
-| 15 | **Documentation & Readability**  | Missing JSDoc on public APIs, unclear variable names, dead code / commented-out blocks, overly complex functions.                       |
+1. **Audit Report (`codebase_audit_report.md`)**:
+   - High-level Health Score (0–100) and executive summary.
+   - Severity breakdown (Critical, High, Medium, Low, Informational).
+   - Findings categorized across 15 architectural and engineering dimensions with OWASP/CWE mappings.
+   - Positive architectural observations and existing strengths.
+2. **Actionable Remediation Prompt (`audit_action_prompt.md`)**:
+   - Prioritized, copy-paste-ready implementation specification.
+   - Formatted for immediate execution by the `audit-remediation-runner` skill.
+   - Exact file locations, line ranges, root causes, and drop-in code fix recommendations.
 
 ---
 
-## 3. Orchestration Workflow
+## 2. Audit Dimensions (15-Point Matrix)
+
+Every file batch must be systematically evaluated against all 15 dimensions:
+
+| # | Dimension | What to Look For |
+|:--|:---|:---|
+| 1 | **Architecture & Module Boundaries** | Leaky abstractions, circular dependencies, god files (>500 LOC), improper layering (`controller -> service -> repo`). |
+| 2 | **Security & OWASP Top 10** | Injection (SQL/NoSQL/Command), BOLA/IDOR, broken authentication, hardcoded secrets, CSRF, insecure CORS, sensitive data exposure. |
+| 3 | **Input Validation & Sanitization** | Missing DTOs, unvalidated `@Body() any`, missing `class-validator` decorators, regex injection, unescaped regex. |
+| 4 | **Authorization & RBAC** | Missing guards on sensitive endpoints, client-side role reliance, broken ownership checks on mutating endpoints. |
+| 5 | **Performance & Memory Leaks** | Unbounded loops, missing DB indexes, unbounded in-memory maps/caches without TTL, event listener leaks, N+1 queries. |
+| 6 | **Error Handling & Resilience** | Swallowed errors, silent `catch {}` blocks, unhandled promise rejections, missing HTTP error status codes, lack of graceful degradation. |
+| 7 | **Code Duplication & DRY** | Copy-pasted business logic, duplicated utilities, repeated API call patterns across portals. |
+| 8 | **Type Safety & TypeScript Health** | Excessive `any` types, missing return types, untyped function arguments, unsafe type assertions (`as any`). |
+| 9 | **API Contract & Integration Consistency** | Mismatched frontend Axios/fetch endpoints vs NestJS routes, out-of-sync parameters, inconsistent JSON schemas. |
+| 10 | **State Management & UI Lifecycles** | Stale closures, missing dependency arrays in React hooks, memory leaks on unmount, race conditions in async effects. |
+| 11 | **Accessibility (a11y) & UX** | Missing ARIA labels, unhandled keyboard navigation, missing alt tags, poor contrast, lack of loading/error states. |
+| 12 | **Testing & CI/CD Coverage** | Missing unit/integration tests for critical business paths, untested edge cases, missing test mocks, broken CI workflows. |
+| 13 | **Real-Time / WebSocket Security** | Unauthenticated WebSocket handshakes, open CORS on socket servers, unhandled disconnects, unbounded room subscriptions. |
+| 14 | **Configuration & Environment Integrity** | Hardcoded dev secrets in production, missing environment validation on startup, mismatched ports, insecure defaults. |
+| 15 | **Documentation & Maintainability** | Dead code, commented-out blocks, missing public API docs, misleading variable names, unnecessary complexity. |
+
+---
+
+## 3. Orchestration Workflow & Smart Batching
 
 ```
-┌──────────────────────────────────────────────────┐
-│              ORCHESTRATING AGENT                  │
-│  1. Inventory all source files                   │
-│  2. Split into batches of 20                     │
-│  3. Dispatch Subagent-A (odd batches)            │
-│     Dispatch Subagent-B (even batches)           │
-│  4. Collect partial audit JSONs from both        │
-│  5. Merge, deduplicate, cross-reference          │
-│  6. Write final Audit Report artifact            │
-│  7. Write Coding-Phase Action Prompt artifact    │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                          ORCHESTRATING AGENT                            │
+│  1. Source Inventory: Collect all source files excluding build/modules │
+│  2. Smart Cohesion Batching: Group files by feature/domain (20/batch)  │
+│  3. Checkpoint Setup: Initialize scratch/audit_journal_subagent_[a|b]  │
+│  4. Parallel Dispatch: Subagent Alpha (Odd) & Subagent Beta (Even)     │
+│  5. Incremental Journaling: Subagents flush findings after each batch  │
+│  6. Merge, Cross-Reference & Deduplicate findings                      │
+│  7. Generate Audit Report & Action Prompt Artifacts                    │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.1 File Inventory
+### 3.1 Smart Cohesive Batching Strategy
+Instead of purely alphabetical sorting, order files by **architectural domain**:
+- Keep `*.controller.ts`, `*.service.ts`, `*.schema.ts`, and `*.dto.ts` for the same module in the **same batch**.
+- Keep frontend views, components, and contexts for the same feature in the **same batch**.
+- Limit each batch to **maximum 20 files** to fit comfortably within the subagent context window.
 
-1. List every source file (`.ts`, `.tsx`, `.js`, `.jsx`, `.css`, `.scss`,
-   `.html`, `.json` config files, `.yml`/`.yaml`, `.env.*`) excluding
-   `node_modules`, `dist`, `build`, `.git`, `coverage`, and `.agents`.
-2. Sort files by module/directory so related files land in the same batch.
-3. Create numbered batches of **20 files** each.
+### 3.2 Persistent On-Disk Subagent Journaling
+To prevent losing audit progress if a context window compacts or token limits are hit:
+- **Subagent Alpha** writes incrementally to: `<artifactDir>/scratch/audit_subagent_a.md`
+- **Subagent Beta** writes incrementally to: `<artifactDir>/scratch/audit_subagent_b.md`
+- After each batch of 20 files is inspected, the subagent appends its findings to its journal immediately before picking up the next batch.
 
-### 3.2 Subagent Dispatch Rules
+### 3.3 Structured Finding Format
+Subagents must record every issue with full fidelity:
 
-- **Two subagents** run in parallel, each receiving alternating batches:
-  - **Subagent-A**: batches 1, 3, 5, 7, …
-  - **Subagent-B**: batches 2, 4, 6, 8, …
-- Each subagent must:
-  1. **Read** every file in its batch using `view_file` (NEVER edit/delete).
-  2. Evaluate each file against ALL 15 audit dimensions.
-  3. Return structured findings in the format below.
-
-### 3.3 Subagent Finding Format
-
-Each subagent must return its findings as a structured list. For each finding:
-
-```
-### Finding: <short title>
-- **File**: <absolute path>
-- **Lines**: L<start>–L<end> (or "entire file" if systemic)
+```markdown
+### Finding: [ID] <Short Title>
+- **File**: <exact path>
+- **Lines**: L<start>–L<end>
 - **Severity**: 🔴 Critical | 🟠 High | 🟡 Medium | 🔵 Low | ⚪ Info
-- **Category**: <one of the 15 dimensions>
-- **Description**: <what is wrong and why it matters>
-- **Recommendation**: <specific fix, with code pattern if helpful>
-- **Cross-references**: <related files affected, if any>
-```
-
-### 3.4 Orchestrator Merge & Review
-
-After both subagents complete:
-
-1. **Merge** all findings into a single list.
-2. **Deduplicate** — collapse identical issues across batches (e.g., the same
-   duplicated utility found by both subagents).
-3. **Cross-reference** — link related findings (e.g., a frontend fetch that
-   hits a backend endpoint with no validation).
-4. **Verify severity** — re-assess severity in the context of the full codebase.
-5. **Group by dimension** for the Audit Report.
-6. **Group by priority** for the Coding-Phase Action Prompt.
-
----
-
-## 4. Output: Audit Report Artifact
-
-**Filename**: `codebase_audit_report.md`
-
-Structure:
-
-```markdown
-# 🔍 Full Codebase Audit Report
-> Generated: <timestamp>
-> Codebase: <project name>
-> Total files audited: <N>
-
-## Executive Summary
-<high-level health score and top 5 most critical findings>
-
-## Audit Statistics
-| Severity | Count |
-|----------|-------|
-| 🔴 Critical | X |
-| 🟠 High     | X |
-| 🟡 Medium   | X |
-| 🔵 Low      | X |
-| ⚪ Info      | X |
-
-## Findings by Dimension
-
-### 1. Architecture & Module Design
-<grouped findings with file links>
-
-### 2. Security
-...
-(repeat for all 15 dimensions)
-
-## Cross-Cutting Concerns
-<findings that span multiple dimensions>
-
-## Positive Observations
-<things the codebase does well — always include this>
+- **Category**: <One of the 15 dimensions>
+- **OWASP/CWE**: <e.g., OWASP A01:2021 Broken Access Control / CWE-639>
+- **Description**: <What is wrong, why it occurs, and potential impact/exploit vector>
+- **Recommended Fix**: <Specific, actionable fix with sample code snippet>
+- **Cross-References**: <Related files affected>
 ```
 
 ---
 
-## 5. Output: Coding-Phase Action Prompt
+## 4. Orchestrator Convergence & Synthesis
 
-**Filename**: `audit_action_prompt.md`
-
-This artifact is a **ready-to-use prompt** for the next coding session. Structure:
-
-```markdown
-# 🛠️ Codebase Audit — Action Items
-
-> This prompt was auto-generated from the Full Codebase Audit.
-> Feed this to a coding agent or use it as a task list.
-
-## How to Use
-Copy this entire document into a new conversation and ask the agent to
-work through the items in priority order.
-
----
-
-## 🔴 Critical (Fix Immediately)
-
-### C-1: <title>
-- **Where**: `<file path>` lines L<start>–L<end>
-- **What**: <description>
-- **How to fix**: <step-by-step recommendation>
-- **Related files**: <list>
-
-### C-2: ...
+1. **Read & Aggregate**: Read both on-disk journals (`audit_subagent_a.md` and `audit_subagent_b.md`).
+2. **Deduplicate**: Merge findings that reference the same underlying root cause.
+3. **Cross-Reference**: Connect frontend findings to backend findings (e.g. frontend sending unvalidated field to an open endpoint).
+4. **Health Score Calculation**:
+   - Start with baseline score of 100.
+   - Deduct:
+     - 🔴 Critical: -10 points each
+     - 🟠 High: -5 points each
+     - 🟡 Medium: -2 points each
+     - 🔵 Low: -0.5 points each
+   - Health Score = `Math.max(0, 100 - totalDeductions)`.
+5. **Produce Final Deliverables**:
+   - Write `codebase_audit_report.md` to artifact directory.
+   - Write `audit_action_prompt.md` formatted for `audit-remediation-runner`.
 
 ---
 
-## 🟠 High Priority
+## 5. Safety & Quality Constraints
 
-### H-1: ...
-
----
-
-## 🟡 Medium Priority
-...
-
-## 🔵 Low Priority / Nice-to-Have
-...
-
-## ⚪ Informational / Future Consideration
-...
-```
-
----
-
-## 6. Safety Constraints
-
-- **NO** `write_to_file`, `replace_file_content`, `multi_replace_file_content`,
-  or `run_command` with destructive operations (rm, del, git checkout, etc.)
-  may be used against the audited repository.
-- Subagents must only use `view_file`, `grep_search`, `list_dir`, and
-  `read_url_content` (for documentation lookups).
-- All output artifacts go to the **conversation artifact directory only**.
-
----
-
-## 7. Quick-Start Invocation
-
-When this skill is activated, the orchestrating agent should:
-
-1. Read this SKILL.md
-2. Inventory the codebase files
-3. Split into batches of 20
-4. Launch Subagent-A and Subagent-B in parallel
-5. Collect results
-6. Produce both artifacts
-
-No user interaction is needed beyond activating the skill.
+- **STRICTLY READ-ONLY**: Never call file modification tools on repository code during audit.
+- **NO HALLUCINATIONS**: Every file link must point to a real file path and line range.
+- **POSITIVE RECOGNITION**: Always document strengths, well-designed patterns, and robust defenses already present.
+- **SEAMLESS COMPATIBILITY**: Ensure `audit_action_prompt.md` is immediately executable by `audit-remediation-runner`.
