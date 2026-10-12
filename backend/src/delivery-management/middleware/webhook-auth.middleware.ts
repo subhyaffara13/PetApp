@@ -40,12 +40,19 @@ export const verifyDaaSWebhookSignature = (
 
     const secret =
       provider === 'wolt_drive'
-        ? process.env.WOLT_WEBHOOK_SECRET || 'wolt_dev_secret'
-        : process.env.UBER_WEBHOOK_SECRET || 'uber_dev_secret';
+        ? process.env.WOLT_WEBHOOK_SECRET
+        : process.env.UBER_WEBHOOK_SECRET;
 
     if (!secret) {
-      return res.status(500).json({ error: 'Webhook secret unconfigured' });
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ error: 'Production webhook secret unconfigured — refusing to validate with placeholder' });
+      }
+      // Development fallback
+      const devSecret = provider === 'wolt_drive' ? 'wolt_dev_secret' : 'uber_dev_secret';
+      // In dev, skip HMAC validation entirely (already handled above)
     }
+
+    const effectiveSecret = secret || (provider === 'wolt_drive' ? 'wolt_dev_secret' : 'uber_dev_secret');
 
     // Replay attack prevention: Reject pings older than 5 minutes (300 seconds)
     if (timestampHeader && typeof timestampHeader === 'string') {
@@ -59,7 +66,7 @@ export const verifyDaaSWebhookSignature = (
     }
 
     const rawPayload = req.rawBody || Buffer.from(JSON.stringify(req.body));
-    const hmac = crypto.createHmac('sha256', secret);
+    const hmac = crypto.createHmac('sha256', effectiveSecret);
 
     const dataToSign = timestampHeader
       ? `${timestampHeader}.${rawPayload.toString('utf8')}`

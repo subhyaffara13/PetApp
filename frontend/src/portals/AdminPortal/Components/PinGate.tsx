@@ -14,6 +14,7 @@ export const PinGate: React.FC<PinGateProps> = ({ children }) => {
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
   const handleDigit = (index: number, value: string) => {
@@ -22,6 +23,7 @@ export const PinGate: React.FC<PinGateProps> = ({ children }) => {
     next[index] = value;
     setPin(next);
     setError(false);
+    setErrorMessage(null);
 
     if (value && index < 3) {
       inputRefs[index + 1].current?.focus();
@@ -43,10 +45,12 @@ export const PinGate: React.FC<PinGateProps> = ({ children }) => {
       await axios.get(`${API_URL}/admin/health`, { headers: { 'x-admin-token': code } });
       sessionStorage.setItem(SESSION_KEY, 'true');
       setUnlocked(true);
-    } catch {
+    } catch (err: any) {
       setError(true);
       setShaking(true);
       setPin(['', '', '', '']);
+      const backendMsg = err?.response?.data?.message;
+      setErrorMessage(backendMsg || 'Incorrect PIN. Try again.');
       setTimeout(() => {
         setShaking(false);
         inputRefs[0].current?.focus();
@@ -92,7 +96,7 @@ export const PinGate: React.FC<PinGateProps> = ({ children }) => {
 
         {error && (
           <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'center' }}>
-            <Lock size={13} /> Incorrect PIN. Try again.
+            <Lock size={13} /> {errorMessage || 'Incorrect PIN. Try again.'}
           </p>
         )}
 

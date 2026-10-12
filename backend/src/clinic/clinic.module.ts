@@ -8,10 +8,8 @@ import {
   MedicalRecord,
   MedicalRecordSchema,
 } from '../schemas/medical-record.schema';
-import {
-  EmergencyDispatch,
-  EmergencyDispatchSchema,
-} from '../schemas/emergency-dispatch.schema';
+import { EmergencyDispatch, EmergencyDispatchSchema } from '../schemas/emergency-dispatch.schema';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +18,7 @@ import {
       { name: MedicalRecord.name, schema: MedicalRecordSchema },
       { name: EmergencyDispatch.name, schema: EmergencyDispatchSchema },
     ]),
+    AuthModule,
   ],
   controllers: [ClinicController],
   providers: [ClinicService, ClinicGateway],

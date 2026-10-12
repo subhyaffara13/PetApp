@@ -85,7 +85,9 @@ export class DeliveryService {
           },
         ]);
       }
-    } catch {}
+    } catch (err) {
+      this.logger.debug('Store seeding check completed:', err);
+    }
 
     try {
       const productCount = await this.productModel.countDocuments();
@@ -153,7 +155,9 @@ export class DeliveryService {
           },
         ]);
       }
-    } catch {}
+    } catch (err) {
+      this.logger.debug('Product seeding check completed:', err);
+    }
   }
 
   /**

@@ -60,7 +60,7 @@ services:
     container_name: petsos-store-portal
     restart: always
     ports:
-      - "5174:80"
+      - "5175:80"
     depends_on:
       - backend
     networks:
@@ -74,7 +74,7 @@ services:
     container_name: petsos-clinic-portal
     restart: always
     ports:
-      - "5175:80"
+      - "5174:80"
     depends_on:
       - backend
     networks:

@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -111,8 +112,14 @@ export class CommunityService {
     userId?: string,
     mode: 'for_you' | 'following' | 'saved' = 'for_you',
     categoryFilter?: string,
+    page: number = 1,
+    limit: number = 20,
   ): Promise<any[]> {
     try {
+      const safePage = Math.max(1, page || 1);
+      const safeLimit = Math.min(50, Math.max(1, limit || 20));
+      const skip = (safePage - 1) * safeLimit;
+
       let userDoc: UserDocument | null = null;
       const safeUserId = toSafeString(userId);
       if (safeUserId && safeUserId !== 'guest-anonymous' && safeUserId !== 'current-user' && isSafeObjectId(safeUserId)) {
@@ -127,6 +134,8 @@ export class CommunityService {
         return await this.postModel
           .find({ _id: { $in: userDoc.bookmarkedPostIds } })
           .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(safeLimit)
           .exec();
       }
 
@@ -141,7 +150,12 @@ export class CommunityService {
         if (safeCategory && safeCategory !== 'all') {
           query.category = safeCategory;
         }
-        return await this.postModel.find(query).sort({ createdAt: -1 }).exec();
+        return await this.postModel
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(safeLimit)
+          .exec();
       }
 
       // --- "FOR YOU" ALGORITHMIC FEED ---
@@ -212,16 +226,23 @@ export class CommunityService {
       });
 
       scored.sort((a, b) => b.score - a.score);
-      return scored.map((s) => s.post);
+      return scored.slice(skip, skip + safeLimit).map((s) => s.post);
     } catch (err) {
       this.logger.warn('Personalized feed algorithm error:', err);
-      return await this.postModel.find().sort({ createdAt: -1 }).limit(30).exec();
+      const safePage = Math.max(1, page || 1);
+      const safeLimit = Math.min(50, Math.max(1, limit || 20));
+      return await this.postModel
+        .find()
+        .sort({ createdAt: -1 })
+        .skip((safePage - 1) * safeLimit)
+        .limit(safeLimit)
+        .exec();
     }
   }
 
   /** Backward-compatible getFeed helper */
-  async getFeed(): Promise<PostDocument[]> {
-    return this.getPersonalizedFeed();
+  async getFeed(page = 1, limit = 20): Promise<PostDocument[]> {
+    return this.getPersonalizedFeed(undefined, 'for_you', undefined, page, limit);
   }
 
   async getPostsByUser(userId: string): Promise<PostDocument[]> {
@@ -253,10 +274,23 @@ export class CommunityService {
     return saved;
   }
 
-  async deletePost(id: string): Promise<any> {
+  async deletePost(id: string, userId?: string, userRole?: string): Promise<any> {
     const safeId = toSafeString(id);
-    if (!safeId) return null;
+    if (!safeId) throw new NotFoundException('Post not found');
     const queryId = isSafeObjectId(safeId) ? toSafeObjectId(safeId) : safeId;
+    const post = await this.postModel.findById(queryId).exec();
+    if (!post) throw new NotFoundException('Post not found');
+
+    if (userId) {
+      const isAuthor = post.authorId === userId;
+      const isAdmin = userRole === 'superadmin';
+      if (!isAuthor && !isAdmin) {
+        throw new ForbiddenException(
+          'You do not have permission to delete this post.',
+        );
+      }
+    }
+
     return this.postModel.findByIdAndDelete(queryId).exec();
   }
 

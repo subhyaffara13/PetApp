@@ -8,12 +8,14 @@ import { ClaimVerificationTab, type ClaimRequest } from './Components/ClaimVerif
 import { ErrorLogsTab, type SystemLog } from './Components/ErrorLogsTab';
 import { CommunityReportsTab, type CommunityReportItem } from './Components/CommunityReportsTab';
 
-axios.interceptors.request.use((config) => {
-  config.headers['x-admin-token'] = import.meta.env.VITE_ADMIN_TOKEN || 'petsos-admin-change-me';
-  return config;
-});
-
 import { API_URL } from '../../config/api';
+
+const adminApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'x-admin-token': import.meta.env.VITE_ADMIN_TOKEN || 'petsos-admin-change-me',
+  },
+});
 
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -37,11 +39,11 @@ export default function App() {
     setIsRefreshing(true);
     try {
       const [healthRes, usersRes, claimsRes, reportsRes, logsRes] = await Promise.all([
-        axios.get<ServiceStatus[]>(`${API_URL}/admin/health`).catch(() => ({ data: [] })),
-        axios.get<UserAccount[]>(`${API_URL}/admin/users`).catch(() => ({ data: [] })),
-        axios.get<ClaimRequest[]>(`${API_URL}/admin/claims`).catch(() => ({ data: [] })),
-        axios.get<CommunityReportItem[]>(`${API_URL}/admin/reports`).catch(() => ({ data: [] })),
-        axios.get<SystemLog[]>(`${API_URL}/admin/logs`).catch(() => ({ data: [] })),
+        adminApi.get<ServiceStatus[]>(`/admin/health`).catch(() => ({ data: [] })),
+        adminApi.get<UserAccount[]>(`/admin/users`).catch(() => ({ data: [] })),
+        adminApi.get<ClaimRequest[]>(`/admin/claims`).catch(() => ({ data: [] })),
+        adminApi.get<CommunityReportItem[]>(`/admin/reports`).catch(() => ({ data: [] })),
+        adminApi.get<SystemLog[]>(`/admin/logs`).catch(() => ({ data: [] })),
       ]);
 
       if (healthRes.data) setServices(healthRes.data);
@@ -64,7 +66,7 @@ export default function App() {
 
   const handleUserAction = async (id: string, action: 'block' | 'unblock' | 'archive') => {
     try {
-      const res = await axios.post<UserAccount>(`${API_URL}/admin/users/${id}/action`, { action });
+      const res = await adminApi.post<UserAccount>(`/admin/users/${id}/action`, { action });
       setUsers((prev) => prev.map((u) => (u.id === id ? res.data : u)));
     } catch (err) {
       console.error('User action error', err);
@@ -73,7 +75,7 @@ export default function App() {
 
   const handleCreateUser = async (name: string, email: string, role: 'customer' | 'clinic_admin' | 'store_merchant') => {
     try {
-      const res = await axios.post<UserAccount>(`${API_URL}/admin/users`, { name, email, role });
+      const res = await adminApi.post<UserAccount>(`/admin/users`, { name, email, role });
       setUsers((prev) => [res.data, ...prev]);
     } catch (err) {
       console.error('Create user error', err);
@@ -82,7 +84,7 @@ export default function App() {
 
   const handleVerifyClaim = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const res = await axios.post<ClaimRequest>(`${API_URL}/admin/claims/${id}/verify`, { status });
+      const res = await adminApi.post<ClaimRequest>(`/admin/claims/${id}/verify`, { status });
       setClaims((prev) => prev.map((c) => (c.id === id ? res.data : c)));
     } catch (err) {
       console.error('Verify claim error', err);
@@ -91,7 +93,7 @@ export default function App() {
 
   const handleReportAction = async (id: string, action: 'dismiss' | 'action_taken' | 'block_user') => {
     try {
-      const res = await axios.post(`${API_URL}/admin/reports/${id}/action`, { action });
+      const res = await adminApi.post(`/admin/reports/${id}/action`, { action });
       setReports((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: res.data.status } : r))
       );
@@ -105,7 +107,7 @@ export default function App() {
 
   const handleReportIncident = async (service: string, message: string) => {
     try {
-      const res = await axios.post<SystemLog>(`${API_URL}/admin/logs/report`, { service, message });
+      const res = await adminApi.post<SystemLog>(`/admin/logs/report`, { service, message });
       setLogs((prev) => [res.data, ...prev]);
     } catch (err) {
       console.error('Report log error', err);
@@ -114,6 +116,8 @@ export default function App() {
 
   const pendingReportsCount = reports.filter((r) => r.status === 'pending').length;
   const pendingClaimsCount = claims.filter((c) => c.status === 'pending').length;
+  const onlineServicesCount = services.filter((s) => s.status === 'healthy' || (s as any).status === 'operational').length;
+  const totalServicesCount = services.length;
 
   const dashboard = (
     <div className="admin-layout" data-theme={theme}>
@@ -159,7 +163,9 @@ export default function App() {
         <section className="metrics-grid">
           <div className="metric-card">
             <div className="metric-card__title">Total Services</div>
-            <div className="metric-card__value" style={{ color: 'var(--admin-primary)' }}>8 / 8 Online</div>
+            <div className="metric-card__value" style={{ color: totalServicesCount > 0 && onlineServicesCount === totalServicesCount ? 'var(--admin-primary)' : 'var(--admin-warning)' }}>
+              {totalServicesCount > 0 ? `${onlineServicesCount} / ${totalServicesCount} Online` : 'Checking...'}
+            </div>
           </div>
           <div className="metric-card">
             <div className="metric-card__title">Registered Users</div>

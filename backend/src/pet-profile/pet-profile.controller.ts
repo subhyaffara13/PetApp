@@ -14,6 +14,7 @@ import {
 import { PetProfileService } from './pet-profile.service';
 import { CreatePetProfileDto } from './dto/create-pet-profile.dto';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('pet-profile')
 @UseGuards(OptionalJwtAuthGuard)
@@ -38,18 +39,20 @@ export class PetProfileController {
   }
 
   @Get('co-parent/requests/inbox')
+  @UseGuards(JwtAuthGuard)
   async getIncomingCoParentRequests(@Req() req: any) {
-    const userId = req.user?.id || 'guest-anonymous';
+    const userId = req.user.id;
     return this.petProfileService.getIncomingCoParentRequests(userId);
   }
 
   @Post('co-parent/requests/:requestId/respond')
+  @UseGuards(JwtAuthGuard)
   async respondToCoParentRequest(
     @Param('requestId') requestId: string,
     @Body() body: { action: 'accept' | 'decline' },
     @Req() req: any,
   ) {
-    const userId = req.user?.id || 'guest-anonymous';
+    const userId = req.user.id;
     return this.petProfileService.respondToCoParentRequest(
       requestId,
       userId,
@@ -70,18 +73,23 @@ export class PetProfileController {
   }
 
   @Patch(':id/archive')
+  @UseGuards(JwtAuthGuard)
   async archivePet(
     @Param('id') id: string,
-    @Body() body: { reason?: 'passed' | 'rehomed' | 'inactive' | 'other' },
+    @Body() body: { reason?: 'passed' | 'rehomed' | 'inactive' | 'other'; isArchived?: boolean },
     @Req() req: any,
   ) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
+    if (body?.isArchived === false) {
+      return this.petProfileService.unarchivePet(id, userId);
+    }
     return this.petProfileService.archivePet(id, userId, body?.reason);
   }
 
   @Patch(':id/unarchive')
+  @UseGuards(JwtAuthGuard)
   async unarchivePet(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     return this.petProfileService.unarchivePet(id, userId);
   }
 
@@ -103,25 +111,27 @@ export class PetProfileController {
   }
 
   @Post(':id/medical-event')
+  @UseGuards(JwtAuthGuard)
   async addMedicalEvent(
     @Param('id') id: string,
     @Body() event: any,
     @Req() req: any,
   ) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     return this.petProfileService.addMedicalEvent(id, event, userId);
   }
 
   @Post(':id/co-parent/invite')
+  @UseGuards(JwtAuthGuard)
   async sendCoParentInvite(
     @Param('id') petId: string,
     @Body() body: { toUserId: string; role?: string },
     @Req() req: any,
   ) {
     const fromUser = {
-      id: req.user?.id || 'guest-anonymous',
-      name: req.user?.name || 'Pet Parent',
-      email: req.user?.email || 'parent@petsos.app',
+      id: req.user.id,
+      name: req.user.name || 'Pet Parent',
+      email: req.user.email || '',
     };
     return this.petProfileService.sendCoParentInvite(
       petId,
@@ -132,12 +142,13 @@ export class PetProfileController {
   }
 
   @Delete(':id/co-parent/:coParentUserId')
+  @UseGuards(JwtAuthGuard)
   async removeCoParent(
     @Param('id') petId: string,
     @Param('coParentUserId') coParentUserId: string,
     @Req() req: any,
   ) {
-    const currentUserId = req.user?.id || 'guest-anonymous';
+    const currentUserId = req.user.id;
     return this.petProfileService.removeCoParent(
       petId,
       currentUserId,
@@ -145,36 +156,29 @@ export class PetProfileController {
     );
   }
 
-  @Patch(':id/archive')
-  async toggleArchive(
-    @Param('id') id: string,
-    @Body() body: { isArchived: boolean },
-    @Req() req: any,
-  ) {
-    const userId = req.user?.id;
-    return this.petProfileService.toggleArchive(id, body.isArchived, userId);
-  }
-
   @Post()
+  @UseGuards(JwtAuthGuard)
   async create(@Body() createDto: CreatePetProfileDto, @Req() req: any) {
-    const userId = req.user?.id || 'guest-anonymous';
-    const userName = req.user?.name || 'Pet Parent';
+    const userId = req.user.id;
+    const userName = req.user.name || 'Pet Parent';
     return this.petProfileService.create(createDto, userId, userName);
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard)
   async update(
     @Param('id') id: string,
     @Body() updateDto: CreatePetProfileDto,
     @Req() req: any,
   ) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     return this.petProfileService.update(id, updateDto, userId);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     return this.petProfileService.remove(id, userId);
   }
 }

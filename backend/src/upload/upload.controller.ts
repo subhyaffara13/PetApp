@@ -3,18 +3,25 @@ import {
   Post,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
   BadRequestException,
   Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+/** Allowlisted upload folder names to prevent path traversal */
+const ALLOWED_FOLDERS = ['posts', 'avatars', 'stories', 'pets', 'receipts', 'general'] as const;
+type AllowedFolder = (typeof ALLOWED_FOLDERS)[number];
 
 @Controller('upload')
+@UseGuards(JwtAuthGuard)
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   /**
-   * POST /upload?folder=posts|avatars|stories
+   * POST /upload?folder=posts|avatars|stories|pets|receipts|general
    * Accepts multipart/form-data with field name "file"
    * Returns { url, publicId }
    */
@@ -38,6 +45,10 @@ export class UploadController {
     @Query('folder') folder = 'general',
   ) {
     if (!file) throw new BadRequestException('No file provided.');
-    return this.uploadService.uploadBuffer(file.buffer, folder);
+    // Validate folder against allowlist to prevent path traversal
+    const safeFolder: AllowedFolder = ALLOWED_FOLDERS.includes(folder as AllowedFolder)
+      ? (folder as AllowedFolder)
+      : 'general';
+    return this.uploadService.uploadBuffer(file.buffer, safeFolder);
   }
 }

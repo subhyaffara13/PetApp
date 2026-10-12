@@ -7,9 +7,17 @@ import {
   Query,
   Param,
   UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  CreateDeliveryOrderDto,
+  CreateStoreProductDto,
+  UpdateStoreProductDto,
+} from './dto/delivery.dto';
 
 @Controller('api')
 @UseGuards(OptionalJwtAuthGuard)
@@ -17,7 +25,7 @@ export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
   @Post('orders')
-  async createOrder(@Body() dto: any) {
+  async createOrder(@Body() dto: CreateDeliveryOrderDto) {
     return this.deliveryService.createOrder(dto);
   }
 
@@ -27,8 +35,13 @@ export class DeliveryController {
   }
 
   @Post('stores/claim')
-  async claimStore(@Body() body: { storeId: string; ownerEmail?: string }) {
-    return this.deliveryService.claimStore(body.storeId, body.ownerEmail);
+  @UseGuards(JwtAuthGuard)
+  async claimStore(
+    @Body() body: { storeId: string; ownerEmail?: string },
+    @Req() req: any,
+  ) {
+    const ownerEmail = req.user?.email || body.ownerEmail;
+    return this.deliveryService.claimStore(body.storeId, ownerEmail);
   }
 
   @Post('support/contact')
@@ -58,16 +71,25 @@ export class DeliveryController {
   }
 
   @Get('store-portal/orders/live')
+  @UseGuards(JwtAuthGuard)
   async getLiveStoreOrders(@Query('storeId') storeId: string) {
     return this.deliveryService.getLiveStoreOrders(storeId || 'all');
   }
 
   @Post('store-portal/orders/cancel-all')
-  async cancelAllOrders() {
+  @UseGuards(JwtAuthGuard)
+  async cancelAllOrders(@Req() req: any) {
+    const allowedRoles = ['store_merchant', 'superadmin'];
+    if (!allowedRoles.includes(req.user?.role)) {
+      throw new ForbiddenException(
+        'Only store merchants or administrators can perform bulk order cancellations.',
+      );
+    }
     return this.deliveryService.cancelAllOrders();
   }
 
   @Patch('store-portal/orders/:masterOrderId/sub-orders/:subOrderId/action')
+  @UseGuards(JwtAuthGuard)
   async executeStoreAction(
     @Param('masterOrderId') masterOrderId: string,
     @Param('subOrderId') subOrderId: string,
@@ -86,6 +108,7 @@ export class DeliveryController {
   }
 
   @Patch('store-portal/settings/busy-mode')
+  @UseGuards(JwtAuthGuard)
   async toggleBusyMode(@Body() body: { storeId: string; isBusyMode: boolean }) {
     return this.deliveryService.toggleBusyMode(body.storeId, body.isBusyMode);
   }
@@ -96,29 +119,41 @@ export class DeliveryController {
   }
 
   @Post('store-portal/:storeId/products')
+  @UseGuards(JwtAuthGuard)
   async createStoreProduct(
     @Param('storeId') storeId: string,
-    @Body() body: any,
+    @Body() body: CreateStoreProductDto,
   ) {
     return this.deliveryService.createStoreProduct(storeId, body);
   }
 
   @Patch('store-portal/:storeId/products/:productId')
+  @UseGuards(JwtAuthGuard)
   async updateStoreProduct(
     @Param('storeId') storeId: string,
     @Param('productId') productId: string,
-    @Body() body: any,
+    @Body() body: UpdateStoreProductDto,
   ) {
     return this.deliveryService.updateStoreProduct(storeId, productId, body);
   }
 
   @Get('store-portal/:storeId/reports')
+  @UseGuards(JwtAuthGuard)
   async getStoreFinancialReports(@Param('storeId') storeId: string) {
     return this.deliveryService.getStoreFinancialReports(storeId);
   }
 
   @Get('customer/:customerId/orders')
-  async getCustomerOrders(@Param('customerId') customerId: string) {
+  @UseGuards(JwtAuthGuard)
+  async getCustomerOrders(
+    @Param('customerId') customerId: string,
+    @Req() req: any,
+  ) {
+    if (req.user?.id !== customerId && req.user?.role !== 'superadmin') {
+      throw new ForbiddenException(
+        'You do not have permission to view these customer orders.',
+      );
+    }
     return this.deliveryService.getCustomerOrders(customerId);
   }
 
@@ -127,3 +162,4 @@ export class DeliveryController {
     return this.deliveryService.handleCourierWebhook(body);
   }
 }
+

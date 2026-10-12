@@ -80,19 +80,33 @@ async function bootstrap() {
         origin: string,
         callback: (err: Error | null, allow?: boolean) => void,
       ) => {
+        // Allow server-to-server requests (no origin header)
         if (!origin) return callback(null, true);
         const cleanOrigin = origin.replace(/\/+$/, '');
-        const allowed =
-          allowedOrigins.includes(cleanOrigin) ||
-          cleanOrigin.endsWith('.petsos.com') ||
-          cleanOrigin.includes('.run.app') ||
-          cleanOrigin.includes('petsos') ||
-          /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(
-            cleanOrigin,
-          ) ||
-          /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(cleanOrigin) ||
-          isDev;
-        return callback(null, allowed);
+
+        // 1. Exact match against explicitly allowed origins
+        if (allowedOrigins.includes(cleanOrigin)) {
+          return callback(null, true);
+        }
+
+        // 2. Strict subdomain match for petsos.com (prevents evil-petsos.com)
+        if (/^https:\/\/[a-zA-Z0-9-]+\.petsos\.com$/.test(cleanOrigin)) {
+          return callback(null, true);
+        }
+
+        // 3. Google Cloud Run preview URLs (only exact .run.app subdomains)
+        if (/^https:\/\/[a-zA-Z0-9-]+\.run\.app$/.test(cleanOrigin)) {
+          return callback(null, true);
+        }
+
+        // 4. Development-only: allow localhost and local IPs
+        if (isDev) {
+          if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+            return callback(null, true);
+          }
+        }
+
+        return callback(null, false);
       },
       credentials: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

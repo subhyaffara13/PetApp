@@ -9,26 +9,20 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import type { UserRole } from '../schemas/user.schema';
+import { RegisterDto } from './dto/register.dto';
+import {
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/login.dto';
+import { OAuthLoginDto } from './dto/oauth-login.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(
-    @Body()
-    body: {
-      name: string;
-      email: string;
-      password: string;
-      role?: UserRole;
-      organizationName?: string;
-      licenseNumber?: string;
-      practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none';
-      phone?: string;
-    },
-  ) {
+  async register(@Body() body: RegisterDto) {
     return this.authService.register(
       body.name,
       body.email,
@@ -43,21 +37,13 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password);
   }
 
   @Post('oauth-login')
   @HttpCode(200)
-  async oauthLogin(
-    @Body()
-    body: {
-      name: string;
-      email: string;
-      avatar?: string;
-      role?: UserRole;
-    },
-  ) {
+  async oauthLogin(@Body() body: OAuthLoginDto) {
     return this.authService.oauthLogin(
       body.name,
       body.email,
@@ -68,15 +54,13 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(200)
-  async forgotPassword(@Body() body: { email: string }) {
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.forgotPassword(body.email);
   }
 
   @Post('reset-password')
   @HttpCode(200)
-  async resetPassword(
-    @Body() body: { token: string; email: string; newPassword: string },
-  ) {
+  async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(
       body.token,
       body.email,

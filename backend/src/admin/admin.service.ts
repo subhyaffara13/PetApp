@@ -154,6 +154,22 @@ export class AdminService {
         latencyMs: 110,
         lastChecked: now,
       },
+      {
+        name: 'Groomer Pro Portal',
+        category: 'portal',
+        status: 'healthy',
+        uptimePercent: 99.95,
+        latencyMs: 14,
+        lastChecked: now,
+      },
+      {
+        name: 'Email Delivery (Resend)',
+        category: 'integration',
+        status: process.env.RESEND_API_KEY ? 'healthy' : 'degraded',
+        uptimePercent: 99.9,
+        latencyMs: 45,
+        lastChecked: now,
+      },
     ];
   }
 

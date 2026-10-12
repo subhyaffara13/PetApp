@@ -112,4 +112,40 @@ describe('AuthService & Password Security', () => {
       expect(mockUser.save).toHaveBeenCalled();
     });
   });
+
+  describe('Privilege Escalation Prevention', () => {
+    it('should reject registration attempting superadmin role', async () => {
+      await expect(
+        service.register(
+          'Attacker',
+          'attacker@evil.com',
+          'Password123!',
+          'superadmin' as any,
+        ),
+      ).rejects.toThrow('Privileged role "superadmin" cannot be self-assigned.');
+    });
+
+    it('should neutralize superadmin role during oauth login', async () => {
+      mockUserModel.findOne.mockResolvedValueOnce(null);
+      mockUserModel.create.mockImplementationOnce((doc: any) => ({
+        ...doc,
+        _id: 'user-oauth-1',
+        isActive: true,
+      }));
+
+      await service.oauthLogin(
+        'Attacker',
+        'attacker@evil.com',
+        '',
+        'superadmin' as any,
+      );
+
+      expect(mockUserModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'customer',
+        }),
+      );
+    });
+  });
 });
+

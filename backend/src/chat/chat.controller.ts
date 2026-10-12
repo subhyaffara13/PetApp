@@ -9,20 +9,80 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsObject,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { ChatService } from './chat.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 
+export class ChatHistoryItemDto {
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @IsString()
+  content: string;
+}
+
+export class ChatImageDto {
+  @IsString()
+  @IsNotEmpty()
+  data: string; // base64 string
+
+  @IsString()
+  @IsNotEmpty()
+  mimeType: string;
+}
+
 export class ChatMessageDto {
+  @IsString()
+  @IsNotEmpty()
   message: string;
-  history?: { role: string; content: string }[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChatHistoryItemDto)
+  history?: ChatHistoryItemDto[];
+
+  @IsOptional()
+  @IsString()
   petProfileId?: string;
+
+  @IsOptional()
+  @IsString()
   sessionId?: string;
+
+  @IsOptional()
+  @IsString()
   petContext?: string;
+
+  @IsOptional()
+  @IsString()
   userId?: string;
-  image?: {
-    data: string; // base64 string
-    mimeType: string;
-  };
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ChatImageDto)
+  image?: ChatImageDto;
+}
+
+export class UpdatePetMemoryDto {
+  @IsOptional()
+  @IsObject()
+  petPreferences?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  medicalHistoryNotes?: Record<string, any>;
+
+  [key: string]: any;
 }
 
 @Controller('chat')
@@ -82,7 +142,7 @@ export class ChatController {
   }
 
   @Patch('memory')
-  async updatePetMemory(@Body() body: any, @Req() req: any) {
+  async updatePetMemory(@Body() body: UpdatePetMemoryDto, @Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
     return this.chatService.updatePetMemory(userId, body);
   }

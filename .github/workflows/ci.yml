@@ -57,7 +57,7 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Run Backend Unit Tests (33 Production Specs)
+      - name: Run Backend Unit Tests (82 Production Specs)
         working-directory: ./backend
         run: npm test
 

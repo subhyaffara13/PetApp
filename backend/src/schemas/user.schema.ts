@@ -9,6 +9,7 @@ export type UserRole =
   | 'store_merchant'
   | 'shelter_org'
   | 'pet_sitter'
+  | 'groomer'
   | 'superadmin';
 export type VerificationBadge =
   | 'none'
@@ -16,6 +17,7 @@ export type VerificationBadge =
   | 'pet_store'
   | 'animal_shelter'
   | 'pet_sitter'
+  | 'groomer'
   | 'platform_admin';
 
 @Schema({ timestamps: true })
@@ -36,6 +38,7 @@ export class User {
       'store_merchant',
       'shelter_org',
       'pet_sitter',
+      'groomer',
       'superadmin',
     ],
     default: 'customer',
@@ -52,6 +55,7 @@ export class User {
       'pet_store',
       'animal_shelter',
       'pet_sitter',
+      'groomer',
       'platform_admin',
     ],
     default: 'none',

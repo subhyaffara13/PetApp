@@ -181,7 +181,38 @@ const GEMINI_MODELS = [
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
   private genAI?: GoogleGenerativeAI;
-  private sessionPetDrafts = new Map<string, any>();
+  private sessionPetDrafts = new Map<string, { draft: any; updatedAt: number }>();
+
+  private setSessionDraft(sessionId: string, draft: any) {
+    this.cleanStaleDrafts();
+    this.sessionPetDrafts.set(sessionId, { draft, updatedAt: Date.now() });
+  }
+
+  private getSessionDraft(sessionId: string): any {
+    const entry = this.sessionPetDrafts.get(sessionId);
+    if (!entry) return null;
+    if (Date.now() - entry.updatedAt > 30 * 60 * 1000) {
+      this.sessionPetDrafts.delete(sessionId);
+      return null;
+    }
+    return entry.draft;
+  }
+
+  private deleteSessionDraft(sessionId: string) {
+    this.sessionPetDrafts.delete(sessionId);
+  }
+
+  private cleanStaleDrafts() {
+    const now = Date.now();
+    const TTL = 30 * 60 * 1000;
+    if (this.sessionPetDrafts.size > 100) {
+      for (const [key, value] of this.sessionPetDrafts.entries()) {
+        if (now - value.updatedAt > TTL) {
+          this.sessionPetDrafts.delete(key);
+        }
+      }
+    }
+  }
 
   constructor(
     private readonly configService: ConfigService,
@@ -466,7 +497,7 @@ export class ChatService {
               isArchived: false,
             };
           }
-          this.sessionPetDrafts.delete(activeSessionId);
+          this.deleteSessionDraft(activeSessionId);
           petDraft = { ...petData, isComplete: true };
         } catch (err: any) {
           this.logger.warn(
@@ -484,14 +515,14 @@ export class ChatService {
         try {
           petDraft = JSON.parse(draftMatch[1]);
           responseText = responseText.replace(draftMatch[0], '').trim();
-          this.sessionPetDrafts.set(activeSessionId, petDraft);
+          this.setSessionDraft(activeSessionId, petDraft);
         } catch {}
       }
 
       // 5. Robust multi-turn conversational pet onboarding engine (runs when Gemini is offline or did not format)
       if (!isEmergency) {
         let draft =
-          this.sessionPetDrafts.get(activeSessionId) ||
+          this.getSessionDraft(activeSessionId) ||
           userDoc?.aiChatSessions?.find((s) => s.sessionId === activeSessionId)
             ?.petDraft ||
           null;
@@ -505,7 +536,7 @@ export class ChatService {
         if (!petCreated && (isPetOnboardingTrigger || (draft && !draft.isComplete))) {
           draft = this.extractPetInfoFromText(message, draft || {});
           petDraft = draft;
-          this.sessionPetDrafts.set(activeSessionId, draft);
+          this.setSessionDraft(activeSessionId, draft);
 
           const hasName = Boolean(draft.name && draft.name.trim().length > 1);
           const hasSpecies = Boolean(draft.species);
@@ -558,7 +589,7 @@ export class ChatService {
               }
               draft.isComplete = true;
               petDraft = draft;
-              this.sessionPetDrafts.delete(activeSessionId);
+              this.deleteSessionDraft(activeSessionId);
 
               responseText = isHebrew
                 ? `איזה כיף להכיר את ${draft.name}! 🐾\nהקמתי עבורכם את דרכון הבריאות הרשמי של ${draft.name} ב-PetSOS. תוכל לראות את הכרטיס שלו ממש כאן למטה, ולעדכן תמונות, חיסונים או משקל בכל עת דרך הפרופיל. איך ${draft.name} מרגיש היום?`

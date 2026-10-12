@@ -73,7 +73,7 @@ export function validateEnvironment(): ValidatedEnv {
     }
   }
 
-  // Production completeness audit
+  // Production completeness audit — FATAL if secrets are placeholder
   if (process.env.NODE_ENV === 'production') {
     const requiredProd: (keyof ValidatedEnv)[] = [
       'MONGO_DB_CONNECTION_STRING',
@@ -86,13 +86,23 @@ export function validateEnvironment(): ValidatedEnv {
       'CLOUDINARY_API_SECRET',
       'ADMIN_SECRET_TOKEN',
     ];
+    const failures: string[] = [];
+    const placeholderPatterns = ['mock', 'dev_secret', 'change-me', 'change_in_production', 'test_mock'];
     for (const key of requiredProd) {
       const val = process.env[key];
-      if (!val || val.includes('mock') || val.includes('dev_secret')) {
-        logger.warn(
-          `⚠️  PRODUCTION WARNING: ${key} is missing or using a placeholder value.`,
-        );
+      if (!val) {
+        failures.push(`${key} is MISSING`);
+      } else if (placeholderPatterns.some((p) => val.toLowerCase().includes(p))) {
+        failures.push(`${key} is using a placeholder/dev value ("${val.substring(0, 20)}...")`);
       }
+    }
+    if (failures.length > 0) {
+      for (const f of failures) {
+        logger.error(`🚨 PRODUCTION FATAL: ${f}`);
+      }
+      throw new Error(
+        `Server boot ABORTED: ${failures.length} production secret(s) are missing or using placeholder values. Configure real secrets before deploying to production.`,
+      );
     }
 
     // Integration readiness audit (warn but don't block)

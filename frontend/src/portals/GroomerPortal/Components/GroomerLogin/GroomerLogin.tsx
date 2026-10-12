@@ -1,0 +1,220 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Scissors, Mail, Lock, AlertCircle, ArrowLeft, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { API_URL } from '../../../../config/api';
+
+const AUTH_KEY = 'petsos_groomer_auth_v1';
+
+export interface GroomerUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface GroomerLoginProps {
+  onLogin: (user: GroomerUser) => void;
+}
+
+export const GroomerLogin: React.FC<GroomerLoginProps> = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [tab, setTab] = useState<'login' | 'register'>('login');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      const payload = tab === 'login'
+        ? { email, password }
+        : { name, email, password, role: 'groomer' };
+
+      const res = await axios.post(`${API_URL}/auth/${tab === 'login' ? 'login' : 'register'}`, payload);
+      const { accessToken, refreshToken } = res.data;
+      const jwtPayload = JSON.parse(atob(accessToken.split('.')[1]));
+
+      const allowedRoles = ['groomer', 'superadmin'];
+      if (tab === 'login' && !allowedRoles.includes(jwtPayload.role)) {
+        setError('This account does not have groomer pro access.');
+        return;
+      }
+
+      const user: GroomerUser = {
+        id: jwtPayload.sub,
+        name: jwtPayload.name || name || 'Pet Stylist',
+        email: jwtPayload.email,
+        role: jwtPayload.role,
+        accessToken,
+        refreshToken,
+      };
+      localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+      onLogin(user);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Authentication failed. Please verify your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #130924 0%, #200f38 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', padding: '1rem' }}>
+      <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)', borderRadius: 20, padding: '2.5rem 2rem', width: '100%', maxWidth: 440 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ width: 64, height: 64, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <Scissors size={30} color="#c084fc" />
+          </div>
+          <h1 style={{ margin: '0 0 0.25rem', color: '#f8fafc', fontSize: '1.4rem', fontWeight: 800 }}>PetSOS Groomer Pro Portal</h1>
+          <p style={{ margin: 0, color: '#c084fc', fontSize: '0.85rem' }}>Salon & Spa Queue, Health Logs & Tax Invoicing</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '0.25rem' }}>
+          {(['login', 'register'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                flex: 1,
+                padding: '0.5rem',
+                borderRadius: 8,
+                border: 'none',
+                background: tab === t ? 'rgba(168,85,247,0.25)' : 'transparent',
+                color: tab === t ? '#c084fc' : '#94a3b8',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                transition: 'all 0.15s',
+              }}
+            >
+              {t === 'login' ? 'Sign In' : 'Register Grooming Salon'}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {tab === 'register' && (
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.3rem', fontWeight: 600 }}>Salon / Stylist Name</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0 0.85rem' }}>
+                <Sparkles size={16} color="#94a3b8" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Pawfect Cut Studio"
+                  required
+                  style={{ flex: 1, background: 'transparent', border: 'none', color: '#f8fafc', padding: '0.75rem 0', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.3rem', fontWeight: 600 }}>Email Address</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0 0.85rem' }}>
+              <Mail size={16} color="#94a3b8" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="groomer@salon.com"
+                required
+                style={{ flex: 1, background: 'transparent', border: 'none', color: '#f8fafc', padding: '0.75rem 0', fontSize: '0.9rem', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.3rem', fontWeight: 600 }}>Password</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '0 0.85rem' }}>
+              <Lock size={16} color="#94a3b8" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password (min 8 chars)"
+                required
+                minLength={8}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: '#f8fafc', padding: '0.75rem 0', fontSize: '0.9rem', outline: 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '0.6rem 0.85rem', color: '#f87171', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <AlertCircle size={14} /> {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              padding: '0.85rem',
+              background: 'linear-gradient(135deg, #a855f7, #9333ea)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              marginTop: '0.25rem',
+              boxShadow: '0 4px 14px rgba(168,85,247,0.35)',
+            }}
+          >
+            {isLoading ? 'Authenticating...' : tab === 'login' ? 'Access Groomer Portal' : 'Create Groomer Account'}
+          </button>
+        </form>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <a
+            href="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              color: '#c084fc',
+              textDecoration: 'none',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+            }}
+          >
+            <ArrowLeft size={14} /> Back to PetSOS Customer App
+          </a>
+          <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.72rem', margin: 0 }}>
+            Don't have access? Register your salon above or contact PetSOS support.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export function loadGroomerAuth(): GroomerUser | null {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function logoutGroomer(): void {
+  try {
+    localStorage.removeItem(AUTH_KEY);
+  } catch {}
+}

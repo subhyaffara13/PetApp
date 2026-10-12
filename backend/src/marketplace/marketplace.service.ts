@@ -545,14 +545,18 @@ export class MarketplaceService implements OnModuleInit {
     return this.getOrders(safeCustomerId);
   }
 
-  async getOrders(customerId?: string): Promise<any[]> {
+  async getOrders(customerId?: string, page = 1, limit = 20): Promise<any[]> {
     const safeCustomerId = toSafeString(customerId);
+    const safePage = Math.max(1, page || 1);
+    const safeLimit = Math.min(50, Math.max(1, limit || 20));
+    const skip = (safePage - 1) * safeLimit;
     try {
       const query = safeCustomerId ? { customerId: safeCustomerId } : {};
       const orders = await this.orderModel
         .find(query)
         .sort({ createdAt: -1 })
-        .limit(30)
+        .skip(skip)
+        .limit(safeLimit)
         .exec();
       if (orders && orders.length > 0) return orders;
     } catch (err) {
@@ -561,7 +565,7 @@ export class MarketplaceService implements OnModuleInit {
     const filtered = safeCustomerId
       ? this.inMemoryOrders.filter((o) => o.customerId === safeCustomerId)
       : this.inMemoryOrders;
-    return filtered;
+    return filtered.slice(skip, skip + safeLimit);
   }
 
   /** Marks an order as paid (called after a successful Stripe payment) */

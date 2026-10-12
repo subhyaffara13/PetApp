@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -11,6 +11,8 @@ import { toSafeString, isSafeObjectId } from '../utils/sanitize';
 
 @Injectable()
 export class ScheduleService {
+  private readonly logger = new Logger(ScheduleService.name);
+
   constructor(
     @InjectModel(Appointment.name)
     private appointmentModel: Model<AppointmentDocument>,
@@ -36,7 +38,9 @@ export class ScheduleService {
           else if (pet.species === 'bird') petColor = '#10b981';
           else if (pet.species === 'small_mammal') petColor = '#a855f7';
         }
-      } catch {}
+      } catch (err) {
+        this.logger.debug('Pet lookup error during appointment booking:', err);
+      }
     }
 
     const appt = new this.appointmentModel({
@@ -128,7 +132,9 @@ export class ScheduleService {
         if (pet) {
           coParentIds = (pet.coParents || []).map((cp: any) => cp.userId);
         }
-      } catch {}
+      } catch (err) {
+        this.logger.debug('Pet lookup error during reminder creation:', err);
+      }
     }
     const rem = new this.reminderModel({ ...dto, coParentIds });
     return rem.save();

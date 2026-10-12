@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -12,6 +13,12 @@ import {
 } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  CreateMarketplaceOrderDto,
+  AddProductDto,
+  UpdateProductDto,
+} from './dto/marketplace.dto';
 
 @Controller('marketplace')
 @UseGuards(OptionalJwtAuthGuard)
@@ -59,19 +66,28 @@ export class MarketplaceController {
   }
 
   @Post('orders')
-  async createOrder(@Body() orderDto: any) {
-    return this.marketplaceService.createOrder(orderDto);
+  @UseGuards(JwtAuthGuard)
+  async createOrder(@Body() orderDto: CreateMarketplaceOrderDto, @Req() req: any) {
+    const userId = req.user.id;
+    return this.marketplaceService.createOrder({ ...orderDto, customerId: userId });
   }
 
   @Get('orders/my-purchases')
-  async getMyPurchases(@Req() req: any, @Query('customerId') queryId?: string) {
-    const userId = queryId || req.user?.id || req.user?.sub;
+  @UseGuards(JwtAuthGuard)
+  async getMyPurchases(@Req() req: any) {
+    const userId = req.user.id;
     return this.marketplaceService.getMyPurchases(userId);
   }
 
   @Get('orders')
-  async listOrders(@Query('customerId') customerId?: string) {
-    return this.marketplaceService.getOrders(customerId);
+  async listOrders(
+    @Query('customerId') customerId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.marketplaceService.getOrders(customerId, pageNum, limitNum);
   }
 
   @Get('orders/:id')
@@ -101,21 +117,40 @@ export class MarketplaceController {
     );
   }
 
+  @Post('checkout/mock')
+  async mockCheckout(@Body() body: any, @Req() req: any) {
+    const userId = req.user?.id || req.user?.sub || 'anonymous';
+    return {
+      success: true,
+      transactionId: `mock_tx_${Date.now()}`,
+      amount: body.amount,
+      type: body.type || 'checkout',
+      shelterId: body.shelterId,
+      shelterName: body.shelterName,
+      userId,
+      timestamp: new Date().toISOString(),
+      message: 'Mock payment processed successfully',
+    };
+  }
+
   @Post('shops/:shopId/products')
-  async addProduct(@Param('shopId') shopId: string, @Body() body: any) {
+  @UseGuards(JwtAuthGuard)
+  async addProduct(@Param('shopId') shopId: string, @Body() body: AddProductDto) {
     return this.marketplaceService.addProduct(shopId, body);
   }
 
   @Post('products/:productId')
+  @UseGuards(JwtAuthGuard)
   async updateProduct(
     @Param('productId') productId: string,
-    @Body() body: any,
+    @Body() body: UpdateProductDto,
   ) {
     return this.marketplaceService.updateProduct(productId, body);
   }
 
-  @Get('products/:productId/delete')
-  async deleteProduct(@Param('productId') productId: string) {
+  @Delete('products/:productId')
+  @UseGuards(JwtAuthGuard)
+  async deleteProductHttp(@Param('productId') productId: string) {
     return this.marketplaceService.deleteProduct(productId);
   }
 }

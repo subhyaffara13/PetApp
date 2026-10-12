@@ -10,10 +10,12 @@ import { GroomerRecordsTab } from './Components/GroomerRecordsTab';
 import { GroomerVerificationTab } from './Components/GroomerVerificationTab';
 import { NewServiceModal } from './Components/NewServiceModal';
 import { CoatNotesModal } from './Components/CoatNotesModal';
+import { GroomerLogin, loadGroomerAuth, logoutGroomer, type GroomerUser } from './Components/GroomerLogin/GroomerLogin';
 import { Calendar, Layers, FileText, ShieldCheck, Sparkles } from 'lucide-react';
 import './App.css';
 
 export default function GroomerPortal() {
+  const [groomerUser, setGroomerUser] = useState<GroomerUser | null>(loadGroomerAuth);
   const [activeTab, setActiveTab] = useState<'queue' | 'services' | 'records' | 'verification'>('queue');
   const [appointments, setAppointments] = useState<GroomingAppointment[]>([]);
   const [services, setServices] = useState<GroomingServiceItem[]>([]);
@@ -28,28 +30,42 @@ export default function GroomerPortal() {
     setTimeout(() => setFeedbackToast(null), 3500);
   };
 
+  const handleLogout = () => {
+    logoutGroomer();
+    setGroomerUser(null);
+  };
+
+  const getAuthHeaders = useCallback(() => {
+    if (!groomerUser?.accessToken) return {};
+    return { headers: { Authorization: `Bearer ${groomerUser.accessToken}` } };
+  }, [groomerUser]);
+
   const fetchServices = useCallback(async () => {
+    if (!groomerUser) return;
     try {
-      const res = await axios.get(`${API_URL}/grooming/services`);
+      const res = await axios.get(`${API_URL}/grooming/services?groomerId=${groomerUser.id}`, getAuthHeaders());
       if (Array.isArray(res.data)) setServices(res.data);
     } catch {}
-  }, []);
+  }, [groomerUser, getAuthHeaders]);
 
   const fetchAppointments = useCallback(async () => {
+    if (!groomerUser) return;
     try {
-      const res = await axios.get(`${API_URL}/grooming/appointments`);
+      const res = await axios.get(`${API_URL}/grooming/appointments`, getAuthHeaders());
       if (Array.isArray(res.data)) setAppointments(res.data);
     } catch {}
-  }, []);
+  }, [groomerUser, getAuthHeaders]);
 
   useEffect(() => {
-    fetchServices();
-    fetchAppointments();
-  }, [fetchServices, fetchAppointments]);
+    if (groomerUser) {
+      fetchServices();
+      fetchAppointments();
+    }
+  }, [groomerUser, fetchServices, fetchAppointments]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      await axios.patch(`${API_URL}/grooming/appointments/${id}/status`, { status: newStatus });
+      await axios.patch(`${API_URL}/grooming/appointments/${id}/status`, { status: newStatus }, getAuthHeaders());
       setAppointments((prev) =>
         prev.map((a) => (a._id === id ? { ...a, status: newStatus as any } : a))
       );
@@ -61,7 +77,7 @@ export default function GroomerPortal() {
 
   const handleIssueInvoice = async (id: string) => {
     try {
-      const res = await axios.post(`${API_URL}/grooming/appointments/${id}/invoice`);
+      const res = await axios.post(`${API_URL}/grooming/appointments/${id}/invoice`, {}, getAuthHeaders());
       setSelectedReceipt(res.data);
       setIsReceiptModalOpen(true);
       fetchAppointments();
@@ -77,7 +93,7 @@ export default function GroomerPortal() {
       await axios.patch(`${API_URL}/grooming/appointments/${activeNoteAppt._id}/status`, {
         status: activeNoteAppt.status,
         coatConditionNotes: notes,
-      });
+      }, getAuthHeaders());
       setAppointments((prev) =>
         prev.map((a) => (a._id === activeNoteAppt._id ? { ...a, coatConditionNotes: notes } : a))
       );
@@ -90,7 +106,7 @@ export default function GroomerPortal() {
 
   const handleCreateService = async (data: any) => {
     try {
-      await axios.post(`${API_URL}/grooming/services`, data);
+      await axios.post(`${API_URL}/grooming/services`, data, getAuthHeaders());
       setIsNewServiceOpen(false);
       fetchServices();
       showToast('New grooming service package added!');
@@ -98,6 +114,10 @@ export default function GroomerPortal() {
       showToast('Failed to create service');
     }
   };
+
+  if (!groomerUser) {
+    return <GroomerLogin onLogin={(user) => setGroomerUser(user)} />;
+  }
 
   const activeCount = appointments.filter((a) => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedToday = appointments.filter((a) => a.status === 'completed').length;
@@ -119,6 +139,8 @@ export default function GroomerPortal() {
         completedToday={completedToday}
         todayRevenue={todayRevenue}
         onRefresh={() => { fetchAppointments(); fetchServices(); }}
+        groomerUser={groomerUser}
+        onLogout={handleLogout}
       />
 
       <nav className="groomer-nav-tabs">

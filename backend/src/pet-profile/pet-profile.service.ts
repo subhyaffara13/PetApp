@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -312,6 +313,7 @@ export class PetProfileService {
    * Updates an existing pet profile with ownership authorization
    */
   async update(id: string, data: any, userId?: string): Promise<any> {
+    if (!userId) throw new UnauthorizedException('Authentication required to update a pet profile');
     const safeId = toSafeString(id);
     const existing = await this.findOne(safeId, userId);
     const cleanData = sanitizeMongoInput(data);
@@ -349,7 +351,9 @@ export class PetProfileService {
           .exec();
         if (updated) return updated;
       }
-    } catch (err) {}
+    } catch (err: any) {
+      this.logger.error(`Database error updating pet profile ${safeId}: ${err?.message}`, err?.stack);
+    }
 
     const idx = this.inMemoryStore.findIndex(
       (p) => p._id === safeId || p.petId === safeId,
@@ -363,10 +367,13 @@ export class PetProfileService {
    * Removes a pet profile with authorization
    */
   async remove(id: string, userId?: string): Promise<void> {
+    if (!userId) throw new UnauthorizedException('Authentication required to delete a pet profile');
     await this.findOne(id, userId);
     try {
       await this.petProfileModel.findByIdAndDelete(id).exec();
-    } catch (err) {}
+    } catch (err: any) {
+      this.logger.error(`Database error removing pet profile ${id}: ${err?.message}`, err?.stack);
+    }
     this.inMemoryStore = this.inMemoryStore.filter(
       (p) => p._id !== id && p.petId !== id,
     );

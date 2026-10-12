@@ -4,8 +4,11 @@ import {
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
+  OnGatewayConnection,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
@@ -34,9 +37,42 @@ import { Server, Socket } from 'socket.io';
     credentials: true,
   },
 })
-export class DeliveryGateway {
+export class DeliveryGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
+
+  private readonly logger = new Logger(DeliveryGateway.name);
+
+  constructor(private readonly jwtService: JwtService) {}
+
+  /**
+   * Authenticate WebSocket connections on handshake.
+   * Clients must send a JWT via `auth.token` in the handshake.
+   */
+  handleConnection(client: Socket) {
+    try {
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        this.logger.warn(`WS connection rejected — no token (${client.id})`);
+        client.emit('auth_error', { message: 'Authentication required' });
+        client.disconnect(true);
+        return;
+      }
+
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET,
+      });
+      (client as any).user = payload;
+      this.logger.log(`WS client authenticated: ${client.id} (user=${payload.sub})`);
+    } catch (err) {
+      this.logger.warn(`WS connection rejected — invalid token (${client.id})`);
+      client.emit('auth_error', { message: 'Invalid or expired token' });
+      client.disconnect(true);
+    }
+  }
 
   @SubscribeMessage('join:store')
   handleJoinStore(

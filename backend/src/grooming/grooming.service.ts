@@ -85,7 +85,9 @@ export class GroomingService {
         .find({ isAvailable: true })
         .exec();
       if (dbServices && dbServices.length > 0) return dbServices;
-    } catch {}
+    } catch (err) {
+      this.logger.debug('Could not query services from MongoDB, using in-memory store:', err);
+    }
     return this.inMemoryServices;
   }
 
@@ -98,7 +100,8 @@ export class GroomingService {
   ): Promise<GroomingServiceItem> {
     try {
       return await this.serviceModel.create({ ...dto, groomerId });
-    } catch {
+    } catch (err) {
+      this.logger.debug('Could not persist service in MongoDB, saving in-memory:', err);
       const newSrv = {
         _id: `srv-${Date.now()}`,
         groomerId,
@@ -132,7 +135,9 @@ export class GroomingService {
         .sort({ createdAt: -1 })
         .exec();
       if (appointments && appointments.length > 0) return appointments;
-    } catch {}
+    } catch (err) {
+      this.logger.debug('Could not query appointments from MongoDB, using in-memory store:', err);
+    }
 
     return this.inMemoryAppointments;
   }
@@ -208,7 +213,9 @@ export class GroomingService {
           .findByIdAndUpdate(toSafeObjectId(safeId), { $set: updates }, { new: true })
           .exec();
         if (doc) return doc;
-      } catch {}
+      } catch (err) {
+        this.logger.debug('MongoDB appointment update fallback to in-memory:', err);
+      }
     }
 
     const idx = this.inMemoryAppointments.findIndex((a) => a._id === safeId);
@@ -232,7 +239,9 @@ export class GroomingService {
     if (isSafeObjectId(safeId)) {
       try {
         appt = await this.appointmentModel.findById(toSafeObjectId(safeId)).exec();
-      } catch {}
+      } catch (err) {
+        this.logger.debug('MongoDB appointment lookup fallback to in-memory:', err);
+      }
     }
 
     if (!appt) {

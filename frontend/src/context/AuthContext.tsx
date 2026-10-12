@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-
+import { setAuthToken } from '../api/apiClient';
 import { API_URL } from '../config/api';
 import type { User, UserRole } from '../schemas';
 export type { User, UserRole };
@@ -136,15 +136,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const user = storedAuth?.user ?? null;
   const accessToken = storedAuth?.accessToken ?? null;
 
-  // Attach Axios bearer token
+  // Sync bearer token with isolated API client (no global axios mutation)
   useEffect(() => {
-    const interceptor = axios.interceptors.request.use((config) => {
-      if (storedAuth?.accessToken) {
-        config.headers.Authorization = `Bearer ${storedAuth.accessToken}`;
-      }
-      return config;
-    });
-    return () => axios.interceptors.request.eject(interceptor);
+    setAuthToken(storedAuth?.accessToken ?? null);
+    return () => setAuthToken(null);
   }, [storedAuth?.accessToken]);
 
   function buildStoredAuth(

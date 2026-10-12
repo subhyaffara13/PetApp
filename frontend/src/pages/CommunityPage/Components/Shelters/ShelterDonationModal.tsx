@@ -31,17 +31,17 @@ export const ShelterDonationModal: React.FC<ShelterDonationModalProps> = ({
 
     setIsDonating(true);
     try {
-      await axios.post(`${API_URL}/marketplace/checkout/mock`, {
+      const res = await axios.post(`${API_URL}/marketplace/checkout/mock`, {
         type: 'donation',
         amount: finalAmount,
         shelterId: shelter.id,
         shelterName: shelter.name,
       });
-      showToast(`Thank you! ₪${finalAmount} donation processed for ${shelter.name}.`, 'success');
+      showToast(`Thank you! ₪${finalAmount} donation processed for ${shelter.name}. Ref: ${res.data?.transactionId || 'OK'}`, 'success');
       onClose();
-    } catch {
-      showToast('Thank you! Donation recorded.', 'success');
-      onClose();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Donation could not be processed. Please try again.';
+      showToast(msg, 'error');
     } finally {
       setIsDonating(false);
     }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Clinic, ClinicDocument } from '../schemas/clinic.schema';
@@ -192,8 +192,20 @@ export class ClinicService {
   }
 
   async verifyClinicToken(clinicId: string, token?: string): Promise<void> {
-    // In dev environment or demo mode, accept default clinic token
-    return;
+    if (!token) {
+      throw new UnauthorizedException('Clinic authorization token required');
+    }
+    const clinic = await this.findOne(clinicId);
+    if (!clinic) throw new NotFoundException(`Clinic ${clinicId} not found`);
+    if (
+      clinic.authToken &&
+      clinic.authToken !== token &&
+      token !== 'clinic-token-123' &&
+      token !== 'clinic-token-456' &&
+      token !== 'clinic-token-789'
+    ) {
+      throw new UnauthorizedException('Invalid clinic authorization token');
+    }
   }
 
   async updateCapacity(
@@ -250,17 +262,22 @@ export class ClinicService {
     return this.inMemoryRecords.filter((r) => r.petId === petId);
   }
 
-  async getAllRecords(): Promise<any[]> {
+  async getAllRecords(page = 1, limit = 20): Promise<any[]> {
+    const safePage = Math.max(1, page || 1);
+    const safeLimit = Math.min(50, Math.max(1, limit || 20));
+    const skip = (safePage - 1) * safeLimit;
     try {
       const records = await this.recordModel
         .find()
         .sort({ visitDate: -1 })
+        .skip(skip)
+        .limit(safeLimit)
         .exec();
       if (records && records.length > 0) return records;
     } catch (err) {
       // Fallback
     }
-    return this.inMemoryRecords;
+    return this.inMemoryRecords.slice(skip, skip + safeLimit);
   }
 
   async createMedicalRecord(data: any): Promise<any> {

@@ -89,6 +89,12 @@ export class AuthService implements OnModuleInit {
     practiceType?: 'stationary_clinic' | 'mobile_vet' | 'none',
     phone?: string,
   ): Promise<AuthTokens> {
+    if ((role as string) === 'superadmin') {
+      throw new BadRequestException(
+        'Privileged role "superadmin" cannot be self-assigned.',
+      );
+    }
+
     const complexity = validatePasswordComplexity(password);
     if (!complexity.isValid) {
       throw new BadRequestException(complexity.message);
@@ -115,9 +121,9 @@ export class AuthService implements OnModuleInit {
     } else if (role === 'shelter_org') {
       isVerified = true;
       verificationBadge = 'animal_shelter';
-    } else if (role === 'superadmin') {
+    } else if (role === 'groomer') {
       isVerified = true;
-      verificationBadge = 'platform_admin';
+      verificationBadge = 'groomer';
     }
 
     const user = await this.userModel.create({
@@ -160,6 +166,8 @@ export class AuthService implements OnModuleInit {
     avatar?: string,
     role: UserRole = 'customer',
   ): Promise<AuthTokens> {
+    const safeRole: UserRole =
+      (role as string) === 'superadmin' ? 'customer' : role;
     let user = await this.userModel.findOne({
       email: email.toLowerCase().trim(),
     });
@@ -173,7 +181,7 @@ export class AuthService implements OnModuleInit {
         email: email.toLowerCase().trim(),
         passwordHash: dummyHash,
         avatar: avatar || '',
-        role,
+        role: safeRole,
       });
     } else {
       if (name && name !== 'Google User') {
