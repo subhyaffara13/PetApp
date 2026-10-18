@@ -21,6 +21,7 @@ describe('PetProfileService (Ownership & Authorization - C-6)', () => {
   };
 
   const mockPetProfileModel = {
+    find: jest.fn(),
     findById: jest.fn(),
     findOne: jest.fn(),
     findByIdAndUpdate: jest.fn(),
@@ -110,6 +111,37 @@ describe('PetProfileService (Ownership & Authorization - C-6)', () => {
       });
 
       await expect(service.remove(validPetId, 'stranger-user-999')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('findAll', () => {
+    it('returns empty array when userId is guest-anonymous and no email provided', async () => {
+      const result = await service.findAll('guest-anonymous', false);
+      expect(result).toEqual([]);
+    });
+
+    it('queries MongoDB matching ownerId or coparent by userId or userEmail', async () => {
+      mockPetProfileModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue([mockPetDoc]),
+        }),
+      });
+
+      const result = await service.findAll('owner-user-1', false, 'owner@example.com');
+      expect(result).toHaveLength(1);
+      expect(mockPetProfileModel.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [
+              { ownerId: 'owner-user-1' },
+              { 'coParents.userId': 'owner-user-1' },
+              { ownerId: 'owner@example.com' },
+              { 'coParents.email': 'owner@example.com' },
+            ],
+          },
+          { isArchived: { $ne: true } },
+        ],
+      });
     });
   });
 });

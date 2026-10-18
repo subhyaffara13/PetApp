@@ -57,23 +57,35 @@ export class PetProfileService {
 
   /**
    * Strictly scopes pet retrieval to the authenticated user (owned + co-parented pets).
+   * Supports matching by both MongoDB ObjectId/userId and userEmail.
    * By default, returns only active pets (isArchived != true).
    */
   async findAll(
     userId = 'guest-anonymous',
     includeArchived = false,
+    userEmail?: string,
   ): Promise<any[]> {
-    if (!userId || userId === 'guest-anonymous') {
+    if ((!userId || userId === 'guest-anonymous') && !userEmail) {
       return [];
     }
 
     const archiveFilter = includeArchived ? {} : { isArchived: { $ne: true } };
 
+    const orConditions: any[] = [];
+    if (userId && userId !== 'guest-anonymous') {
+      orConditions.push({ ownerId: userId });
+      orConditions.push({ 'coParents.userId': userId });
+    }
+    if (userEmail) {
+      orConditions.push({ ownerId: userEmail });
+      orConditions.push({ 'coParents.email': userEmail });
+    }
+
     try {
       const pets = await this.petProfileModel
         .find({
           $and: [
-            { $or: [{ ownerId: userId }, { 'coParents.userId': userId }] },
+            { $or: orConditions.length > 0 ? orConditions : [{ ownerId: userId }] },
             archiveFilter,
           ],
         })
@@ -89,8 +101,8 @@ export class PetProfileService {
 
     return this.inMemoryStore.filter(
       (p) =>
-        (p.ownerId === userId ||
-          p.coParents?.some((cp: any) => cp.userId === userId)) &&
+        ((userId && (p.ownerId === userId || p.coParents?.some((cp: any) => cp.userId === userId))) ||
+          (userEmail && (p.ownerId === userEmail || p.coParents?.some((cp: any) => cp.email === userEmail)))) &&
         (includeArchived ? true : !p.isArchived),
     );
   }
@@ -98,19 +110,38 @@ export class PetProfileService {
   /**
    * Retrieves all archived (memorial / rehomed / inactive) pets for the user
    */
-  async getArchivedPets(userId = 'guest-anonymous'): Promise<any[]> {
-    if (!userId || userId === 'guest-anonymous') return [];
+  async getArchivedPets(
+    userId = 'guest-anonymous',
+    userEmail?: string,
+  ): Promise<any[]> {
+    if ((!userId || userId === 'guest-anonymous') && !userEmail) return [];
+
+    const orConditions: any[] = [];
+    if (userId && userId !== 'guest-anonymous') {
+      orConditions.push({ ownerId: userId });
+      orConditions.push({ 'coParents.userId': userId });
+    }
+    if (userEmail) {
+      orConditions.push({ ownerId: userEmail });
+      orConditions.push({ 'coParents.email': userEmail });
+    }
+
     try {
       return await this.petProfileModel
         .find({
-          ownerId: userId,
-          isArchived: true,
+          $and: [
+            { $or: orConditions.length > 0 ? orConditions : [{ ownerId: userId }] },
+            { isArchived: true },
+          ],
         })
         .sort({ archivedAt: -1, createdAt: -1 })
         .exec();
     } catch {
       return this.inMemoryStore.filter(
-        (p) => p.ownerId === userId && p.isArchived,
+        (p) =>
+          ((userId && (p.ownerId === userId || p.coParents?.some((cp: any) => cp.userId === userId))) ||
+            (userEmail && (p.ownerId === userEmail || p.coParents?.some((cp: any) => cp.email === userEmail)))) &&
+          p.isArchived,
       );
     }
   }
@@ -213,7 +244,7 @@ export class PetProfileService {
   /**
    * Retrieves a single pet by MongoDB ID, ensuring the caller is owner or co-parent
    */
-  async findOne(id: string, userId?: string): Promise<any> {
+  async findOne(id: string, userId?: string, userEmail?: string): Promise<any> {
     let pet: any;
     try {
       pet = await this.petProfileModel.findById(id).exec();
@@ -230,7 +261,11 @@ export class PetProfileService {
       userId !== 'guest-anonymous' &&
       pet.ownerId &&
       pet.ownerId !== userId &&
-      !pet.coParents?.some((cp: any) => cp.userId === userId)
+      (!userEmail || pet.ownerId !== userEmail) &&
+      !pet.coParents?.some(
+        (cp: any) =>
+          cp.userId === userId || (userEmail && cp.email === userEmail),
+      )
     ) {
       throw new ForbiddenException(
         'You do not have permission to access this pet passport.',
@@ -551,24 +586,29 @@ export class PetProfileService {
    */
   async getIncomingCoParentRequests(
     userId: string,
+    userEmail?: string,
   ): Promise<CoParentRequest[]> {
     const now = new Date();
+    const orConditions: any[] = [{ toUserId: userId }];
+    if (userEmail) {
+      orConditions.push({ toUserEmail: userEmail });
+    }
 
     try {
       // Auto-expire outdated requests
       await this.coParentRequestModel.updateMany(
-        { toUserId: userId, status: 'pending', expiresAt: { $lt: now } },
+        { $or: orConditions, status: 'pending', expiresAt: { $lt: now } },
         { $set: { status: 'expired' } },
       );
 
       return await this.coParentRequestModel
-        .find({ toUserId: userId, status: 'pending', expiresAt: { $gte: now } })
+        .find({ $or: orConditions, status: 'pending', expiresAt: { $gte: now } })
         .sort({ createdAt: -1 })
         .exec();
     } catch {
       return this.inMemoryCoParentRequests.filter(
         (r) =>
-          r.toUserId === userId &&
+          (r.toUserId === userId || (userEmail && r.toUserEmail === userEmail)) &&
           r.status === 'pending' &&
           new Date(r.expiresAt) >= now,
       );
@@ -582,6 +622,7 @@ export class PetProfileService {
     requestId: string,
     userId: string,
     action: 'accept' | 'decline',
+    userEmail?: string,
   ): Promise<{ success: boolean; message: string; pet?: any }> {
     let reqDoc: any;
     try {
@@ -596,7 +637,10 @@ export class PetProfileService {
       throw new NotFoundException('Invitation request not found.');
     }
 
-    if (reqDoc.toUserId !== userId) {
+    if (
+      reqDoc.toUserId !== userId &&
+      (!userEmail || reqDoc.toUserEmail !== userEmail)
+    ) {
       throw new ForbiddenException(
         'You are not authorized to respond to this invitation.',
       );
@@ -707,14 +751,22 @@ export class PetProfileService {
 
   // --- MEDICAL HISTORY & OCR ---
 
-  async search(query: string, userId?: string): Promise<any[]> {
+  async search(query: string, userId?: string, userEmail?: string): Promise<any[]> {
     const q = (query || '').toLowerCase().trim();
-    if (!q) return this.findAll(userId);
+    if (!q) return this.findAll(userId, false, userEmail);
+
+    const userOrConditions: any[] = [];
+    if (userId && userId !== 'guest-anonymous') {
+      userOrConditions.push({ ownerId: userId }, { 'coParents.userId': userId });
+    }
+    if (userEmail) {
+      userOrConditions.push({ ownerId: userEmail }, { 'coParents.email': userEmail });
+    }
 
     const filter: any = {
       $and: [
-        userId && userId !== 'guest-anonymous'
-          ? { $or: [{ ownerId: userId }, { 'coParents.userId': userId }] }
+        userOrConditions.length > 0
+          ? { $or: userOrConditions }
           : {},
         {
           $or: [
@@ -731,10 +783,10 @@ export class PetProfileService {
     } catch {
       return this.inMemoryStore.filter((pet) => {
         const isPermitted =
-          !userId ||
-          userId === 'guest-anonymous' ||
-          pet.ownerId === userId ||
-          pet.coParents?.some((cp: any) => cp.userId === userId);
+          (!userId || userId === 'guest-anonymous') && !userEmail
+            ? true
+            : (userId && (pet.ownerId === userId || pet.coParents?.some((cp: any) => cp.userId === userId))) ||
+              (userEmail && (pet.ownerId === userEmail || pet.coParents?.some((cp: any) => cp.email === userEmail)));
         if (!isPermitted) return false;
 
         return (

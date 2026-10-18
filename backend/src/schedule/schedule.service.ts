@@ -89,10 +89,14 @@ export class ScheduleService {
       .exec();
   }
 
-  async getAppointmentsForUser(userId: string): Promise<Appointment[]> {
+  async getAppointmentsForUser(userId: string, userEmail?: string): Promise<Appointment[]> {
+    const orConditions: any[] = [{ ownerId: userId }, { coParentIds: userId }];
+    if (userEmail) {
+      orConditions.push({ ownerId: userEmail }, { coParentIds: userEmail });
+    }
     return this.appointmentModel
       .find({
-        $or: [{ ownerId: userId }, { coParentIds: userId }],
+        $or: orConditions,
         status: { $ne: 'cancelled' },
       })
       .sort({ appointmentDate: 1, timeSlot: 1 })
@@ -116,9 +120,13 @@ export class ScheduleService {
       .exec();
   }
 
-  async getRemindersForUser(userId: string): Promise<Reminder[]> {
+  async getRemindersForUser(userId: string, userEmail?: string): Promise<Reminder[]> {
+    const orConditions: any[] = [{ userId }, { coParentIds: userId }];
+    if (userEmail) {
+      orConditions.push({ userId: userEmail }, { coParentIds: userEmail });
+    }
     return this.reminderModel
-      .find({ $or: [{ userId }, { coParentIds: userId }] })
+      .find({ $or: orConditions })
       .sort({ dueDate: 1, dueTime: 1 })
       .exec();
   }

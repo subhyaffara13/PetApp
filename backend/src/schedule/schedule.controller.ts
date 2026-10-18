@@ -32,11 +32,16 @@ export class ScheduleController {
   @Get('appointments/user/:userId')
   @UseGuards(JwtAuthGuard)
   async getUserAppointments(@Param('userId') userId: string, @Request() req: any) {
-    // Enforce: authenticated user can only view their own appointments
-    if (req.user.id !== userId && req.user.role !== 'superadmin') {
+    const callerId = req.user.id;
+    const callerEmail = req.user.email;
+    const targetId = userId === 'all' || userId === 'me' ? callerId : userId;
+    // Enforce: authenticated user can only view their own appointments (by id or email)
+    if (targetId !== callerId && targetId !== callerEmail && req.user.role !== 'superadmin') {
       return [];
     }
-    return this.scheduleService.getAppointmentsForUser(userId);
+    return callerEmail
+      ? this.scheduleService.getAppointmentsForUser(targetId, callerEmail)
+      : this.scheduleService.getAppointmentsForUser(targetId);
   }
 
   @Patch('appointments/:id/cancel')
@@ -54,11 +59,16 @@ export class ScheduleController {
   @Get('reminders/user/:userId')
   @UseGuards(JwtAuthGuard)
   async getUserReminders(@Param('userId') userId: string, @Request() req: any) {
-    // Enforce: authenticated user can only view their own reminders
-    if (req.user.id !== userId && req.user.role !== 'superadmin') {
+    const callerId = req.user.id;
+    const callerEmail = req.user.email;
+    const targetId = userId === 'all' || userId === 'me' ? callerId : userId;
+    // Enforce: authenticated user can only view their own reminders (by id or email)
+    if (targetId !== callerId && targetId !== callerEmail && req.user.role !== 'superadmin') {
       return [];
     }
-    return this.scheduleService.getRemindersForUser(userId);
+    return callerEmail
+      ? this.scheduleService.getRemindersForUser(targetId, callerEmail)
+      : this.scheduleService.getRemindersForUser(targetId);
   }
 
   @Post('reminders')

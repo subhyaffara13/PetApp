@@ -24,7 +24,8 @@ export class PetProfileController {
   @Get('search')
   async search(@Query('query') query: string, @Req() req: any) {
     const userId = req.user?.id;
-    return this.petProfileService.search(query, userId);
+    const userEmail = req.user?.email;
+    return this.petProfileService.search(query, userId, userEmail);
   }
 
   @Get('users/search')
@@ -42,7 +43,8 @@ export class PetProfileController {
   @UseGuards(JwtAuthGuard)
   async getIncomingCoParentRequests(@Req() req: any) {
     const userId = req.user.id;
-    return this.petProfileService.getIncomingCoParentRequests(userId);
+    const userEmail = req.user.email;
+    return this.petProfileService.getIncomingCoParentRequests(userId, userEmail);
   }
 
   @Post('co-parent/requests/:requestId/respond')
@@ -53,23 +55,27 @@ export class PetProfileController {
     @Req() req: any,
   ) {
     const userId = req.user.id;
+    const userEmail = req.user.email;
     return this.petProfileService.respondToCoParentRequest(
       requestId,
       userId,
       body.action,
+      userEmail,
     );
   }
 
   @Get('archived')
   async getArchivedPets(@Req() req: any) {
     const userId = req.user?.id;
-    return this.petProfileService.getArchivedPets(userId);
+    const userEmail = req.user?.email;
+    return this.petProfileService.getArchivedPets(userId, userEmail);
   }
 
   @Get()
   async findAll(@Req() req: any, @Query('includeArchived') includeArchived?: string) {
     const userId = req.user?.id;
-    return this.petProfileService.findAll(userId, includeArchived === 'true');
+    const userEmail = req.user?.email;
+    return this.petProfileService.findAll(userId, includeArchived === 'true', userEmail);
   }
 
   @Patch(':id/archive')
@@ -96,7 +102,8 @@ export class PetProfileController {
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: any) {
     const userId = req.user?.id;
-    return this.petProfileService.findOne(id, userId);
+    const userEmail = req.user?.email;
+    return this.petProfileService.findOne(id, userId, userEmail);
   }
 
   @Post('ocr-document')

@@ -136,10 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const user = storedAuth?.user ?? null;
   const accessToken = storedAuth?.accessToken ?? null;
 
-  // Sync bearer token with isolated API client (no global axios mutation)
+  // Sync bearer token with isolated API client and global axios defaults
   useEffect(() => {
     setAuthToken(storedAuth?.accessToken ?? null);
-    return () => setAuthToken(null);
   }, [storedAuth?.accessToken]);
 
   function buildStoredAuth(

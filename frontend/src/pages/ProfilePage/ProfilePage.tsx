@@ -22,7 +22,7 @@ import { API_URL } from '../../config/api';
 import './ProfilePage.css';
 
 export const ProfilePage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, accessToken } = useAuth();
   const { t } = useTranslation();
   const [pets, setPets] = useState<PetProfile[]>([]);
   const [archivedPets, setArchivedPets] = useState<PetProfile[]>([]);
@@ -42,40 +42,48 @@ export const ProfilePage = () => {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
+  const getAuthConfig = useCallback(() => {
+    return accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined;
+  }, [accessToken]);
+
   const fetchPets = useCallback(async () => {
     try {
-      const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile`);
-      setPets(res.data);
-    } catch {
+      const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile`, getAuthConfig());
+      if (Array.isArray(res.data)) {
+        setPets(res.data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch pets:', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getAuthConfig]);
 
   const fetchArchivedPets = useCallback(async () => {
     setIsLoadingArchived(true);
     try {
-      const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile/archived`);
+      const res = await axios.get<PetProfile[]>(`${API_URL}/pet-profile/archived`, getAuthConfig());
       if (Array.isArray(res.data)) setArchivedPets(res.data);
-    } catch {
+    } catch (err) {
+      console.warn('Failed to fetch archived pets:', err);
     } finally {
       setIsLoadingArchived(false);
     }
-  }, []);
+  }, [getAuthConfig]);
 
   const fetchCoParentRequests = useCallback(async () => {
     try {
-      const res = await axios.get<CoParentRequest[]>(`${API_URL}/pet-profile/co-parent/requests/inbox`);
+      const res = await axios.get<CoParentRequest[]>(`${API_URL}/pet-profile/co-parent/requests/inbox`, getAuthConfig());
       if (Array.isArray(res.data)) setCoParentRequests(res.data);
     } catch {}
-  }, []);
+  }, [getAuthConfig]);
 
   const fetchReceipts = useCallback(async () => {
     try {
-      const res = await axios.get<Receipt[]>(`${API_URL}/receipts/my-receipts`);
+      const res = await axios.get<Receipt[]>(`${API_URL}/receipts/my-receipts`, getAuthConfig());
       if (Array.isArray(res.data)) setReceipts(res.data);
     } catch {}
-  }, []);
+  }, [getAuthConfig]);
 
   useEffect(() => {
     fetchPets();
@@ -91,20 +99,38 @@ export const ProfilePage = () => {
 
   const handleCreate = async (pet: Omit<PetProfile, '_id' | 'createdAt' | 'updatedAt' | 'medicalHistory'>) => {
     try {
-      await axios.post(`${API_URL}/pet-profile`, { ...pet, medicalHistory: [], isArchived: false });
+      const res = await axios.post<PetProfile>(
+        `${API_URL}/pet-profile`,
+        { ...pet, medicalHistory: [], isArchived: false },
+        getAuthConfig()
+      );
+      const createdPet = res.data;
+      // Immediately render new pet without requiring a manual refresh
+      setPets((prev) => [createdPet, ...prev]);
+      setSelectedPet(createdPet);
       setShowOnboarding(false);
+      // Background re-fetch to ensure complete sync with server state
       fetchPets();
-    } catch {}
+    } catch (err: any) {
+      console.error('Failed to create pet profile:', err);
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to save pet profile. Please try again.';
+      alert(Array.isArray(errorMsg) ? errorMsg.join(', ') : errorMsg);
+    }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/pet-profile/${id}`);
+      await axios.delete(`${API_URL}/pet-profile/${id}`, getAuthConfig());
       if (selectedPet?._id === id) setSelectedPet(null);
       if (editingPet?._id === id) setEditingPet(null);
+      setPets((prev) => prev.filter((p) => p._id !== id));
       setArchivedPets((prev) => prev.filter((p) => p._id !== id));
-      fetchPets();
-    } catch {}
+    } catch (err) {
+      console.error('Failed to delete pet profile:', err);
+    }
   };
 
   const handleToggleArchive = async (pet: PetProfile) => {
@@ -122,32 +148,44 @@ export const ProfilePage = () => {
     }
 
     try {
-      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: nextArchived, reason });
+      await axios.patch(
+        `${API_URL}/pet-profile/${pet._id}/archive`,
+        { isArchived: nextArchived, reason },
+        getAuthConfig()
+      );
       fetchPets();
       if (activeTab === 'archived') fetchArchivedPets();
       if (selectedPet?._id === pet._id) {
         setSelectedPet((prev) => (prev ? { ...prev, isArchived: nextArchived, archivedReason: reason } : null));
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to update archive status:', err);
+    }
   };
 
   const handleRestorePet = async (pet: PetProfile) => {
     try {
-      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: false });
+      await axios.patch(`${API_URL}/pet-profile/${pet._id}/archive`, { isArchived: false }, getAuthConfig());
       setArchivedPets((prev) => prev.filter((p) => p._id !== pet._id));
       fetchPets();
-    } catch {}
+    } catch (err) {
+      console.error('Failed to restore pet:', err);
+    }
   };
 
   const handleUpdate = async (updated: PetProfile) => {
     try {
-      await axios.put(`${API_URL}/pet-profile/${updated._id}`, updated);
+      const res = await axios.put(`${API_URL}/pet-profile/${updated._id}`, updated, getAuthConfig());
+      const updatedPet = res.data || updated;
       setEditingPet(null);
-      fetchPets();
+      setPets((prev) => prev.map((p) => (p._id === updated._id ? updatedPet : p)));
       if (selectedPet?._id === updated._id) {
-        setSelectedPet(updated);
+        setSelectedPet(updatedPet);
       }
-    } catch {}
+      fetchPets();
+    } catch (err) {
+      console.error('Failed to update pet profile:', err);
+    }
   };
 
   const pendingInvites = coParentRequests.filter((r) => r.status === 'pending');
